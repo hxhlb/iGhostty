@@ -41,9 +41,12 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   for exactly this reason.
 - Depends on the **released**
   [libghostty-spm](https://github.com/Lakr233/libghostty-spm) package
-  (`upToNextMajor` from 1.6.20260922, Ghostty 3c47ca15 on Zig 0.16). This
-  revision fixes resize flicker from stale IOSurfaces, synchronized clears,
-  and semantic prompt redraws. The text primitive is `paste(text:)`; the
+  (`upToNextMajor` from 1.6.20260928, Ghostty 3c47ca15 on Zig 0.16). This
+  revision gives the UIKit view key repeat — a held hardware key, and the
+  software keyboard's held backspace, repeat instead of firing once; below
+  1.6.20260928 they fired once. 1.6.20260922 fixed resize flicker from stale
+  IOSurfaces, synchronized clears, and semantic prompt redraws. The text
+  primitive is `paste(text:)`; the
   `sendText` spellings it replaced are
   gone, and they never typed keystrokes anyway. Below that: generated configs
   are scoped to the host's bundle id; the `<major.minor>.<YYYYMMDD>` track
