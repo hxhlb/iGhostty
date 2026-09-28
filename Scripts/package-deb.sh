@@ -286,10 +286,15 @@ done
     exit 65
 }
 
+# Every `com.apple.private.security.storage.<Class>` the daemon declares. A
+# data vault refuses even root without its class, as EPERM, so a build that
+# lost one would ship a daemon that cannot read that folder.
+storage_classes="$(sed -n 's|.*<key>\(com\.apple\.private\.security\.storage\.[^<]*\)</key>.*|\1|p' "$daemon_entitlements" | sort -u)"
+[[ -n "$storage_classes" ]] || { echo "error: $daemon_entitlements declares no storage class" >&2; exit 65; }
+
 for signed_binary in "$installed_daemon" "$installed_daemon_io"; do
     ldid -e "$signed_binary" >"$daemon_signed_entitlements"
-    for entitlement in platform-application com.apple.private.security.no-sandbox \
-        com.apple.private.security.storage.AppBundles com.apple.private.security.storage.AppDataContainers; do
+    for entitlement in platform-application com.apple.private.security.no-sandbox $storage_classes; do
         require_true "$daemon_signed_entitlements" "$entitlement"
     done
     require_false "$daemon_signed_entitlements" com.apple.private.security.container-required
