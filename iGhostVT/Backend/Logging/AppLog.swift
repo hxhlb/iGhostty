@@ -88,11 +88,11 @@ enum AppLog {
     /// Bytes one launch may journal. Within a launch the file is otherwise
     /// unbounded, and with Detailed Terminal Log on it records every chunk
     /// a program prints, so a shell left flooding (`yes | base64`) fills the
-    /// data volume through the app — and Dog writes the line with the
-    /// legacy `FileHandle.write(_:)`, which raises an ObjC exception Swift
-    /// cannot catch when the write fails, so the next line from any thread
-    /// took the app down. Past the limit the file gets one closing line and
-    /// the rest of the launch reaches the unified log only.
+    /// data volume through the app. Before Dog 0.1.2 a failed write raised an
+    /// ObjC exception and took the app down; it now drops the line, but a
+    /// full disk still breaks every other app, so this one stays bounded.
+    /// Past the limit the file gets one closing line and the rest of the
+    /// launch reaches the unified log only.
     private static let journalByteLimit = 256 << 20
 
     /// Bytes journaled so far this launch. Touched only on `queue`, which
@@ -115,10 +115,10 @@ enum AppLog {
         } catch {
             loggers[.app]?.error("journal could not be opened at \(journalDirectory.path, privacy: .public)")
         }
-        // Retention is enforced here, not left to `maximumLogCount`: Dog
-        // 0.1.1's sweep skips every deletion outside DEBUG, so a shipped
-        // build kept one file per launch forever. After initialization, so
-        // this launch's file is among the newest kept.
+        // Retention is enforced here as well as by `maximumLogCount`: Dog's
+        // own sweep runs before this launch's file exists, and before 0.1.2
+        // it deleted nothing outside DEBUG. After initialization, so this
+        // launch's file is among the newest kept.
         for launch in LogReader.launches().dropFirst(journalFileCount) {
             try? FileManager.default.removeItem(at: launch.url)
         }
