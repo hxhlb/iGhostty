@@ -76,6 +76,11 @@ VERSION_APPLIER     := $(ROOT_DIR)/Scripts/apply-version.sh
 LICENSE_COLLECTOR   := $(ROOT_DIR)/Scripts/collect-licenses.py
 ACCESSIBILITY_CHECK := $(ROOT_DIR)/Scripts/check-accessibility.py
 STALE_STRINGS_CHECK := $(ROOT_DIR)/Scripts/check-stale-strings.py
+FLOOR_AUDIT         := $(ROOT_DIR)/Scripts/audit-ios-floor.sh
+# The oldest iOS the package claims: the lowest IPHONEOS_DEPLOYMENT_TARGET in
+# the project, which is the app's and the daemon's (the widget's is higher and
+# only keeps the widget off an older system). `check` reads the same number.
+IOS_DEPLOYMENT_FLOOR := $(shell sed -n 's/.*IPHONEOS_DEPLOYMENT_TARGET = \([0-9.]*\);.*/\1/p' "$(PROJECT)/project.pbxproj" | sort -V | head -1)
 MAC_DAEMON_LOADER   := $(ROOT_DIR)/Scripts/mac-daemon.sh
 MAC_PACKAGER        := $(ROOT_DIR)/Scripts/package-mac.sh
 MAC_UPDATE_FROM_GITHUB := $(ROOT_DIR)/Scripts/mac-update-from-github.sh
@@ -175,6 +180,7 @@ check:
 	@test -x "$(MAC_DAEMON_LOADER)" || { echo "error: mac-daemon.sh is not executable" >&2; exit 66; }
 	@test -x "$(LICENSE_COLLECTOR)" || { echo "error: collect-licenses.py is not executable" >&2; exit 66; }
 	@test -x "$(ACCESSIBILITY_CHECK)" || { echo "error: check-accessibility.py is not executable" >&2; exit 66; }
+	@test -x "$(FLOOR_AUDIT)" || { echo "error: audit-ios-floor.sh is not executable" >&2; exit 66; }
 	@grep -qF 'collect-licenses.py' "$(PROJECT)/project.pbxproj" \
 		|| { echo "error: the Collect Licenses build phase is missing from the iGhostVT target — Settings ▸ About ▸ Licenses would be empty" >&2; exit 65; }
 	@test -f "$(ROOT_DIR)/Licenses/ghostty/LICENSE" -a -f "$(ROOT_DIR)/Licenses/ghostty/notice.json" \
@@ -278,6 +284,21 @@ build: check test bump-build
 		build
 
 deb: build
+ifeq ($(PLATFORM),ios)
+	@# A clean build says nothing about the floor: the linker trusts the SDK's
+	@# availability metadata, and where that is wrong the process dies in dyld
+	@# before main on the old device — libswiftXPC did it to this app on iOS
+	@# 15 before 0.9.0, a strong _swift_initBorrow import (swift-collections
+	@# 1.7.0 on Xcode 27) did it to Irisin 4.5.11 on iOS 26. Every binary the
+	@# package ships is audited against the floor before anything is packaged.
+	@# The visionOS build is not an iOS floor and is not audited here.
+	@test -n "$(IOS_DEPLOYMENT_FLOOR)" || { echo "error: no IPHONEOS_DEPLOYMENT_TARGET in project.pbxproj" >&2; exit 65; }
+	"$(FLOOR_AUDIT)" "$(IOS_DEPLOYMENT_FLOOR)" \
+		"$(APP_BUNDLE)" \
+		"$(DAEMON_BINARY)" \
+		"$(DAEMON_IO_BINARY)" \
+		"$(CLI_BINARY)"
+endif
 	"$(DEB_PACKAGER)" \
 		"$(APP_BUNDLE)" \
 		"$(DAEMON_BINARY)" \

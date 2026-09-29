@@ -536,7 +536,22 @@ building *libghostty* locally does (see that repo's
   device-only parts)
 - `make deb` — unsigned iphoneos build, ldid ad-hoc sign, roothide
   `iphoneos-arm64e` package; `make deb-rootless` packages the same binaries
-  under `/var/jb` as `iphoneos-arm64` (`PACKAGE_FLAVOR` picks the layout)
+  under `/var/jb` as `iphoneos-arm64` (`PACKAGE_FLAVOR` picks the layout).
+  Before the packager runs, an iOS `make deb` puts the app bundle (widget
+  included), `ighostvtd`, `ighostvtd-io` and `ighostvt-cli` through
+  `Scripts/audit-ios-floor.sh` at the lowest `IPHONEOS_DEPLOYMENT_TARGET` in
+  the pbxproj, and a failure is no package — CI's too. It fails on a Swift
+  library newer than the floor linked non-weakly (the libswiftXPC gotcha
+  below), a binary built above the floor (an appex is allowed its own), and
+  a Swift runtime symbol newer than the floor imported non-weakly: its own
+  list (`_swift_initBorrow`, which swift-collections 1.7.0 built with Xcode
+  27 imports and which killed Irisin 4.5.11 at launch on iOS 26.6.2), and,
+  where an iOS simulator runtime at or above the floor keeps its Swift
+  libraries as files (18.x does, 26 does not), every import that runtime
+  does not export. The script is the platformize-app-ios template's, copied
+  verbatim; a fix goes there first. A dependency bump that follows the
+  standard library closely is proven by launching the packaged Release
+  build on a device below the newest iOS, not by the audit passing
 - `make mac-run` — the whole stack on a Mac: builds `ighostvtd` for macOS and
   loads it as a per-user LaunchAgent (`make mac-daemon`, undone by
   `make mac-daemon-uninstall`; log in `~/Library/Logs/ighostvtd.log`), builds
