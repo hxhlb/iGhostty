@@ -41,8 +41,12 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   for exactly this reason.
 - Depends on the **released**
   [libghostty-spm](https://github.com/Lakr233/libghostty-spm) package
-  (`upToNextMajor` from 1.6.20260928, Ghostty 3c47ca15 on Zig 0.16). This
-  revision gives the UIKit view key repeat — a held hardware key, and the
+  (`upToNextMajor` from 1.6.20260929, Ghostty 0538f753 on Zig 0.16). This
+  revision hands the hardware presses ghostty ignores (Caps Lock, bare
+  modifiers, language keys) on to UIKit, so an iPad keyboard can switch
+  input language in the terminal, and publishes the surface's effective
+  background (`TerminalViewState.backgroundColor`, OSC 11 included);
+  1.6.20260928 gave the UIKit view key repeat — a held hardware key, and the
   software keyboard's held backspace, repeat instead of firing once; below
   1.6.20260928 they fired once. 1.6.20260922 fixed resize flicker from stale
   IOSurfaces, synchronized clears, and semantic prompt redraws. The text
