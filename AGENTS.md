@@ -548,8 +548,8 @@ building *libghostty* locally does (see that repo's
   library newer than the floor linked non-weakly (the libswiftXPC gotcha
   below), a binary built above the floor (an appex is allowed its own), and
   a Swift runtime symbol newer than the floor imported non-weakly: its own
-  list (`_swift_initBorrow`, which swift-collections 1.7.0 built with Xcode
-  27 imports and which killed Irisin 4.5.11 at launch on iOS 26.6.2), and,
+  list (`_swift_initBorrow`, iOS 27, which Swift 6.4 can import strongly
+  from code that never names it), and,
   where an iOS simulator runtime at or above the floor keeps its Swift
   libraries as files (18.x does, 26 does not), every import that runtime
   does not export. The script is the platformize-app-ios template's, copied

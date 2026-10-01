@@ -288,9 +288,8 @@ ifeq ($(PLATFORM),ios)
 	@# A clean build says nothing about the floor: the linker trusts the SDK's
 	@# availability metadata, and where that is wrong the process dies in dyld
 	@# before main on the old device — libswiftXPC did it to this app on iOS
-	@# 15 before 0.9.0, a strong _swift_initBorrow import (swift-collections
-	@# 1.7.0 on Xcode 27) did it to Irisin 4.5.11 on iOS 26. Every binary the
-	@# package ships is audited against the floor before anything is packaged.
+	@# 15 before 0.9.0. Every binary the package ships is audited against the
+	@# floor before anything is packaged.
 	@# The visionOS build is not an iOS floor and is not audited here.
 	@test -n "$(IOS_DEPLOYMENT_FLOOR)" || { echo "error: no IPHONEOS_DEPLOYMENT_TARGET in project.pbxproj" >&2; exit 65; }
 	"$(FLOOR_AUDIT)" "$(IOS_DEPLOYMENT_FLOOR)" \
