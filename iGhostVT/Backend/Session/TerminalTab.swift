@@ -66,6 +66,16 @@ final class TerminalTab: ObservableObject, Identifiable {
     private var resizeThrottleObservation: AnyCancellable?
     private var lockObservation: AnyCancellable?
 
+    /// The lock the daemon's session holds, as far as this tab knows — what
+    /// the last attach stated, or the last change sent. A change equal to it
+    /// is not sent, which is what keeps a lock restored from the session
+    /// from echoing straight back as another request.
+    private var sessionLock: TabLock?
+    /// The user changed the lock while no connection could carry it. The
+    /// next attach then sends the tab's lock instead of adopting the
+    /// session's, which is older.
+    private var isLockUnsent = false
+
     /// The daemon session this tab is attached to, once it has one. Another
     /// tab opened from this one names it so its shell starts in this shell's
     /// current directory.
@@ -240,15 +250,56 @@ final class TerminalTab: ObservableObject, Identifiable {
         // A mounted surface hears a lock change through its view; one that
         // is not mounted reads the lock as it is made, below.
         lockObservation = attributes.$lock.removeDuplicates().sink { [weak self] lock in
+            self?.storeLockInSession(lock)
             guard let view = self?.terminal.attachedPlatformView as? LockableTerminalView else { return }
             view.isInteractionLocked = lock == .interaction
             view.isSoftwareKeyboardLocked = lock == .keyboard
+        }
+        // The lock lives in the daemon's session as well, so a relaunch —
+        // or a crash, which runs no termination code — finds it again: an
+        // attach states what the session kept, and the tab adopts it.
+        store.onSessionAttributes = { [weak self] attributes, isResumed in
+            self?.adoptSessionAttributes(attributes, isResumed: isResumed)
         }
         terminal.makePlatformView = { [weak self] in
             let view = LockableTerminalView(frame: .zero)
             view.isInteractionLocked = self?.isLocked ?? false
             view.isSoftwareKeyboardLocked = self?.isKeyboardLocked ?? false
             return view
+        }
+    }
+
+    /// Sends `lock` to the session unless the session already holds it.
+    /// Called from the lock's publisher, which fires before the property
+    /// changes — hence the value handed in rather than `self.lock`.
+    private func storeLockInSession(_ lock: TabLock?) {
+        guard lock != sessionLock || isLockUnsent else { return }
+        let attributes = lock.map { [iGhostVTSessionAttribute.lock: $0.sessionAttribute] } ?? [:]
+        guard store.setSessionAttributes(attributes) else {
+            isLockUnsent = true
+            return
+        }
+        sessionLock = lock
+        isLockUnsent = false
+    }
+
+    /// A reattached session hands back the lock it kept, and the tab takes
+    /// it — unless the user changed the lock while there was no link, in
+    /// which case the tab's is the newer and goes to the session instead.
+    /// A freshly opened session holds nothing, so it gets the tab's.
+    private func adoptSessionAttributes(_ attributes: [String: String], isResumed: Bool) {
+        let held = TabLock(sessionAttribute: attributes[iGhostVTSessionAttribute.lock])
+        sessionLock = held
+        guard isResumed, !isLockUnsent else {
+            storeLockInSession(lock)
+            return
+        }
+        if lock != held {
+            AppLog.info(
+                .tabs,
+                "tab \(id) takes the lock its session kept: \(held?.sessionAttribute ?? "none")",
+            )
+            lock = held
         }
     }
 

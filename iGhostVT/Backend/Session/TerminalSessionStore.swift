@@ -117,6 +117,20 @@ final class TerminalSessionStore: ObservableObject {
     private static let reconnectAttemptLimit = 5
     private static let reconnectDelay: UInt64 = 1_000_000_000
 
+    /// What the endpoint keeps on the session, each time the session is
+    /// opened or reattached (`TerminalTransportEvent.sessionAttributes`).
+    /// Installed by the tab, which owns what they mean.
+    var onSessionAttributes: ((_ attributes: [String: String], _ isResumed: Bool) -> Void)?
+
+    /// Hands `attributes` to the connected transport. False when there is
+    /// no connection to carry them — the caller keeps them and tries again
+    /// on the next `onSessionAttributes`.
+    func setSessionAttributes(_ attributes: [String: String]) -> Bool {
+        guard status == .connected, let transport = relay.transport else { return false }
+        transport.setSessionAttributes(attributes)
+        return true
+    }
+
     /// The transport of the current connection, for callers that need
     /// implementation-specific capability (daemon session control).
     var activeTransport: TerminalTransport? {
@@ -310,6 +324,8 @@ final class TerminalSessionStore: ObservableObject {
             currentDirectory = directory
             // The transport only reports changes, so this is one visit.
             RecentDirectoryStore.shared.record(directory)
+        case let .sessionAttributes(attributes, isResumed):
+            onSessionAttributes?(attributes, isResumed)
         case let .state(state):
             apply(state)
         }

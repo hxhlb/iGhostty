@@ -14,6 +14,25 @@ enum TabLock: Equatable {
     /// Only the software keyboard is refused.
     case keyboard
 
+    /// The lock as the daemon keeps it on the session
+    /// (`iGhostVTSessionAttribute.lock`), which is how it outlives the app.
+    var sessionAttribute: String {
+        switch self {
+        case .interaction: iGhostVTSessionAttribute.interactionLock
+        case .keyboard: iGhostVTSessionAttribute.keyboardLock
+        }
+    }
+
+    /// The lock a session's attribute names; `nil` for none, or for a
+    /// value this build does not know.
+    init?(sessionAttribute: String?) {
+        switch sessionAttribute {
+        case iGhostVTSessionAttribute.interactionLock: self = .interaction
+        case iGhostVTSessionAttribute.keyboardLock: self = .keyboard
+        default: return nil
+        }
+    }
+
     /// The word every presentation labels this lock with — the badge's
     /// accessibility text, and the overlay capsule's caption.
     var badgeTitle: String {

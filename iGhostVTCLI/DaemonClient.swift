@@ -74,6 +74,10 @@ struct SessionSummary {
     /// bootstrap — whose real root is a random jbroot under roothide and a
     /// prefix nobody types under rootless.
     var displayDirectory: String?
+    /// The lock the app keeps on the session (`interaction` or
+    /// `keyboard`), from its attributes; `nil` when the tab is unlocked or
+    /// the daemon keeps no attributes.
+    var lock: String?
 
     /// What `list` prints: the spelling the user's own shell would.
     var listedDirectory: String {
@@ -203,6 +207,12 @@ final class DaemonClient {
                     processName: string(row, iGhostVTWireKey.processName),
                     currentDirectory: string(row, iGhostVTWireKey.currentDirectory),
                     displayDirectory: string(row, iGhostVTWireKey.displayDirectory),
+                    lock: xpc_dictionary_get_value(row, iGhostVTWireKey.attributes)
+                        .flatMap { attributes in
+                            xpc_get_type(attributes) == iGhostVTXPC.typeDictionary
+                                ? string(attributes, iGhostVTSessionAttribute.lock)
+                                : nil
+                        },
                 ),
             )
         }

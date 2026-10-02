@@ -37,6 +37,13 @@ protocol TerminalTransport: AnyObject {
     /// should be dropped.
     func updateViewport(columns: Int, rows: Int)
 
+    /// Replaces what the endpoint keeps on the session for the host — the
+    /// tab's lock — so a later attach can hand it back. Fire and forget:
+    /// a failure is the transport's to log, and the host keeps its own
+    /// copy either way. A backend that keeps nothing ignores it, as does
+    /// one with no session to put it on yet.
+    func setSessionAttributes(_ attributes: [String: String])
+
     func disconnect()
 }
 
@@ -52,6 +59,11 @@ enum TerminalTransportEvent: Sendable {
     /// session is opened or reattached, and again whenever it moves. Only
     /// changes are sent, so each one is a visit the recent list can count.
     case currentDirectory(TerminalDirectory)
+    /// What the endpoint keeps on the session (`setSessionAttributes`),
+    /// stated once each time the session is opened (`isResumed` false, and
+    /// empty) or reattached (`isResumed` true, as last set). A backend that
+    /// keeps nothing never sends it, and the host's copy is all there is.
+    case sessionAttributes([String: String], isResumed: Bool)
 }
 
 enum TerminalTransportState: Sendable, Equatable {

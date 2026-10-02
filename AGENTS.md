@@ -221,6 +221,21 @@ shell's `cwd` (the same kernel read `inheritDirectoryFrom` uses) so a
 session can be named by something better than its id. The app sends neither
 op; the daemon's `write` and attach paths are untouched.
 
+`setSessionAttributes` (op 14) is the one thing the app keeps *in* a
+session: a string→string dictionary (`attrs`) that `ighostvtd-io` stores on
+the `PTYSession`, never reads, and hands back in the open reply (empty),
+every attach and snapshot reply, and every `listSessions` row. The request
+replaces the dictionary whole — the key is required, empty clears it — and
+anything past 16 keys or 4 KiB of UTF-8 (keys and values together), or a
+non-string value, is `invalidRequest` with nothing applied. Same trust as
+`closeSession`: any admitted peer, attached or not, but only on a live
+session (`unknownSession` otherwise). The attributes die with the session,
+and with an io crash, since every session does. The proxy forwards it like
+any other op and did not change. A daemon older than the op answers
+`invalidRequest` and sends no `attrs` in its replies; the app takes either
+as "keep it in memory" and stops sending on that transport. The CLI's `list`
+shows the `lock` key as a LOCK column.
+
 The app's Shortcuts actions (`iGhostVT/Backend/Shortcuts/`, iOS 16+ behind
 `#available`) are the CLI's verbs a third time. `ShortcutDaemonClient` is
 the CLI's one-shot client with `async` in place of the semaphore — every
@@ -446,6 +461,18 @@ closes every input path at once, which SwiftUI modifiers could not. That
 factory closure reads the tab, because a view is made whenever the surface
 mounts and one born after the user locked the tab would otherwise come up
 unlocked.
+
+The lock outlives the app because it is stored in the daemon's session
+(op 14, key `lock` = `interaction` / `keyboard`, absent when unlocked),
+never in `UserDefaults` — a relaunch, or a `kill -9` that runs no
+termination code, reattaches and the attach reply hands it back.
+`TerminalTab` sends each change through `TerminalSessionStore` to the tab's
+transport and remembers the value the session holds (`sessionLock`); a
+restore sets that first, so the lock it then assigns is equal to it and
+does not echo back as another request. A change made with no link to carry
+it is marked unsent, and the next attach pushes the tab's lock instead of
+adopting the session's older one; a freshly opened session holds nothing and
+is given the tab's.
 
 The keyboard lock has to be enforced at the *input view*, not at the tap that
 toggles it. libghostty becomes first responder from several other places — the

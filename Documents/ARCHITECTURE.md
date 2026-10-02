@@ -130,7 +130,11 @@ iGhostVT.app                          ighostvtd  (LaunchDaemon, root)
   session keeps a 256 KiB replay buffer; attaching replays it so the surface
   rebuilds its screen. The registry caps live sessions daemon-wide, because
   sessions outliving their connection means a per-peer limit bounds nothing
-  across relaunches.
+  across relaunches. A session also carries a small string dictionary a
+  client sets (`setSessionAttributes`, at most 16 keys and 4 KiB) and the
+  daemon never reads — the tab's lock, which is how it survives the app —
+  returned with every attach and `listSessions` row and gone with the
+  session.
 - **The daemon stays resident.** It used to idle-exit after thirty seconds
   with no peers and no sessions, relying on launchd to demand-launch it again.
   Demand launch does work on device, but the exit cannot be made atomic

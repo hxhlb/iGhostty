@@ -63,6 +63,12 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     /// ending passes through.
     private var retainedForDeferredEnd: XPCDaemonTransport?
 
+    /// The daemon predates session attributes: its replies carry none, or
+    /// it refused the request as one it does not know. Nothing more is sent
+    /// on this transport, and the tab's lock lives in memory alone. Confined
+    /// to `queue`.
+    private var isAttributeStoreMissing = false
+
     /// Absolute path of the shell to run, or `nil` to let the daemon pick.
     /// The daemon validates it (absolute, existing, executable) and rejects
     /// anything else — the app cannot talk it into running arbitrary bytes.
@@ -222,6 +228,40 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         xpc_dictionary_set_uint64(message, iGhostVTWireKey.columns, UInt64(columns))
         xpc_dictionary_set_uint64(message, iGhostVTWireKey.rows, UInt64(rows))
         xpc_connection_send_message(link.connection, message)
+    }
+
+    /// One `setSessionAttributes` over the link, answered on `queue`. The
+    /// app only ever sends the lock, which is well inside the limits, so an
+    /// `invalidRequest` means the daemon does not know the operation — an
+    /// older one — and the transport stops asking.
+    func setSessionAttributes(_ attributes: [String: String]) {
+        queue.async {
+            guard !self.isAttributeStoreMissing else { return }
+            guard let link = self.attachedLink() else {
+                AppLog.warning(.transport, "session attributes not sent: no attached session")
+                return
+            }
+            let message = Self.makeMessage(.setSessionAttributes, sessionID: link.sessionID)
+            let dictionary = xpc_dictionary_create(nil, nil, 0)
+            for (key, value) in attributes {
+                xpc_dictionary_set_string(dictionary, key, value)
+            }
+            xpc_dictionary_set_value(message, iGhostVTWireKey.attributes, dictionary)
+            xpc_connection_send_message_with_reply(link.connection, message, self.queue) { [weak self] reply in
+                switch Self.replyCode(of: reply) {
+                case .success:
+                    break
+                case .invalidRequest:
+                    self?.isAttributeStoreMissing = true
+                    AppLog.info(.transport, "the daemon keeps no session attributes; the lock stays in memory")
+                case let code:
+                    AppLog.error(
+                        .transport,
+                        "session \(link.sessionID) attributes not stored: reply code \(code.rawValue)",
+                    )
+                }
+            }
+        }
     }
 
     /// Detach without killing: the shell keeps running in the daemon.
@@ -586,6 +626,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                     appliedViewport = columns > 0 && rows > 0 ? (columns, rows) : nil
                     emit(.state(.connected))
                     emitSessionState(in: reply)
+                    emitSessionAttributes(in: reply, isResumed: true)
                     // Replayed scrollback so the surface rebuilds its screen.
                     // Repainted from a clean slate: on an in-app reconnect the
                     // surface still shows the session's last frame, and
@@ -656,6 +697,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             appliedViewport = (Int(columns), Int(rows))
             emit(.state(.connected))
             emitSessionState(in: reply)
+            emitSessionAttributes(in: reply, isResumed: false)
         }
     }
 
@@ -804,6 +846,28 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                 display: Self.string(iGhostVTWireKey.displayDirectory, in: dictionary),
             )))
         }
+    }
+
+    /// What an open or attach reply says the daemon keeps on the session.
+    /// A reply without the key comes from a daemon older than the
+    /// attributes: nothing is emitted, and nothing will be sent to it.
+    private func emitSessionAttributes(in reply: xpc_object_t, isResumed: Bool) {
+        guard let dictionary = xpc_dictionary_get_value(reply, iGhostVTWireKey.attributes),
+              xpc_get_type(dictionary) == iGhostVTXPC.typeDictionary
+        else {
+            isAttributeStoreMissing = true
+            return
+        }
+        var attributes: [String: String] = [:]
+        xpc_dictionary_apply(dictionary) { key, value in
+            if xpc_get_type(value) == iGhostVTXPC.typeString,
+               let string = xpc_string_get_string_ptr(value)
+            {
+                attributes[String(cString: key)] = String(cString: string)
+            }
+            return true
+        }
+        emit(.sessionAttributes(attributes, isResumed: isResumed))
     }
 
     private static func string(_ key: String, in dictionary: xpc_object_t) -> String? {

@@ -14,7 +14,8 @@ usage: ighostvt-cli list
        ighostvt-cli kill <sid>
 
   list          show the daemon's sessions: id, foreground process, size,
-                whether it is attached, and the shell's directory
+                whether it is attached, the tab's lock, and the shell's
+                directory
   capture       print the session's screen as text; --full also prints the
                 scrollback above it
   send          send input to the session, in order. Key names follow tmux's

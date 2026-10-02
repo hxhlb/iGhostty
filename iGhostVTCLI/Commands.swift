@@ -13,13 +13,14 @@ enum Commands {
         let sessions = try DaemonClient.sessions(in: client.request(.listSessions))
         guard !sessions.isEmpty else { return }
 
-        var table: [[String]] = [["SID", "PROCESS", "SIZE", "ATTACHED", "CWD"]]
+        var table: [[String]] = [["SID", "PROCESS", "SIZE", "ATTACHED", "LOCK", "CWD"]]
         for session in sessions {
             table.append([
                 String(session.id),
                 session.processName ?? session.title,
                 "\(session.columns)x\(session.rows)",
                 session.isAttached ? "yes" : "no",
+                session.lock ?? "-",
                 session.listedDirectory,
             ])
         }
