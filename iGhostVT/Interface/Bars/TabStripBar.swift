@@ -144,6 +144,7 @@ struct TabStripBar: View {
                             TabChip(
                                 tab: tab,
                                 isActive: tab.id == tabManager.activeTabID,
+                                showsSelection: tabManager.tabs.count > 1,
                                 onSelect: { tabManager.activeTabID = tab.id },
                                 onClose: { tabManager.requestClose(tab) },
                             )
@@ -297,6 +298,10 @@ struct TabStripBar: View {
 private struct TabChip: View {
     let tab: TerminalTab
     let isActive: Bool
+    /// Whether the active chip draws its capsule. A lone tab has nothing to
+    /// be picked out from, and a filled chip alone in the strip reads as a
+    /// stray button; it is still the selected one to VoiceOver.
+    let showsSelection: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
 
@@ -349,7 +354,7 @@ private struct TabChip: View {
             .frame(height: 32)
             .background(
                 Capsule().fill(
-                    isActive ? Color.primary.opacity(0.12) : Color.clear,
+                    isActive && showsSelection ? Color.primary.opacity(0.12) : Color.clear,
                 ),
             )
             .contentShape(Capsule())
