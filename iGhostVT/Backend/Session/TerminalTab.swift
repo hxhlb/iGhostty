@@ -189,15 +189,22 @@ final class TerminalTab: ObservableObject, Identifiable {
         // inside an animation so a retitle — which changes a chip's width,
         // and so every chip after it — moves instead of jumping, in every
         // view at once.
+        //
+        // Bounded: a program can retitle tens of thousands of times a
+        // second (a loop printing OSC 2), and a republish per title re-laid
+        // out and animated every tab view each time, on the main thread,
+        // far slower than the titles came. The throttle passes the first
+        // title at once and then at most one — the newest — per
+        // `retitleInterval`, so this sink runs at most four times a second
+        // and holds at most one pending emission.
         titleObservation = Publishers.Merge3(
             terminal.$title.removeDuplicates().map { _ in () },
             store.$inferredTitle.removeDuplicates().map { _ in () },
             store.$processName.removeDuplicates().map { _ in () },
         )
+        .throttle(for: Self.retitleInterval, scheduler: DispatchQueue.main, latest: true)
         .sink { [weak self] in
-            withAnimation(DS.Motion.smooth) {
-                self?.objectWillChange.send()
-            }
+            self?.publishRetitle()
         }
         statusObservation = store.$status.sink { [weak self] status in
             guard status == .connected else { return }
@@ -241,6 +248,29 @@ final class TerminalTab: ObservableObject, Identifiable {
             view.isInteractionLocked = self?.isLocked ?? false
             view.isSoftwareKeyboardLocked = self?.isKeyboardLocked ?? false
             return view
+        }
+    }
+
+    /// The fastest a retitle reaches the tab's views.
+    private static let retitleInterval: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(250)
+
+    /// Whether the latest retitle should move rather than cut: true for a
+    /// title that changed after a quiet second, false while a program
+    /// retitles faster than that — a spring and a crossfade per title then
+    /// only pile up, and a ticking title reads better as plain text.
+    private(set) var animatesRetitle = true
+    private var lastRetitle = Date.distantPast
+
+    private func publishRetitle() {
+        let now = Date()
+        animatesRetitle = now.timeIntervalSince(lastRetitle) >= 1
+        lastRetitle = now
+        guard animatesRetitle else {
+            objectWillChange.send()
+            return
+        }
+        withAnimation(DS.Motion.smooth) {
+            objectWillChange.send()
         }
     }
 

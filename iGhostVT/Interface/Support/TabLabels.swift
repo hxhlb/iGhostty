@@ -15,6 +15,8 @@ import SwiftUI
 // observing (`TabContextMenu` explains the menu's side).
 
 /// Title text that re-renders when the surface retitles (OSC updates).
+/// Moves only for an occasional retitle (`TerminalTab.animatesRetitle`);
+/// a title that ticks is set as plain text.
 struct ObservedTabTitle: View {
     @ObservedObject var tab: TerminalTab
     var font: DS.Font = .labelEmphasis
@@ -25,7 +27,7 @@ struct ObservedTabTitle: View {
             .lineLimit(1)
             .truncationMode(.middle)
             .retitleTransition()
-            .animation(DS.Motion.smooth, value: tab.displayTitle)
+            .animation(tab.animatesRetitle ? DS.Motion.smooth : nil, value: tab.displayTitle)
     }
 }
 
@@ -41,7 +43,7 @@ struct ObservedTabSubtitle: View {
             .lineLimit(1)
             .truncationMode(.middle)
             .retitleTransition()
-            .animation(DS.Motion.smooth, value: tab.secondaryTitle)
+            .animation(tab.animatesRetitle ? DS.Motion.smooth : nil, value: tab.secondaryTitle)
     }
 }
 
