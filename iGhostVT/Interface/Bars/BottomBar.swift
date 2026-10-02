@@ -39,7 +39,7 @@ struct BottomBar: View {
             }
             .padding(.horizontal, DS.Padding.l)
             .padding(.top, DS.Padding.s)
-            .padding(.bottom, DS.Padding.xs)
+            .bottomScreenMargin(DS.Padding.xs, minimum: DS.Padding.l)
         }
         .buttonStyle(.plain)
         .background(WindowReader(window: $window))

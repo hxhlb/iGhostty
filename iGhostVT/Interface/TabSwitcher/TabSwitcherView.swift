@@ -11,38 +11,57 @@ struct TabSwitcherView: View {
     @State private var showsSettings = false
     @State private var window: UIWindow?
 
-    private let columns = [
-        GridItem(.adaptive(minimum: 170, maximum: 280), spacing: 14),
-    ]
+    /// The narrowest card the adaptive grid lays out.
+    private static let cardMinimumWidth: CGFloat = 170
+    private static let cardSpacing: CGFloat = 14
+
+    /// Adaptive cards, as many as the width takes — except where two
+    /// minimum-width cards do not fit (a 4.7" iPhone, a 5.4" mini), which
+    /// the adaptive grid answered with one card per row. There it is two
+    /// flexible columns instead, and a 4.7" screen holds two rows of two.
+    private func columns(forWidth width: CGFloat) -> [GridItem] {
+        let content = width - DS.Padding.l * 2
+        guard content < Self.cardMinimumWidth * 2 + Self.cardSpacing else {
+            return [
+                GridItem(
+                    .adaptive(minimum: Self.cardMinimumWidth, maximum: 280),
+                    spacing: Self.cardSpacing,
+                ),
+            ]
+        }
+        return Array(repeating: GridItem(.flexible(), spacing: Self.cardSpacing), count: 2)
+    }
 
     var body: some View {
         ZStack {
             theme.background(for: colorScheme)
                 .ignoresSafeArea()
 
-            ScrollView {
-                Text(tabCountLabel)
-                    .font(DS.Font.title)
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.top, DS.Padding.m)
+            GeometryReader { proxy in
+                ScrollView {
+                    Text(tabCountLabel)
+                        .font(DS.Font.title)
+                        .accessibilityAddTraits(.isHeader)
+                        .padding(.top, DS.Padding.m)
 
-                LazyVGrid(columns: columns, spacing: DS.Padding.m) {
-                    ForEach(tabManager.tabs) { tab in
-                        TabCard(
-                            tab: tab,
-                            isActive: tab.id == tabManager.activeTabID,
-                            onSelect: {
-                                tabManager.activeTabID = tab.id
-                                dismiss()
-                            },
-                            onClose: { tabManager.requestClose(tab) },
-                            tabManager: tabManager,
-                            window: window,
-                        )
+                    LazyVGrid(columns: columns(forWidth: proxy.size.width), spacing: DS.Padding.m) {
+                        ForEach(tabManager.tabs) { tab in
+                            TabCard(
+                                tab: tab,
+                                isActive: tab.id == tabManager.activeTabID,
+                                onSelect: {
+                                    tabManager.activeTabID = tab.id
+                                    dismiss()
+                                },
+                                onClose: { tabManager.requestClose(tab) },
+                                tabManager: tabManager,
+                                window: window,
+                            )
+                        }
+                        newTabCard
                     }
-                    newTabCard
+                    .padding(DS.Padding.l)
                 }
-                .padding(DS.Padding.l)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -126,7 +145,8 @@ struct TabSwitcherView: View {
                 .barGlass(in: Capsule())
             }
             .padding(.horizontal, DS.Padding.l)
-            .padding(.vertical, DS.Padding.s)
+            .padding(.top, DS.Padding.s)
+            .bottomScreenMargin(DS.Padding.s, minimum: DS.Padding.l)
         }
         .buttonStyle(.plain)
     }
