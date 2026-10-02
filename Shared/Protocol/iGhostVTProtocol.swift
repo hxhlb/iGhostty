@@ -73,6 +73,14 @@ enum iGhostVTProtocol {
     /// prints forever still costs this much and no more.
     static let sessionReplayByteCount = 256 * 1024
 
+    /// What one session's attributes (`setSessionAttributes`) may hold: at
+    /// most this many keys, and this many bytes of UTF-8 across every key
+    /// and value together. A request past either is refused whole. Room for
+    /// a handful of per-tab choices, and a bound the io side can promise for
+    /// `maximumSessions` of them.
+    static let maximumSessionAttributeCount = 16
+    static let maximumSessionAttributeByteCount = 4096
+
     static let defaultColumns: UInt16 = 80
     static let defaultRows: UInt16 = 24
     static let maximumColumns: UInt16 = 2000
@@ -138,6 +146,32 @@ enum iGhostVTOperation: UInt64, Sendable {
     /// The installed common login shells the daemon can execute. The app is
     /// sandboxed, so only the daemon can answer this against the bootstrap.
     case listShells = 13
+
+    /// Replaces the session's attributes with `attributes` — a string-to-
+    /// string dictionary the daemon stores and hands back but never reads:
+    /// in every attach and snapshot reply, on every `listSessions` row, and
+    /// (empty) in the open reply. What a client sets on a tab and wants to
+    /// find again after a relaunch lives here, because the session is the
+    /// one thing that survives the app. Replace, not merge: a client sends
+    /// everything it keeps, an empty dictionary clears them, and the key
+    /// is required. Over `maximumSessionAttributeCount` keys or
+    /// `maximumSessionAttributeByteCount` bytes, or a value that is not a
+    /// string, is `invalidRequest` and changes nothing. Any admitted peer
+    /// may set them on any live session, attached or not — the trust of
+    /// `closeSession` — and they die with the session. A daemon older than
+    /// this operation answers `invalidRequest`, which a client takes to
+    /// mean "keep them in memory only".
+    case setSessionAttributes = 14
+}
+
+/// The attribute keys and values the app keeps on a session
+/// (`iGhostVTOperation.setSessionAttributes`). The daemon reads none of
+/// them; they are written down here so the CLI can show what the app set.
+enum iGhostVTSessionAttribute {
+    /// The tab's lock: `interaction` or `keyboard`; absent when unlocked.
+    static let lock = "lock"
+    static let interactionLock = "interaction"
+    static let keyboardLock = "keyboard"
 }
 
 /// Daemon-initiated pushes on an attached connection. These carry no reply.
@@ -232,6 +266,10 @@ enum iGhostVTWireKey {
     /// Why a request failed, in words, when the reply code alone would lose
     /// the detail — the failing step and its `errno`, mainly.
     static let errorMessage = "err"
+    /// The session's attributes (`setSessionAttributes`): a dictionary of
+    /// strings, on that request, in open/attach/snapshot replies, and on
+    /// every `listSessions` row.
+    static let attributes = "attrs"
 }
 
 /// A reply code carrying the sentence the app should show.

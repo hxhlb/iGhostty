@@ -23,6 +23,12 @@ final class PTYSession {
     private(set) var rows: UInt16
     private(set) var isAlive = true
 
+    /// What a client keeps on this session (`setSessionAttributes`) — the
+    /// app's tab lock, so far. Opaque here: stored, replaced whole, handed
+    /// back, and gone with the session, never read by the daemon. Bounded
+    /// by the request's own limits before it is assigned.
+    var attributes: [String: String] = [:]
+
     /// Recent output, replayed when a client attaches. The daemon holds this
     /// so a relaunched app can rebuild the screen without the shell knowing
     /// anything happened.

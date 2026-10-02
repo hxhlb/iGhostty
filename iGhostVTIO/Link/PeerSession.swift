@@ -188,6 +188,8 @@ final class PeerSession {
             return Outcome(snapshotSession(message, reply: reply))
         case .injectInput:
             return Outcome(injectInput(message))
+        case .setSessionAttributes:
+            return Outcome(setSessionAttributes(message))
         case .goodbye:
             return Outcome(.success, then: .closePeer)
         case .shutdown:
@@ -217,6 +219,7 @@ final class PeerSession {
                 in: entry,
             )
             Self.setDirectory(summary.currentDirectory, in: entry)
+            Self.setAttributes(summary.attributes, in: entry)
             xpc_array_append_value(array, entry)
         }
         xpc_dictionary_set_value(reply, iGhostVTWireKey.sessions, array)
@@ -267,6 +270,7 @@ final class PeerSession {
                     in: reply,
                 )
                 Self.setDirectory(session.currentDirectory, in: reply)
+                Self.setAttributes(session.attributes, in: reply)
             }
             return .success
         } catch let failure as iGhostVTFailure {
@@ -360,8 +364,8 @@ final class PeerSession {
         return .success
     }
 
-    /// The size, the foreground process, the directory, and the replay
-    /// buffer — what an attach and a snapshot both answer with.
+    /// The size, the foreground process, the directory, the attributes,
+    /// and the replay buffer — what an attach and a snapshot both answer with.
     private static func describe(_ session: PTYSession, into reply: xpc_object_t) {
         xpc_dictionary_set_uint64(reply, iGhostVTWireKey.columns, UInt64(session.columns))
         xpc_dictionary_set_uint64(reply, iGhostVTWireKey.rows, UInt64(session.rows))
@@ -373,12 +377,76 @@ final class PeerSession {
         // Read live rather than from the last poll: an attach is rare, and
         // the tab it answers wants the directory the shell is in now.
         setDirectory(session.currentDirectory, in: reply)
+        setAttributes(session.attributes, in: reply)
         let replay = session.replayData()
         replay.withUnsafeBytes { buffer in
             if let base = buffer.baseAddress, !replay.isEmpty {
                 xpc_dictionary_set_data(reply, iGhostVTWireKey.data, base, buffer.count)
             }
         }
+    }
+
+    /// Replaces what clients keep on a session, all or nothing. Not gated
+    /// on attachment, like `closeSession`: the CLI may label a session it
+    /// does not hold, and a tab whose link dropped is still the session's
+    /// owner in every way that matters. The session has to exist — a
+    /// request for one that is gone is `unknownSession`, never a record
+    /// kept for later.
+    private func setSessionAttributes(_ message: xpc_object_t) -> iGhostVTReplyCode {
+        let id = xpc_dictionary_get_uint64(message, iGhostVTWireKey.sessionID)
+        guard let session = registry.session(id) else { return .unknownSession }
+        guard let attributes = Self.sessionAttributes(in: message) else {
+            DaemonFileLog.log("peer \(peerID) setSessionAttributes on session \(id) refused: malformed or over the limit")
+            return .invalidRequest
+        }
+        session.attributes = attributes
+        DaemonFileLog.log(
+            "peer \(peerID) set session \(id) attributes \(attributes.keys.sorted().map { "\($0)=\(attributes[$0] ?? "")" })",
+        )
+        return .success
+    }
+
+    /// The `attributes` of a `setSessionAttributes`, or `nil` when the key
+    /// is missing, a value is not a string, or the whole is past
+    /// `maximumSessionAttributeCount` keys or
+    /// `maximumSessionAttributeByteCount` bytes — counted as it is read, so
+    /// an oversized request costs no more than the limit to refuse.
+    private static func sessionAttributes(in message: xpc_object_t) -> [String: String]? {
+        guard let dictionary = xpc_dictionary_get_value(message, iGhostVTWireKey.attributes),
+              xpc_get_type(dictionary) == iGhostVTXPC.typeDictionary
+        else { return nil }
+        var values: [String: String] = [:]
+        var byteCount = 0
+        var isValid = true
+        xpc_dictionary_apply(dictionary) { key, value in
+            guard xpc_get_type(value) == iGhostVTXPC.typeString,
+                  let string = xpc_string_get_string_ptr(value)
+            else {
+                isValid = false
+                return false
+            }
+            byteCount += strlen(key) + xpc_string_get_length(value)
+            guard values.count < iGhostVTProtocol.maximumSessionAttributeCount,
+                  byteCount <= iGhostVTProtocol.maximumSessionAttributeByteCount
+            else {
+                isValid = false
+                return false
+            }
+            values[String(cString: key)] = String(cString: string)
+            return true
+        }
+        return isValid ? values : nil
+    }
+
+    /// A session's attributes as every reply and row states them: always
+    /// present, empty when nothing was set — so a client can tell a daemon
+    /// that keeps none from one that predates them, which sends no key.
+    private static func setAttributes(_ attributes: [String: String], in message: xpc_object_t) {
+        let dictionary = xpc_dictionary_create(nil, nil, 0)
+        for (key, value) in attributes {
+            xpc_dictionary_set_string(dictionary, key, value)
+        }
+        xpc_dictionary_set_value(message, iGhostVTWireKey.attributes, dictionary)
     }
 
     /// The `data` a `write` or `injectInput` carries, `nil` when absent or

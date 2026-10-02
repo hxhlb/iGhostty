@@ -189,6 +189,41 @@ func listedString(
     }
 }
 
+/// The `attributes` dictionary of a reply or row, read while it is alive.
+/// `nil` when the key is missing — a daemon that keeps none.
+func attributes(in message: xpc_object_t?) -> [String: String]? {
+    guard let message,
+          let dictionary = xpc_dictionary_get_value(message, iGhostVTWireKey.attributes),
+          xpc_get_type(dictionary) == iGhostVTXPC.typeDictionary
+    else { return nil }
+    var values: [String: String] = [:]
+    xpc_dictionary_apply(dictionary) { key, value in
+        if let string = xpc_string_get_string_ptr(value) {
+            values[String(cString: key)] = String(cString: string)
+        }
+        return true
+    }
+    return values
+}
+
+/// A `setSessionAttributes` request from `peer`, answered.
+func setAttributes(
+    _ supervisor: IOSupervisor,
+    from peer: HarnessPeer,
+    sessionID: UInt64,
+    _ values: [String: String]?,
+) -> iGhostVTReplyCode? {
+    replyCode(request(supervisor, from: peer, .setSessionAttributes) { message in
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.sessionID, sessionID)
+        guard let values else { return }
+        let dictionary = xpc_dictionary_create(nil, nil, 0)
+        for (key, value) in values {
+            xpc_dictionary_set_string(dictionary, key, value)
+        }
+        xpc_dictionary_set_value(message, iGhostVTWireKey.attributes, dictionary)
+    })
+}
+
 func setInput(_ message: xpc_object_t, _ text: String) {
     let bytes = Array(text.utf8)
     bytes.withUnsafeBytes { xpc_dictionary_set_data(message, iGhostVTWireKey.data, $0.baseAddress!, $0.count) }
@@ -345,6 +380,7 @@ func runProxyLinkTests() {
     check(replyCode(opened) == .success, "a session opens through the proxy (\(String(describing: opened)))")
     let sessionID = opened.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.sessionID) } ?? 0
     check(sessionID > 0, "the reply names the session")
+    check(attributes(in: opened) == [:], "the open reply states the session's attributes, none yet")
     check(
         opened.flatMap { xpc_dictionary_get_string($0, iGhostVTWireKey.processName) }
             .map { String(cString: $0) } == "sh",
@@ -692,6 +728,68 @@ func runProxyLinkTests() {
     }
     _ = waitUntil { listedRow(supervisor, from: second, sessionID: chosenID) == nil }
 
+    // What a client keeps on a session: set by any peer, stated on every
+    // row and attach, refused whole past the limits, gone with the session.
+    print("proxy session attributes")
+    let lock = [iGhostVTSessionAttribute.lock: iGhostVTSessionAttribute.keyboardLock]
+    check(
+        setAttributes(supervisor, from: second, sessionID: sessionID, lock) == .success,
+        "a peer that does not hold the session sets its attributes",
+    )
+    check(
+        attributes(in: listedRow(supervisor, from: second, sessionID: sessionID)) == lock,
+        "and its row states them",
+    )
+    let snapshotAttributes = attributes(in: request(supervisor, from: second, .snapshotSession) {
+        xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, sessionID)
+    })
+    check(snapshotAttributes == lock, "and so does a snapshot (got \(String(describing: snapshotAttributes)))")
+    let tooMany = Dictionary(uniqueKeysWithValues: (0 ... iGhostVTProtocol.maximumSessionAttributeCount).map {
+        ("k\($0)", "v")
+    })
+    check(
+        setAttributes(supervisor, from: second, sessionID: sessionID, tooMany) == .invalidRequest,
+        "\(tooMany.count) keys are refused",
+    )
+    let fullValue = String(repeating: "x", count: iGhostVTProtocol.maximumSessionAttributeByteCount - 1)
+    check(
+        setAttributes(supervisor, from: second, sessionID: sessionID, ["k": fullValue]) == .success,
+        "exactly the byte limit is accepted",
+    )
+    check(
+        setAttributes(supervisor, from: second, sessionID: sessionID, ["k": fullValue + "x"]) == .invalidRequest,
+        "one byte past it is refused",
+    )
+    check(
+        attributes(in: listedRow(supervisor, from: second, sessionID: sessionID)) == ["k": fullValue],
+        "and a refused request changed nothing",
+    )
+    check(
+        setAttributes(supervisor, from: second, sessionID: sessionID, nil) == .invalidRequest,
+        "a request without attributes is refused",
+    )
+    check(
+        replyCode(request(supervisor, from: second, .setSessionAttributes) { message in
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.sessionID, sessionID)
+            let dictionary = xpc_dictionary_create(nil, nil, 0)
+            xpc_dictionary_set_uint64(dictionary, iGhostVTSessionAttribute.lock, 1)
+            xpc_dictionary_set_value(message, iGhostVTWireKey.attributes, dictionary)
+        }) == .invalidRequest,
+        "a value that is not a string is refused",
+    )
+    check(
+        setAttributes(supervisor, from: second, sessionID: 999, lock) == .unknownSession,
+        "attributes for an unknown session are refused",
+    )
+    check(
+        setAttributes(supervisor, from: second, sessionID: sessionID, lock) == .success,
+        "a request replaces the attributes whole",
+    )
+    check(
+        attributes(in: listedRow(supervisor, from: second, sessionID: sessionID)) == lock,
+        "leaving none of the old keys behind",
+    )
+
     // The first peer's connection drops: its sessions are detached, not
     // killed, and its replay is what the next peer gets.
     harnessQueue.sync { supervisor.peerGone(1) }
@@ -708,6 +806,7 @@ func runProxyLinkTests() {
         replayText.contains("hello-from-io") && replayText.contains("ping-through-proxy"),
         "the attach reply replays the buffer",
     )
+    check(attributes(in: attached) == lock, "and states the attributes the session kept")
     harnessQueue.async {
         let message = makeRequest(.write) { message in
             xpc_dictionary_set_uint64(message, iGhostVTWireKey.sessionID, sessionID)
@@ -736,6 +835,10 @@ func runProxyLinkTests() {
                 .map { xpc_array_get_count($0) } == 0
         },
         "the closed session leaves the list",
+    )
+    check(
+        setAttributes(supervisor, from: second, sessionID: sessionID, lock) == .unknownSession,
+        "its attributes went with it",
     )
 
     // Flow control. A client that never reads: the proxy must stop taking
@@ -933,6 +1036,19 @@ func runProxyLinkTests() {
     bystander.supervisor = supervisor
     harnessQueue.sync { supervisor.register(bystander) }
     check(replyCode(request(supervisor, from: bystander, .hello)) == .success, "a bystander says hello")
+    let doomed = request(supervisor, from: bystander, .openSession) { message in
+        let command = xpc_array_create(nil, 0)
+        for argument in ["/bin/sh", "-c", "exec cat"] {
+            xpc_array_append_value(command, xpc_string_create(argument))
+        }
+        xpc_dictionary_set_value(message, iGhostVTWireKey.command, command)
+    }
+    let doomedID = doomed.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.sessionID) } ?? 0
+    check(
+        replyCode(doomed) == .success
+            && setAttributes(supervisor, from: bystander, sessionID: doomedID, lock) == .success,
+        "a session with attributes is held when io dies",
+    )
     kill(firstChild, SIGKILL)
     check(waitUntil { bystander.wasCut }, "a peer is cut when io dies (\(bystander.cutReason ?? "not cut"))")
     check(
@@ -964,6 +1080,15 @@ func runProxyLinkTests() {
     }
     let heldID = held.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.sessionID) } ?? 0
     check(replyCode(held) == .success, "a session opens on the replacement")
+    check(
+        attributes(in: listedRow(supervisor, from: replacement, sessionID: heldID)) == [:],
+        "with no attributes left over from before the crash",
+    )
+    check(
+        heldID == doomedID
+            || setAttributes(supervisor, from: replacement, sessionID: doomedID, lock) == .unknownSession,
+        "and the dead session's id names nothing",
+    )
     check(
         replyCode(request(supervisor, from: replacement, .shutdown)) == .sessionBusy,
         "shutdown with a session held is busy",

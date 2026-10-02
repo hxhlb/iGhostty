@@ -56,6 +56,8 @@ final class SessionRegistry {
         /// display the kernel's answer is the truth even for a directory
         /// that has since been removed.
         var currentDirectory: String?
+        /// What clients keep on the session (`setSessionAttributes`).
+        var attributes: [String: String]
     }
 
     var summaries: [Summary] {
@@ -73,6 +75,7 @@ final class SessionRegistry {
                     processName: $0.foregroundProcessName,
                     isForegroundShell: $0.isForegroundShell,
                     currentDirectory: $0.currentDirectory,
+                    attributes: $0.attributes,
                 )
             }
     }
