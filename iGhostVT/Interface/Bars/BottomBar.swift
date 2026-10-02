@@ -108,14 +108,11 @@ struct BottomBar: View {
 }
 
 private struct TitleCapsule: View {
-    @ObservedObject var tab: TerminalTab
+    let tab: TerminalTab
 
     var body: some View {
         HStack(spacing: DS.Padding.s) {
-            Text(tab.displayTitle)
-                .font(DS.Font.labelEmphasis)
-                .lineLimit(1)
-                .truncationMode(.middle)
+            ObservedTabTitle(tab: tab)
             ObservedTabSubtitle(tab: tab)
         }
         // Title and subtitle name one tab: one VoiceOver stop, not two.

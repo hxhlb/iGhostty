@@ -192,7 +192,7 @@ enum TerminalKey: String, AppEnum {
     }
 }
 
-/// A tab's lock, as a Shortcut sets it (`TerminalTab.lock`).
+/// A tab's lock, as a Shortcut sets it (`TabAttributes.lock`).
 @available(iOS 16.0, macCatalyst 16.0, *)
 enum SessionLockMode: String, AppEnum {
     case unlocked

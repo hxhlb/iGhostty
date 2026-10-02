@@ -291,53 +291,11 @@ struct TabStripBar: View {
     }
 #endif
 
-/// Title text that re-renders when the surface retitles (OSC updates).
-struct ObservedTabTitle: View {
-    @ObservedObject var tab: TerminalTab
-
-    var body: some View {
-        Text(tab.displayTitle)
-            .font(DS.Font.labelEmphasis)
-            .lineLimit(1)
-            .truncationMode(.middle)
-            .retitleTransition()
-            .animation(DS.Motion.smooth, value: tab.displayTitle)
-    }
-}
-
-/// The dim line beside the title: what the session reports about itself
-/// while the title itself stays the stable process name.
-struct ObservedTabSubtitle: View {
-    @ObservedObject var tab: TerminalTab
-
-    var body: some View {
-        Text(tab.secondaryTitle)
-            .font(DS.Font.caption)
-            .foregroundColor(.secondary)
-            .lineLimit(1)
-            .truncationMode(.middle)
-            .retitleTransition()
-            .animation(DS.Motion.smooth, value: tab.secondaryTitle)
-    }
-}
-
-private extension View {
-    /// A retitle crossfades the text instead of swapping it. The shell
-    /// retitles a fresh tab within a second of its prompt appearing, so
-    /// "Terminal" turning into a host name is the first thing a new tab
-    /// does — worth more than a hard cut.
-    @ViewBuilder
-    func retitleTransition() -> some View {
-        if #available(iOS 16.0, *) {
-            contentTransition(.opacity)
-        } else {
-            self
-        }
-    }
-}
-
+/// Not an observer of the tab: the strip hangs the tab's context menu on
+/// this view, and a menu host re-evaluated on every retitle rebuilds the
+/// menu while it is open. The title and the padlock observe for themselves.
 private struct TabChip: View {
-    @ObservedObject var tab: TerminalTab
+    let tab: TerminalTab
     let isActive: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
@@ -370,17 +328,14 @@ private struct TabChip: View {
     }
 
     var body: some View {
+        #if DEBUG
+            let _ = BodyTrace.note("TabChip")
+        #endif
         Button(action: onSelect) {
             HStack(spacing: DS.Padding.xs) {
-                Text(tab.displayTitle)
-                    .font(DS.Font.label)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .retitleTransition()
+                ObservedTabTitle(tab: tab, font: .label)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                if let lock = tab.lock {
-                    TabLockBadge(lock: lock)
-                }
+                ObservedTabLockBadge(attributes: tab.attributes)
                 Button(action: onClose) {
                     Image(systemName: "xmark")
                         .font(DS.Font.captionEmphasis)
@@ -398,9 +353,6 @@ private struct TabChip: View {
                 ),
             )
             .contentShape(Capsule())
-            // A retitle changes the chip's width; the chips after it slide
-            // over instead of jumping.
-            .animation(DS.Motion.smooth, value: tab.displayTitle)
         }
         // Without it a chip gives VoiceOver no way to tell which tab the
         // strip is on. The close button inside stays its own element.

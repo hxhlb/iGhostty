@@ -151,8 +151,12 @@ struct TabSwitcherView: View {
     }
 }
 
+/// Holds the tab as a plain reference: the card carries the tab's context
+/// menu, and a menu host that observed the tab would be re-evaluated on
+/// every retitle — rebuilding the menu while it is open. The titles, the
+/// padlock and the picture observe for themselves.
 private struct TabCard: View {
-    @ObservedObject var tab: TerminalTab
+    let tab: TerminalTab
     let isActive: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
@@ -162,12 +166,15 @@ private struct TabCard: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var textPreview = ""
 
-    private static let previewHeight: CGFloat = 156
+    static let previewHeight: CGFloat = 156
 
     var body: some View {
+        #if DEBUG
+            let _ = BodyTrace.note("TabCard")
+        #endif
         VStack(spacing: 0) {
             header
-            previewBody
+            TabCardPreview(tab: tab, textPreview: textPreview)
         }
         .background(theme.background(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.l, style: .continuous))
@@ -197,15 +204,8 @@ private struct TabCard: View {
     private var header: some View {
         HStack(spacing: DS.Padding.xs) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(tab.displayTitle)
-                    .font(DS.Font.captionEmphasis)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Text(tab.secondaryTitle)
-                    .font(DS.Font.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                ObservedTabTitle(tab: tab, font: .captionEmphasis)
+                ObservedTabSubtitle(tab: tab)
             }
             // The card selects on a tap gesture, which VoiceOver cannot
             // reach, and the picture below is hidden: without this the grid
@@ -216,9 +216,7 @@ private struct TabCard: View {
             .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : [.isButton])
             .accessibilityAction { onSelect() }
             Spacer(minLength: 4)
-            if let lock = tab.lock {
-                TabLockBadge(lock: lock)
-            }
+            ObservedTabLockBadge(attributes: tab.attributes)
             Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(DS.Font.captionEmphasis)
@@ -233,20 +231,26 @@ private struct TabCard: View {
         .padding(.vertical, DS.Padding.s)
         .background(Color.primary.opacity(0.06))
     }
+}
 
-    /// The picture is a still: what the surface showed when this tab was
-    /// last on screen (or as the switcher opened, for the active one). It
-    /// is not retaken on redraws behind the cover — toggling the appearance
-    /// from the switcher's settings recolours the card, not the picture.
-    @ViewBuilder
-    private var previewBody: some View {
+/// The card's picture. The picture is a still: what the surface showed
+/// when this tab was last on screen (or as the switcher opened, for the
+/// active one). It is not retaken on redraws behind the cover — toggling
+/// the appearance from the switcher's settings recolours the card, not the
+/// picture. Its own view because `previewImage` is published by the tab,
+/// which the card must not observe.
+private struct TabCardPreview: View {
+    @ObservedObject var tab: TerminalTab
+    let textPreview: String
+
+    var body: some View {
         if let image = tab.previewImage {
             // Scaled to the card's width and anchored at the top, the way
             // Safari shows a page: the prompt's neighbourhood is the part
             // that identifies a terminal, and the frame keeps the grid's
             // row height whatever the surface's aspect.
             Color.clear
-                .frame(height: Self.previewHeight)
+                .frame(height: TabCard.previewHeight)
                 .overlay(alignment: .top) {
                     Image(uiImage: image)
                         .resizable()
@@ -261,7 +265,7 @@ private struct TabCard: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(DS.Padding.s)
                 .clipped()
-                .frame(height: Self.previewHeight)
+                .frame(height: TabCard.previewHeight)
                 .accessibilityHidden(true)
         }
     }

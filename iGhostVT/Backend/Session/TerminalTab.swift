@@ -9,24 +9,6 @@ import GhosttyTerminal
 import SwiftUI
 import UIKit
 
-/// Which of a tab's two locks is on (`TerminalTab.lock`). They are
-/// exclusive: a tab has one lock or none.
-enum TabLock: Equatable {
-    /// The surface refuses every interaction — touches and keyboard focus.
-    case interaction
-    /// Only the software keyboard is refused.
-    case keyboard
-
-    /// The word every presentation labels this lock with — the badge's
-    /// accessibility text, and the overlay capsule's caption.
-    var badgeTitle: String {
-        switch self {
-        case .interaction: String(localized: "Locked")
-        case .keyboard: String(localized: "Keyboard Locked")
-        }
-    }
-}
-
 /// One terminal session: its own surface state and its own connection.
 /// Tabs stay alive (and connected) while in the background; only the active
 /// tab's surface is visible.
@@ -44,45 +26,27 @@ final class TerminalTab: ObservableObject, Identifiable {
     let customConfiguration: String
     let store: TerminalSessionStore
 
-    /// The tab's lock, if any — one of the two, never both. Either freezes
-    /// the *user*, never the program: the session keeps running, output
-    /// keeps flowing, and the surface keeps rendering. `interaction` makes
-    /// the surface's view refuse touches and keyboard focus
-    /// (`LockableTerminalView.isInteractionLocked`); `keyboard` only keeps
-    /// the software keyboard down (`isSoftwareKeyboardLocked`) while
-    /// touches, scrolling, selection, and hardware keys still work.
-    /// The tab's context menu and the main menu are the ways in and out:
-    /// choosing the lock that is on removes it, choosing the other one
-    /// switches to it.
-    @Published var lock: TabLock? {
-        didSet {
-            guard let view = terminal.attachedPlatformView as? LockableTerminalView else { return }
-            view.isInteractionLocked = isLocked
-            view.isSoftwareKeyboardLocked = isKeyboardLocked
-        }
+    /// What the user has set on this tab — its lock, for now. Observed on
+    /// its own (`TabAttributes`), so the views that show or change it are
+    /// not re-evaluated on every retitle the way views of the tab are.
+    let attributes = TabAttributes()
+
+    /// The tab's lock (`TabAttributes.lock`).
+    var lock: TabLock? {
+        get { attributes.lock }
+        set { attributes.lock = newValue }
     }
 
-    /// The interaction lock as a flag — what the presentations badge and
-    /// what the menus toggle. Setting it on replaces a keyboard lock;
-    /// setting it off clears nothing but itself.
+    /// `TabAttributes.isLocked`.
     var isLocked: Bool {
-        get { lock == .interaction }
-        set { setLock(.interaction, on: newValue) }
+        get { attributes.isLocked }
+        set { attributes.isLocked = newValue }
     }
 
-    /// The keyboard lock as a flag, with the same exclusive semantics as
-    /// `isLocked`.
+    /// `TabAttributes.isKeyboardLocked`.
     var isKeyboardLocked: Bool {
-        get { lock == .keyboard }
-        set { setLock(.keyboard, on: newValue) }
-    }
-
-    private func setLock(_ kind: TabLock, on: Bool) {
-        if on {
-            lock = kind
-        } else if lock == kind {
-            lock = nil
-        }
+        get { attributes.isKeyboardLocked }
+        set { attributes.isKeyboardLocked = newValue }
     }
 
     /// The session's process ended — on its own, or because someone asked
@@ -100,6 +64,7 @@ final class TerminalTab: ObservableObject, Identifiable {
     private var activityObservation: AnyCancellable?
     private var titleObservation: AnyCancellable?
     private var resizeThrottleObservation: AnyCancellable?
+    private var lockObservation: AnyCancellable?
 
     /// The daemon session this tab is attached to, once it has one. Another
     /// tab opened from this one names it so its shell starts in this shell's
@@ -264,6 +229,13 @@ final class TerminalTab: ObservableObject, Identifiable {
         // tab appearing, SwiftUI rebuilding the representable — and one born
         // after the user locked the tab must come up locked, or the lock
         // lapses the first time the view is rebuilt.
+        // A mounted surface hears a lock change through its view; one that
+        // is not mounted reads the lock as it is made, below.
+        lockObservation = attributes.$lock.removeDuplicates().sink { [weak self] lock in
+            guard let view = self?.terminal.attachedPlatformView as? LockableTerminalView else { return }
+            view.isInteractionLocked = lock == .interaction
+            view.isSoftwareKeyboardLocked = lock == .keyboard
+        }
         terminal.makePlatformView = { [weak self] in
             let view = LockableTerminalView(frame: .zero)
             view.isInteractionLocked = self?.isLocked ?? false

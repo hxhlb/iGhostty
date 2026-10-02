@@ -177,6 +177,7 @@ struct RootView: View {
             ForEach(tabManager.tabs) { tab in
                 TerminalPane(
                     tab: tab,
+                    attributes: tab.attributes,
                     isActive: tab.id == tabManager.activeTabID,
                     focusedTabID: $focusedTabID,
                     onCloseTab: { tabManager.requestClose(tab) },
@@ -275,9 +276,12 @@ struct RootView: View {
 /// One tab's surface with its per-tab chrome. A separate view so the lock
 /// state is actually observed: the `ForEach` in `RootView` does not watch
 /// individual tabs, and a lock toggled from a context menu would otherwise
-/// change nothing until an unrelated redraw.
+/// change nothing until an unrelated redraw. It observes the tab's
+/// attributes, not the tab, which republishes on every retitle and would
+/// re-evaluate the surface's whole chrome with it.
 private struct TerminalPane: View {
-    @ObservedObject var tab: TerminalTab
+    let tab: TerminalTab
+    @ObservedObject var attributes: TabAttributes
     let isActive: Bool
     let focusedTabID: FocusState<UUID?>.Binding
     let onCloseTab: () -> Void
@@ -295,7 +299,7 @@ private struct TerminalPane: View {
                 )
             }
             .overlay(alignment: .topTrailing) {
-                if let lock = tab.lock {
+                if let lock = attributes.lock {
                     HStack(spacing: DS.Padding.xs) {
                         TabLockBadge(lock: lock, font: DS.Font.caption)
                         Text(lock.badgeTitle)
@@ -319,7 +323,7 @@ private struct TerminalPane: View {
             // input path closes in one place while output keeps rendering.
             .allowsHitTesting(isActive)
             .accessibilityHidden(!isActive)
-            .onChange(of: tab.lock) { _ in onLockChange() }
+            .onChange(of: attributes.lock) { _ in onLockChange() }
             // The active pane's only: a background tab's shell exiting
             // would otherwise hand the front tab's terminal first responder
             // — and the software keyboard with it — for nothing the user did.

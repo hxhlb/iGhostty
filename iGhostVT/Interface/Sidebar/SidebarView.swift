@@ -154,8 +154,12 @@ struct SidebarView: View {
     }
 }
 
+/// Holds the tab as a plain reference: the row carries the tab's context
+/// menu, and a menu host that observed the tab would be re-evaluated on
+/// every retitle — rebuilding the menu while it is open. The title lines
+/// and the trailing slot observe for themselves.
 private struct SidebarRow: View {
-    @ObservedObject var tab: TerminalTab
+    let tab: TerminalTab
     let isActive: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
@@ -167,40 +171,20 @@ private struct SidebarRow: View {
     }
 
     var body: some View {
+        #if DEBUG
+            let _ = BodyTrace.note("SidebarRow")
+        #endif
         Button(action: onSelect) {
             HStack(spacing: DS.Padding.s) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(tab.displayTitle)
-                        .font(titleFont)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Text(tab.secondaryTitle)
-                        .font(DS.Font.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    ObservedTabTitle(tab: tab, font: titleFont)
+                    ObservedTabSubtitle(tab: tab)
                 }
                 // Title and subtitle name one tab: one VoiceOver stop, not
                 // two. The row's close button stays its own element.
                 .accessibilityElement(children: .combine)
                 Spacer(minLength: 8)
-                // A locked row spends the close slot on the padlock — a
-                // second glyph beside the × crowds a title that is already
-                // two lines. Close stays on the context menu.
-                if let lock = tab.lock {
-                    TabLockBadge(lock: lock)
-                        .frame(width: 24, height: 24)
-                } else {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                            .font(DS.Font.captionEmphasis)
-                            .foregroundColor(.secondary)
-                            .frame(width: 24, height: 24)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Close Tab")
-                }
+                SidebarRowTrailingSlot(attributes: tab.attributes, onClose: onClose)
             }
             .padding(.horizontal, DS.Padding.m)
             .padding(.vertical, DS.Padding.s)
@@ -218,6 +202,31 @@ private struct SidebarRow: View {
         .accessibilityAddTraits(isActive ? [.isSelected] : [])
         .contextMenu {
             TabContextMenu(tab: tab, tabManager: tabManager, window: window)
+        }
+    }
+}
+
+/// A locked row spends the close slot on the padlock — a second glyph
+/// beside the × crowds a title that is already two lines. Close stays on
+/// the context menu.
+private struct SidebarRowTrailingSlot: View {
+    @ObservedObject var attributes: TabAttributes
+    let onClose: () -> Void
+
+    var body: some View {
+        if let lock = attributes.lock {
+            TabLockBadge(lock: lock)
+                .frame(width: 24, height: 24)
+        } else {
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(DS.Font.captionEmphasis)
+                    .foregroundColor(.secondary)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close Tab")
         }
     }
 }

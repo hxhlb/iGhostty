@@ -360,6 +360,17 @@ as running. On the regular-width bar the trailing ⋯ button opens this same
 menu for the active tab with New Tab and New Window at its head — the
 strip has no + of its own.
 
+That menu must not refresh while the terminal prints. UIKit rebuilds an
+open menu whenever SwiftUI re-evaluates its content, and the tab
+republishes on every retitle — so a menu that observed the tab flickered
+grey and dropped taps under output. `TabContextMenu` therefore observes
+only the tab's `TabAttributes`, and every view that hosts a `.contextMenu`
+or the ⋯ `Menu` holds the tab as a plain reference; what changes with
+output — title, subtitle, padlock, switcher picture — is a child view that
+observes for itself (`TabLabels.swift`). Debug builds count those hosts'
+body evaluations (`BodyTrace`, logged once a second under `tabs`); a line
+during a flood of output is this regression back.
+
 Every `+` is a `NewTabMenu`: the only decision a new terminal has is where
 its shell starts, so the control opens a menu of directories instead of a
 tab. Three inline groups, in this order — the home; the directories this
@@ -393,11 +404,13 @@ throws the list away, so turning the switch back on restores it.
 
 The two locks freeze the *user*, never the
 program: output keeps flowing and the surface keeps rendering. They are
-one choice (`TerminalTab.lock`, at most one of `.interaction` /
+one choice (`TabAttributes.lock`, at most one of `.interaction` /
 `.keyboard`): picking the other lock switches, picking the one that is on
 clears it, and the `isLocked` / `isKeyboardLocked` flags the menus toggle
-are views of that. Every presentation wears a `TabLockBadge` off the same
-`tab.lock` — the filled padlock for both kinds; the overlay caption still
+are views of that. `TabAttributes` is the tab's one home for what the user
+sets on it, observed apart from the tab (above); `TerminalTab.lock` and
+its flags forward to it. Every presentation wears a `TabLockBadge` off the
+same lock — the filled padlock for both kinds; the overlay caption still
 names which freeze is on. A sidebar row spends the close slot on that
 padlock while locked (the × is gone, not a second glyph); close stays on
 the context menu.

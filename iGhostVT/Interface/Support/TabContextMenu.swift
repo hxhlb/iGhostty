@@ -14,12 +14,32 @@ import UIKit
 /// what the terminal is showing right now, trailing padding stripped. Copy
 /// as Image prefers the surface's real pixels and falls back to drawing the
 /// text for a tab whose surface is not currently rendering.
+///
+/// It observes the tab's `TabAttributes` and nothing else. The tab itself
+/// republishes on every retitle, and UIKit rebuilds a menu that is open
+/// whenever SwiftUI re-evaluates its content — so a menu that watched the
+/// tab flickered grey and lost taps for as long as the terminal printed.
+/// Everything else it shows is fixed, and copy and export read the page
+/// when they are tapped. The views that host it follow the same rule: the
+/// one carrying `.contextMenu` observes nothing that output changes, and
+/// its title and badge are child views that observe for themselves.
 struct TabContextMenu: View {
-    @ObservedObject var tab: TerminalTab
+    let tab: TerminalTab
     let tabManager: TabManager
     let window: UIWindow?
+    @ObservedObject private var attributes: TabAttributes
+
+    init(tab: TerminalTab, tabManager: TabManager, window: UIWindow?) {
+        self.tab = tab
+        self.tabManager = tabManager
+        self.window = window
+        attributes = tab.attributes
+    }
 
     var body: some View {
+        #if DEBUG
+            let _ = BodyTrace.note("TabContextMenu")
+        #endif
         Button(action: copyText) {
             Label("Copy Text", systemImage: "doc.on.doc")
         }
@@ -40,7 +60,7 @@ struct TabContextMenu: View {
     /// Checkmarked toggles where the menu system renders them (iOS 16);
     /// state-named buttons before that, because a pre-16 menu shows no
     /// checkmark and a static "Lock Tab" would read as unlocked forever.
-    /// The two are one choice: `TerminalTab.lock` holds at most one of
+    /// The two are one choice: `TabAttributes.lock` holds at most one of
     /// them, so turning on the other lock switches, and turning off the one
     /// that is on clears it.
     ///
@@ -51,13 +71,13 @@ struct TabContextMenu: View {
     /// forms the tuple.
     @ViewBuilder
     private var lockControls: some View {
-        lockControl($tab.isLocked, lock: "Lock Tab", lockImage: "lock", unlock: "Unlock Tab", unlockImage: "lock.open")
+        lockControl($attributes.isLocked, lock: "Lock Tab", lockImage: "lock", unlock: "Unlock Tab", unlockImage: "lock.open")
         // Not on the Mac: there is no software keyboard to lock, and the
         // empty-inputView trick deliberately lets hardware keys through —
         // which is every key a Mac has, so the lock read as broken there.
         #if !targetEnvironment(macCatalyst)
             lockControl(
-                $tab.isKeyboardLocked,
+                $attributes.isKeyboardLocked,
                 lock: "Lock Keyboard",
                 lockImage: "keyboard",
                 unlock: "Unlock Keyboard",
@@ -121,7 +141,7 @@ struct TabContextMenu: View {
     private func renderedTextImage() -> UIImage? {
         let text = pageText
         guard !text.isEmpty else { return nil }
-        let attributes: [NSAttributedString.Key: Any] = [
+        let textAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedSystemFont(ofSize: 12, weight: .regular),
             .foregroundColor: UIColor.label,
         ]
@@ -129,7 +149,7 @@ struct TabContextMenu: View {
         let bounds = (text as NSString).boundingRect(
             with: CGSize(width: 4096, height: CGFloat.greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin],
-            attributes: attributes,
+            attributes: textAttributes,
             context: nil,
         )
         let size = CGSize(
@@ -142,7 +162,7 @@ struct TabContextMenu: View {
             context.fill(CGRect(origin: .zero, size: size))
             (text as NSString).draw(
                 at: CGPoint(x: padding, y: padding),
-                withAttributes: attributes,
+                withAttributes: textAttributes,
             )
         }
     }
@@ -167,6 +187,9 @@ struct TabOverflowMenuContent: View {
     let window: UIWindow?
 
     var body: some View {
+        #if DEBUG
+            let _ = BodyTrace.note("TabOverflowMenuContent")
+        #endif
         NewTabMenu(tabManager: tabManager) {
             Label("New Tab", systemImage: "plus")
         }
