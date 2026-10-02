@@ -358,6 +358,22 @@ title, trailing whitespace trimmed, is the tab's *title*
 live on *other* observable objects, the tab has to republish their changes
 or no SwiftUI view redraws.
 
+**Nothing on the output path may queue main-thread work per event.** A
+loop printing OSC 2 retitles tens of thousands of times a second; one
+main-queue item per title (or per chunk) outran the main thread, the queue
+grew to gigabytes and drained for minutes after the output stopped, with
+^C and every click stuck behind it. The bounds: received bytes go into the
+session on the transport's queue and the main actor hears of them through
+at most one pending hop (`OutputSignal` in `TerminalSessionStore`); the
+tab's retitle republish is throttled to one per 250 ms, newest wins, and
+animates only when the previous one was a second ago
+(`TerminalTab.animatesRetitle`). The library's own per-title publishes
+and wakeups are coalesced in libghostty-spm (1.6.20261002). Under `yes`
+or `base64` in three tabs the parser keeps up — the unparsed backlog never
+grows — so the app does not pause XPC delivery; if it ever has to, the
+hook is the session's `setOutputBacklogHandler`, and a suspension must
+stay well under the proxy's 10 s congestion grace or the peer is cut.
+
 Every presentation of a tab — strip chip, title capsule, sidebar row, switcher
 card — carries the same `TabContextMenu` (copy the page as text or image,
 export it, lock, close). Close asks first only when it would interrupt
