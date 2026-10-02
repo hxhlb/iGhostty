@@ -224,7 +224,26 @@ final class TerminalSessionStore: ObservableObject {
         // retains this closure. A strong capture would close that cycle and
         // defeat the transport's deinit, whose job is to cancel an XPC
         // connection its owner dropped without disconnecting.
+        let session = session
+        let outputSignal = outputSignal
         transport.onEvent = { [weak self, weak relay] event in
+            // Output goes straight into the session from the transport's
+            // queue — `receive` only takes a lock and enqueues on the
+            // session's own serial parse queue, so stream order is the
+            // transport's. It used to ride a main-actor Task per chunk, each
+            // holding its bytes: under a flood those Tasks queued behind a
+            // busy main thread without bound and kept growing after the
+            // output stopped. The main actor now hears only that output
+            // happened, through at most one pending hop (`OutputSignal`).
+            if case let .received(data) = event {
+                session.receive(data)
+                if outputSignal.noteChunk(byteCount: data.count) {
+                    Task { @MainActor [weak self] in
+                        self?.noteReceived()
+                    }
+                }
+                return
+            }
             // Sized here, on the transport's own queue and before the hop
             // to the main actor: the newest grid has to reach the session
             // *behind* the open or attach, and only the relay's record is
@@ -237,6 +256,12 @@ final class TerminalSessionStore: ObservableObject {
             // surface reports only changes.
             if case .state(.connected) = event {
                 relay?.resendLatestViewport()
+            }
+            // Output after a state change must be noted *after* it — a
+            // `.connected` resets the first-output wait — so the next chunk
+            // claims a fresh hop instead of riding one queued before it.
+            if case .state = event {
+                outputSignal.releaseHop()
             }
             Task { @MainActor [weak self] in
                 self?.handle(event)
@@ -257,18 +282,27 @@ final class TerminalSessionStore: ObservableObject {
         status = .idle
     }
 
-    private var receivedChunks = 0
+    private let outputSignal = OutputSignal()
+    private var notedChunks = 0
+
+    /// The main actor's half of received output: one call per hop, however
+    /// many chunks the session took in since the last one.
+    private func noteReceived() {
+        let (chunks, bytes) = outputSignal.drain()
+        let previous = notedChunks
+        notedChunks += chunks
+        if previous < 5 || previous / 50 != notedChunks / 50 {
+            AppLog.verbose(.session, "received \(chunks) chunk(s), \(bytes) bytes (#\(notedChunks)) status=\(status)")
+        }
+        noteOutput()
+        notePageChanged()
+    }
 
     private func handle(_ event: TerminalTransportEvent) {
         switch event {
-        case let .received(data):
-            receivedChunks += 1
-            if receivedChunks <= 5 || receivedChunks % 50 == 0 {
-                AppLog.verbose(.session, "received chunk #\(receivedChunks) bytes=\(data.count) status=\(status)")
-            }
-            noteOutput()
-            notePageChanged()
-            session.receive(data)
+        case .received:
+            // Fed to the session on the transport's queue; never hopped.
+            break
         case let .processName(name, isShell):
             processName = name
             isShellInForeground = isShell
@@ -485,5 +519,47 @@ private final class TransportRelay: @unchecked Sendable {
             _transport?.updateViewport(columns: viewport.columns, rows: viewport.rows)
         }
         lock.unlock()
+    }
+}
+
+/// What received output owes the main actor, kept off it. The transport's
+/// queue counts every chunk here and schedules a main-actor hop only when
+/// none is pending, so however fast output arrives, at most one hop waits —
+/// plus one per state change, which releases the claim so output after it
+/// is noted after it. The hop drains the counts; the bytes themselves never
+/// leave the transport's queue except into the session.
+private final class OutputSignal: @unchecked Sendable {
+    private let lock = NSLock()
+    private var hopPending = false
+    private var chunks = 0
+    private var bytes = 0
+
+    /// Counts a chunk; true when the caller must schedule the hop.
+    func noteChunk(byteCount: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        chunks += 1
+        bytes += byteCount
+        guard !hopPending else { return false }
+        hopPending = true
+        return true
+    }
+
+    func releaseHop() {
+        lock.lock()
+        hopPending = false
+        lock.unlock()
+    }
+
+    /// Run by the hop: the counts since the last one, and the claim given
+    /// back so the next chunk schedules another.
+    func drain() -> (chunks: Int, bytes: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        let drained = (chunks, bytes)
+        chunks = 0
+        bytes = 0
+        hopPending = false
+        return drained
     }
 }
