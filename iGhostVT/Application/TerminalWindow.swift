@@ -168,7 +168,7 @@ final class TerminalWindow: UIWindow, AppCommandResponder {
     /// with the last window, the app.
     func closeTab(_: Any?) {
         guard let tab = activeTab else { return closeEmptyWindow() }
-        tabManager.requestClose(tab)
+        tabManager.requestClose(tab, from: .keyCommand)
     }
 
     /// The Mac quits through AppKit's `terminate:` when this was the last

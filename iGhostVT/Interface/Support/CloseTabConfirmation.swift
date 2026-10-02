@@ -20,7 +20,7 @@ extension View {
                             finish()
                         },
                         AlertAction("Close Tab", kind: .destructive) {
-                            tabManager.close(tab)
+                            tabManager.close(tab, from: .confirmation)
                             finish()
                         },
                     ],

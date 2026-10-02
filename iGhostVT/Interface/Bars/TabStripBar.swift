@@ -146,7 +146,7 @@ struct TabStripBar: View {
                                 isActive: tab.id == tabManager.activeTabID,
                                 showsSelection: tabManager.tabs.count > 1,
                                 onSelect: { tabManager.activeTabID = tab.id },
-                                onClose: { tabManager.requestClose(tab) },
+                                onClose: { tabManager.requestClose(tab, from: .closeButton) },
                             )
                             .frame(width: width)
                             .contextMenu {

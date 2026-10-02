@@ -53,7 +53,7 @@ struct TabSwitcherView: View {
                                     tabManager.activeTabID = tab.id
                                     dismiss()
                                 },
-                                onClose: { tabManager.requestClose(tab) },
+                                onClose: { tabManager.requestClose(tab, from: .closeButton) },
                                 tabManager: tabManager,
                                 window: window,
                             )

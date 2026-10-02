@@ -79,8 +79,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                 .flatMap(\.tabs)
                 .filter { !$0.hasRunningProgram }
                 .compactMap(\.daemonSessionID)
+            AppLog.info(.tabs, "quitting, killing idle sessions \(idle), keeping the rest")
             XPCDaemonTransport.closeSessionsForQuit(idle, stopDaemonWhenEmpty: stopDaemon)
         } else {
+            AppLog.info(.tabs, "quitting with Keep Alive off, killing every session")
             XPCDaemonTransport.closeSessionsForQuit(nil, stopDaemonWhenEmpty: stopDaemon)
             TerminalFileStaging.removeAllFiles()
         }

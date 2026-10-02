@@ -180,7 +180,7 @@ struct RootView: View {
                     attributes: tab.attributes,
                     isActive: tab.id == tabManager.activeTabID,
                     focusedTabID: $focusedTabID,
-                    onCloseTab: { tabManager.requestClose(tab) },
+                    onCloseTab: { tabManager.requestClose(tab, from: .statusCard) },
                     onLockChange: refocus,
                     onStatusChange: refocusForStatus,
                 )

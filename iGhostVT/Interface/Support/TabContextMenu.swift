@@ -52,7 +52,7 @@ struct TabContextMenu: View {
         Divider()
         lockControls
         Divider()
-        Button(role: .destructive, action: { tabManager.requestClose(tab) }) {
+        Button(role: .destructive, action: { tabManager.requestClose(tab, from: .contextMenu) }) {
             Label("Close Tab", systemImage: "trash")
         }
     }

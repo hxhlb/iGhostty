@@ -24,6 +24,18 @@ final class TabManager: ObservableObject {
         didSet { syncSurfaceVisibility() }
     }
 
+    /// Where a close came from, for the log line every close writes — so a
+    /// tab that vanished can be traced to the control, the key, or the
+    /// session end that took it.
+    enum TabCloseOrigin: String {
+        case keyCommand = "close-tab command"
+        case closeButton = "close button"
+        case contextMenu = "context menu"
+        case statusCard = "status card"
+        case confirmation = "confirmed"
+        case sessionEnded = "session ended"
+    }
+
     /// A close awaiting the user's confirmation; presented as one alert by
     /// whichever context owns the screen (see `CloseTabConfirmation`), so
     /// the four close entry points cannot race each other's presentations.
@@ -189,7 +201,7 @@ final class TabManager: ObservableObject {
         // clears the daemon's record of it.
         tab.onSessionExit = { [weak self, weak tab] in
             guard let self, let tab else { return }
-            close(tab)
+            close(tab, from: .sessionEnded)
         }
         return tab
     }
@@ -260,10 +272,11 @@ final class TabManager: ObservableObject {
     /// underneath the tab switcher's full-screen cover, where no surface can
     /// attach), which is exactly the kind of half-mounted terminal that gets
     /// stuck on its connect.
-    func close(_ tab: TerminalTab) {
+    func close(_ tab: TerminalTab, from origin: TabCloseOrigin) {
         guard let index = tabs.firstIndex(where: { $0.id == tab.id }) else {
             return
         }
+        AppLog.info(.tabs, "closing tab \(tab.id) (\(origin.rawValue)), session \(Self.describeSession(of: tab))")
         tab.close()
         withAnimation(Self.tabTransition) {
             tabs.remove(at: index)
@@ -277,12 +290,20 @@ final class TabManager: ObservableObject {
     /// The path every close control takes: ask first when a running program
     /// would die with the tab, close straight away when there is nothing to
     /// lose — no session, or a shell idling at its prompt.
-    func requestClose(_ tab: TerminalTab) {
+    func requestClose(_ tab: TerminalTab, from origin: TabCloseOrigin) {
         if tab.hasRunningProgram {
+            AppLog.info(.tabs, "close of tab \(tab.id) (\(origin.rawValue)) awaits confirmation, session \(Self.describeSession(of: tab))")
             closeRequest = tab
         } else {
-            close(tab)
+            close(tab, from: origin)
         }
+    }
+
+    /// The daemon session a log line about `tab` names: the one id a "my
+    /// tabs closed by themselves" report can be matched against the
+    /// daemon's own log with.
+    private static func describeSession(of tab: TerminalTab) -> String {
+        tab.daemonSessionID.map(String.init) ?? "none"
     }
 
     /// Scene teardown: the window is gone, but its shells belong to the
@@ -292,6 +313,7 @@ final class TabManager: ObservableObject {
     /// with them: the process may live on with no window, and the next one
     /// to open must find these shells, not start fresh beside them.
     func detachAllTabs() {
+        AppLog.info(.tabs, "scene gone, detaching \(tabs.count) tab(s), sessions \(tabs.map(Self.describeSession(of:)))")
         for tab in tabs {
             tab.detach()
         }
@@ -304,6 +326,7 @@ final class TabManager: ObservableObject {
     /// The user emptied the window from the tab switcher: every shell dies,
     /// exactly as it would from its own ×. Confirmed by the caller.
     func closeAll() {
+        AppLog.info(.tabs, "closing all \(tabs.count) tab(s), sessions \(tabs.map(Self.describeSession(of:)))")
         for tab in tabs {
             tab.close()
         }
@@ -315,7 +338,7 @@ final class TabManager: ObservableObject {
     }
 
     /// Whether closing everything would interrupt a running program — the
-    /// case worth a confirmation, mirroring `requestClose(_:)` for a single
+    /// case worth a confirmation, mirroring `requestClose(_:from:)` for a single
     /// tab.
     var hasRunningPrograms: Bool {
         tabs.contains { $0.hasRunningProgram }

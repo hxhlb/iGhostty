@@ -261,6 +261,7 @@ final class ShortcutDaemonClient: @unchecked Sendable {
     /// close reply only says the SIGHUP went out, and the shell has the
     /// daemon's grace period to run its exit hooks.
     func closeSession(_ id: UInt64, timeout: TimeInterval = 5) async throws {
+        AppLog.info(.tabs, "shortcut ends session \(id)")
         try await request(.closeSession) {
             xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, id)
         }

@@ -42,7 +42,7 @@ struct SidebarView: View {
                             tab: tab,
                             isActive: tab.id == tabManager.activeTabID,
                             onSelect: { tabManager.activeTabID = tab.id },
-                            onClose: { tabManager.requestClose(tab) },
+                            onClose: { tabManager.requestClose(tab, from: .closeButton) },
                             tabManager: tabManager,
                             window: window,
                         )

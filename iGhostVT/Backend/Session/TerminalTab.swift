@@ -121,6 +121,7 @@ final class TerminalTab: ObservableObject, Identifiable {
             // attempting a doomed reattach. The daemon's own registry is the
             // only session record; just tell the directory to re-read it.
             transport.onSessionExit = { id, status in
+                AppLog.info(.tabs, "session \(id) ended on its own, status \(status); its tab closes")
                 daemonSession.clear(ifMatches: id)
                 exitRelay.fire(status)
                 Task { @MainActor in
