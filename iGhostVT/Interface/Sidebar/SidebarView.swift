@@ -12,7 +12,7 @@ struct SidebarView: View {
     @ObservedObject private var theme = AppTheme.shared
     @Environment(\.colorScheme) private var colorScheme
     @State private var window: UIWindow?
-    @StateObject private var draggedTab = DraggedTab()
+    @StateObject private var reorderPacing = TabReorderPacing()
     /// The rows' width, so a row's drag preview is the row's size.
     @State private var rowWidth: CGFloat = 0
 
@@ -46,7 +46,7 @@ struct SidebarView: View {
                             tabManager: tabManager,
                             window: window,
                         )
-                        .tabReorderable(tab, in: tabManager, dragged: draggedTab, preview: .row, width: rowWidth)
+                        .tabReorderable(tab, in: tabManager, pacing: reorderPacing, preview: .row, width: rowWidth)
                     }
 
                     NewTabMenu(tabManager: tabManager) {
@@ -76,7 +76,7 @@ struct SidebarView: View {
                     },
                 )
                 .onPreferenceChange(SidebarRowWidthKey.self) { rowWidth = $0 }
-                .tabReorderContainer(dragged: draggedTab)
+                .tabReorderContainer()
             }
 
             footer

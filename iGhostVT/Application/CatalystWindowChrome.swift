@@ -116,6 +116,27 @@ import UIKit
         private static func dress(_ nsWindow: NSObject) {
             clearTitlebarFill(in: nsWindow)
             positionWindowControls(in: nsWindow)
+            keepTitlebarBandForContent(nsWindow)
+        }
+
+        /// The top bar sits in the band AppKit keeps for a title bar (the
+        /// window's top ~30pt), and in a movable window AppKit moves the
+        /// window from any drag that starts there — a chip pressed to be
+        /// reordered took the window with it. A window that is not movable
+        /// leaves those drags to the content. Bare chrome still moves it:
+        /// `WindowDragRegion` makes the window movable for exactly the drag
+        /// it starts (`dispatchTouchAsWindowMovement`) and takes that back
+        /// when the drag ends. AppKit's own double-click on the band went
+        /// with it, so `WindowDragRegion` answers that too.
+        ///
+        /// The band also keeps a *system* drag from reaching the content as
+        /// a drop target — a tab lifted there was never offered to a slot,
+        /// movable or not — which is why the strip reorders its chips with a
+        /// plain gesture (`TabStripBar`) rather than a drag and drop.
+        @MainActor
+        private static func keepTitlebarBandForContent(_ nsWindow: NSObject) {
+            guard nsWindow.responds(to: NSSelectorFromString("setMovable:")) else { return }
+            nsWindow.setValue(false, forKey: "movable")
         }
 
         /// Hiding the Catalyst title (`titleVisibility` + nil toolbar) still
@@ -215,13 +236,44 @@ import UIKit
         /// Hands the mouse event UIKit is currently delivering to AppKit as a
         /// window drag, so the chrome behaves like a title bar. Only useful
         /// from inside a touch callback: `NSApp.currentEvent` is that press.
+        /// AppKit drags no window that is not movable, and the window is
+        /// kept that way (`keepTitlebarBandForContent`), so it is movable
+        /// for this drag only — `endWindowMovement` puts it back.
         func dispatchTouchAsWindowMovement() {
+            guard let window = currentEventWindow else { return }
+            window.setValue(true, forKey: "movable")
+            window.perform(NSSelectorFromString("performWindowDragWithEvent:"), with: currentEvent)
+        }
+
+        /// Ends what `dispatchTouchAsWindowMovement` started.
+        func endWindowMovement() {
+            currentEventWindow?.setValue(false, forKey: "movable")
+        }
+
+        /// A title bar's double-click: what System Settings ▸ Desktop & Dock
+        /// says it does (`AppleActionOnDoubleClick`) — zoom unless that is
+        /// Minimize or Do Nothing.
+        func performTitlebarDoubleClick() {
+            guard let window = currentEventWindow else { return }
+            switch UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") {
+            case "None":
+                return
+            case "Minimize":
+                window.perform(NSSelectorFromString("performMiniaturize:"), with: nil)
+            default:
+                window.perform(NSSelectorFromString("performZoom:"), with: nil)
+            }
+        }
+
+        private var currentEvent: NSObject? {
             guard let appClass = NSClassFromString("NSApplication") as? NSObject.Type,
-                  let app = appClass.value(forKey: "sharedApplication") as? NSObject,
-                  let event = app.value(forKey: "currentEvent") as? NSObject,
-                  let window = event.value(forKey: "window") as? NSObject
-            else { return }
-            window.perform(NSSelectorFromString("performWindowDragWithEvent:"), with: event)
+                  let app = appClass.value(forKey: "sharedApplication") as? NSObject
+            else { return nil }
+            return app.value(forKey: "currentEvent") as? NSObject
+        }
+
+        private var currentEventWindow: NSObject? {
+            currentEvent?.value(forKey: "window") as? NSObject
         }
     }
 #endif

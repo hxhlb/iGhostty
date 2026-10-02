@@ -722,8 +722,19 @@ Gotchas that bit us:
   lights' geometry is *screen* points and gets converted: the iPad-idiom
   Catalyst app draws at 77%, so a UIKit inset sized in the app's own points
   lands 23% short of the lights. `WindowDragRegion`,
-  behind the bar and the sidebar's strip and footer, moves the window from
-  bare chrome (`performWindowDragWithEvent:` on `NSApp.currentEvent`).
+  behind the bar, its capsule and the sidebar's strip and footer, moves the
+  window from bare chrome (`performWindowDragWithEvent:` on
+  `NSApp.currentEvent`) and answers a double-click as a title bar would.
+  AppKit still keeps a title bar's band over the window's top ~30pt, and
+  in a movable window it moves the window from *any* drag starting there —
+  a chip pressed to reorder took the window with it — so the window is
+  kept not movable and `WindowDragRegion` makes it movable for its own
+  drag only. That band also never hands a system drag to the content as a
+  drop target, movable or not, which is why the Mac strip reorders its
+  chips with a plain `DragGesture` while the sidebar (and the iPad strip)
+  use `onDrag`/`onDrop`. A `ScrollView` in that band draws Tahoe's scroll
+  edge effect over its own content — the chips came up frosted — so the
+  strip's scroller hides it (`scrollEdgeEffectHidden`).
 - `SMAppService` is `macCatalyst(16.0)`, above this app's iOS 15 deployment
   target, so every call sits behind `#available`. The packager raises the
   staged bundle's `LSMinimumSystemVersion` to 13.0, since a Catalyst app built

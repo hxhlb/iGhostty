@@ -8,11 +8,12 @@ import UIKit
 import UniformTypeIdentifiers
 
 /// Drag-to-reorder for the tab list, shared by the sidebar's rows and the
-/// strip's chips. The row under the pointer takes the dragged tab's slot as
-/// the drag passes over it (`dropEntered`, re-checked from `dropUpdated` —
-/// a reorder slides rows under a pointer that never crossed their edge, and
-/// the enter event alone missed those), so the list reorders live and the
-/// drop itself only ends the gesture.
+/// iPad strip's chips (the Mac strip reorders with a gesture of its own,
+/// `TabStripBar`). The row under the pointer takes the dragged tab's slot
+/// as the drag passes over it (`dropEntered`, re-checked from
+/// `dropUpdated` — a reorder slides rows under a pointer that never
+/// crossed their edge, and the enter event alone missed those), so the
+/// list reorders live and the drop itself only ends the gesture.
 ///
 /// Built on `onDrag`/`onDrop` rather than `List.onMove` because neither
 /// presentation is a `List`, and rather than `draggable`/`dropDestination`
@@ -38,20 +39,16 @@ enum TabReorder {
         #endif
     }
 
-    /// The token a drag carries. Reordering reads the tab from
-    /// `DraggedTab` instead — `dropEntered` is synchronous and an item
-    /// provider only loads asynchronously — so the payload is an id for
+    /// The token a drag carries. `dropEntered` is synchronous and an item
+    /// provider only loads asynchronously, so the payload is an id for
     /// form's sake, and the drag's identity is what it registers as: the
-    /// item type, and a second type naming the tab (`identityType`).
-    /// `DraggedTab` is per window and keeps a cancelled drag's tab, and a
-    /// drag from another window of the app passes `validateDrop` all the
-    /// same, so a slot has to tell whether the pointer is carrying the tab
-    /// it holds — and the registered types are the one thing a drop
-    /// delegate can read synchronously that reaches it on every platform.
-    /// On the Mac a drag crosses the AppKit pasteboard even within the
-    /// process, and what comes out the other side is a new provider with
-    /// the pasteboard's types and nothing else: `suggestedName` was tried
-    /// for this and arrived nil, so no slot ever moved.
+    /// item type, and a second type naming the tab (`identityType`). The
+    /// registered types are the one thing a drop delegate can read
+    /// synchronously that reaches it on every platform. On the Mac a drag
+    /// crosses the AppKit pasteboard even within the process, and what
+    /// comes out the other side is a new provider with the pasteboard's
+    /// types and nothing else: `suggestedName` was tried for this and
+    /// arrived nil, so no slot ever moved.
     static func itemProvider(for tab: TerminalTab) -> NSItemProvider {
         let provider = NSItemProvider()
         let payload = Data(tab.id.uuidString.utf8)
@@ -64,11 +61,21 @@ enum TabReorder {
         return provider
     }
 
-    /// Whether the drag under the pointer is the one that lifted `tab`.
-    static func drag(_ info: DropInfo, carries tab: TerminalTab) -> Bool {
-        info.itemProviders(for: [itemType]).contains { provider in
-            provider.registeredTypeIdentifiers.contains(identityType(for: tab))
+    /// The tab the drag under the pointer lifted, read from the drag
+    /// itself. Not from a "dragged tab" the source stashes in `onDrag`: on
+    /// the Mac that closure runs when SwiftUI feels like it — again for
+    /// rows a reorder slid, sometimes not at all for a fresh lift — so a
+    /// stash named the wrong tab, or none on a fast drag. A drag from
+    /// another window names a tab this list does not hold, and is nil.
+    static func tab(draggedIn info: DropInfo, from tabs: [TerminalTab]) -> TerminalTab? {
+        let prefix = "\(itemType.identifier)."
+        for provider in info.itemProviders(for: [itemType]) {
+            for type in provider.registeredTypeIdentifiers where type.hasPrefix(prefix) {
+                guard let id = UUID(uuidString: String(type.dropFirst(prefix.count))) else { continue }
+                return tabs.first { $0.id == id }
+            }
         }
+        return nil
     }
 
     /// The type identifier that names one tab's drag: the item type with
@@ -81,15 +88,12 @@ enum TabReorder {
     }
 }
 
-/// The tab a drag started from, held by the list that shows it. One drag
-/// at a time per list is all the system allows, so one slot suffices.
+/// A reorder's pacing, held by the list that shows the tabs. One drag at
+/// a time per list is all the system allows, so one record suffices. Not
+/// published: only drop callbacks read it, and a redraw of every row at
+/// each `dropEntered` would fight the move animation.
 @MainActor
-final class DraggedTab: ObservableObject {
-    /// Not published: the views read it only from drop callbacks, and a
-    /// redraw of every row at each `dropEntered` would fight the move
-    /// animation.
-    var tab: TerminalTab?
-
+final class TabReorderPacing: ObservableObject {
     /// When the last live reorder happened. `dropUpdated` fires many times
     /// a second, and a move mid-animation can land the pointer back in the
     /// slot it just left — re-moving only after a beat lets the previous
@@ -232,21 +236,20 @@ extension View {
     func tabReorderable(
         _ tab: TerminalTab,
         in tabManager: TabManager,
-        dragged: DraggedTab,
+        pacing: TabReorderPacing,
         preview: TabDragPreview.Style,
         width: CGFloat,
     ) -> some View {
         if TabReorder.isSupported {
             contentShape([.dragPreview, .contextMenuPreview], TabSlotShape(style: preview))
                 .onDrag {
-                    dragged.tab = tab
-                    return TabReorder.itemProvider(for: tab)
+                    TabReorder.itemProvider(for: tab)
                 } preview: {
                     TabDragPreview.rendered(for: tab, style: preview, width: width)
                 }
                 .onDrop(
                     of: [TabReorder.itemType],
-                    delegate: TabReorderSlotDelegate(tab: tab, tabManager: tabManager, dragged: dragged),
+                    delegate: TabReorderSlotDelegate(tab: tab, tabManager: tabManager, pacing: pacing),
                 )
         } else {
             self
@@ -257,9 +260,9 @@ extension View {
     /// that is not a tab, still ends the drag where the tab already sits
     /// instead of springing the preview back to where it started.
     @ViewBuilder
-    func tabReorderContainer(dragged: DraggedTab) -> some View {
+    func tabReorderContainer() -> some View {
         if TabReorder.isSupported {
-            onDrop(of: [TabReorder.itemType], delegate: TabReorderEndDelegate(dragged: dragged))
+            onDrop(of: [TabReorder.itemType], delegate: TabReorderEndDelegate())
         } else {
             self
         }
@@ -269,7 +272,7 @@ extension View {
 private struct TabReorderSlotDelegate: DropDelegate {
     let tab: TerminalTab
     let tabManager: TabManager
-    let dragged: DraggedTab
+    let pacing: TabReorderPacing
 
     func validateDrop(info: DropInfo) -> Bool {
         info.hasItemsConforming(to: [TabReorder.itemType])
@@ -289,8 +292,7 @@ private struct TabReorderSlotDelegate: DropDelegate {
     }
 
     func performDrop(info _: DropInfo) -> Bool {
-        dragged.tab = nil
-        return true
+        true
     }
 
     /// Puts the dragged tab in this slot. An entered slot moves at once;
@@ -298,17 +300,15 @@ private struct TabReorderSlotDelegate: DropDelegate {
     /// to settle, so a pointer sitting on a mid-animation boundary does
     /// not bounce the two tabs back and forth.
     private func moveDraggedTabHere(_ info: DropInfo, force: Bool) {
-        guard let moving = dragged.tab, moving.id != tab.id, TabReorder.drag(info, carries: moving) else { return }
+        guard let moving = TabReorder.tab(draggedIn: info, from: tabManager.tabs), moving.id != tab.id else { return }
         let now = Date()
-        guard force || now.timeIntervalSince(dragged.lastSlotChange) > 0.25 else { return }
-        dragged.lastSlotChange = now
+        guard force || now.timeIntervalSince(pacing.lastSlotChange) > 0.25 else { return }
+        pacing.lastSlotChange = now
         tabManager.moveTab(moving, toSlotOf: tab)
     }
 }
 
 private struct TabReorderEndDelegate: DropDelegate {
-    let dragged: DraggedTab
-
     func validateDrop(info: DropInfo) -> Bool {
         info.hasItemsConforming(to: [TabReorder.itemType])
     }
@@ -318,7 +318,6 @@ private struct TabReorderEndDelegate: DropDelegate {
     }
 
     func performDrop(info _: DropInfo) -> Bool {
-        dragged.tab = nil
-        return true
+        true
     }
 }
