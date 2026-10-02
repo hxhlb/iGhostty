@@ -606,14 +606,30 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
 
     private var hasLoggedFirstOutput = false
 
-    private func openOrAttachSession() {
+    /// How often, and how far apart, an attach the daemon answers with
+    /// `sessionBusy` is tried again before the tab gives up on the session:
+    /// two seconds in all. A tab moved to another window attaches while the
+    /// window it left is still detaching — that detach and this attach
+    /// travel on two connections, and nothing orders one before the other.
+    private static let busyAttachRetryLimit = 20
+    private static let busyAttachRetryInterval: DispatchTimeInterval = .milliseconds(100)
+
+    private func openOrAttachSession(busyRetries: Int = 0) {
         guard let connection = lock.locked({ self.connection }) else { return }
         if let resumeSessionID = lock.locked({ self.resumeSessionID }) {
             let message = Self.makeMessage(.attachSession)
             xpc_dictionary_set_uint64(message, iGhostVTWireKey.sessionID, resumeSessionID)
             xpc_connection_send_message_with_reply(connection, message, queue) { [weak self] reply in
                 guard let self else { return }
-                if Self.replyCode(of: reply) == .success {
+                let code = Self.replyCode(of: reply)
+                if code == .sessionBusy, busyRetries < Self.busyAttachRetryLimit {
+                    queue.asyncAfter(deadline: .now() + Self.busyAttachRetryInterval) { [weak self] in
+                        guard let self, lock.locked({ self.connection === connection }) else { return }
+                        openOrAttachSession(busyRetries: busyRetries + 1)
+                    }
+                    return
+                }
+                if code == .success {
                     if settleDeferredEnd(sessionID: resumeSessionID) {
                         return
                     }

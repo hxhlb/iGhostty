@@ -121,6 +121,9 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
         let isLink: Bool
 
         init?(provider: NSItemProvider) {
+            // A tab's own drag is never pasted, whatever else it carries
+            // (the move-to-window activity registers a type of its own).
+            guard !provider.hasItemConformingToTypeIdentifier(TabReorder.itemType.identifier) else { return nil }
             let types = provider.registeredTypeIdentifiers.compactMap(UTType.init).filter { !$0.isDynamic }
             guard !types.isEmpty else { return nil }
             self.provider = provider
@@ -134,10 +137,9 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
                         && !type.conforms(to: .url)
                         && (named || !type.conforms(to: .text))
                 }
-            // An item that is none of these — a tab dragged out of the
-            // sidebar or the strip (`TabReorder.itemType`), which conforms
-            // to nothing — is not a drop the terminal accepts, so the drag
-            // shows no copy badge over it and pastes nothing.
+            // An item that is none of these is not a drop the terminal
+            // accepts, so the drag shows no copy badge over it and pastes
+            // nothing.
             guard hasFileURL || isText || isLink || fileType != nil else { return nil }
         }
 

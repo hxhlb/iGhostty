@@ -52,6 +52,9 @@ struct TabContextMenu: View {
         Divider()
         lockControls
         Divider()
+        if TabWindowMove.isAvailable {
+            TabMoveButton(tab: tab, tabManager: tabManager)
+        }
         Button(role: .destructive, action: { tabManager.requestClose(tab, from: .contextMenu) }) {
             Label("Close Tab", systemImage: "trash")
         }
@@ -171,6 +174,30 @@ struct TabContextMenu: View {
 
     private func exportText() {
         TabPageExport.exportText(of: tab, in: window)
+    }
+}
+
+/// Move to New Window (`TabWindowMove`). Its own view because it is the
+/// one item that changes while the menu could be open: it waits for the
+/// tab's session and for a second tab in the window, and it observes those
+/// two things alone — the session id on `TabAttributes`, and the tab list,
+/// which changes when a tab comes or goes, never with output.
+private struct TabMoveButton: View {
+    let tab: TerminalTab
+    @ObservedObject var tabManager: TabManager
+    @ObservedObject private var attributes: TabAttributes
+
+    init(tab: TerminalTab, tabManager: TabManager) {
+        self.tab = tab
+        self.tabManager = tabManager
+        attributes = tab.attributes
+    }
+
+    var body: some View {
+        Button(action: { TabWindowMove.moveToNewWindow(tab, from: tabManager) }) {
+            Label("Move to New Window", systemImage: "macwindow.on.rectangle")
+        }
+        .disabled(attributes.sessionID == nil || tabManager.tabs.count < 2)
     }
 }
 

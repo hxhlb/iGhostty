@@ -189,6 +189,7 @@ final class TerminalTab: ObservableObject, Identifiable {
         // The user's arrangement of the keyboard accessory bar; later edits
         // reach existing tabs through RootView's store subscription.
         KeyboardBarStore.shared.apply(to: terminal)
+        attributes.sessionID = resumeDaemonSessionID
         AppLog.info(
             .tabs,
             "tab \(id) created, resume id \(resumeDaemonSessionID.map(String.init) ?? "none"); waiting for the surface's first viewport",
@@ -480,6 +481,7 @@ final class TerminalTab: ObservableObject, Identifiable {
             let id = transport.currentSessionID
         else { return }
         daemonSession.id = id
+        attributes.sessionID = id
         DaemonSessionDirectory.shared.refresh()
     }
 }

@@ -411,6 +411,27 @@ observes for itself (`TabLabels.swift`). Debug builds count those hosts'
 body evaluations (`BodyTrace`, logged once a second under `tabs`); a line
 during a flood of output is this regression back.
 
+A tab moves to a window of its own by its daemon session, never by its
+shell (`TabWindowMove`). The request is an `NSUserActivity`
+(`wiki.qaq.ighostvt.move-tab`, declared in `NSUserActivityTypes`) naming
+the session: the context menu's Move to New Window asks for a scene with
+it, and the drag item of a sidebar row or an iPad strip chip carries it, so
+iPadOS turns a drop beside the window into a new one while a drop on a
+slot still only reorders. The *new* scene does the hand-off as it connects
+— the window holding the tab detaches it (`TabManager.handOff`:
+`disconnect`, not `closeSession`) and drops it, and the new window attaches
+to the session (`populate(movingSession:)`, which claims no resumable
+sessions and opens no fresh tab) — so a drag that ends anywhere else moves
+nothing. Attach is exclusive and the detach travels on the other window's
+connection, so an attach answered `sessionBusy` is retried for two seconds
+before the tab gives up and opens a fresh shell. The replay repaints the
+output and the attach reply's attributes bring the lock. Offered only where
+`supportsMultipleScenes` (never on a phone), and only for a tab that has a
+session and is not its window's only tab — the menu item reads both off
+`TabAttributes.sessionID` and the tab list, so it still observes nothing
+output changes. The Mac strip's chips reorder with a plain `DragGesture`,
+which no system drag comes out of; on the Mac the menu is the way.
+
 Every `+` is a `NewTabMenu`: the only decision a new terminal has is where
 its shell starts, so the control opens a menu of directories instead of a
 tab. Three inline groups, in this order — the home; the directories this

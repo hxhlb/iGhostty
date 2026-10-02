@@ -61,14 +61,29 @@ final class TabManager: ObservableObject {
                 )
             }
         }
-        // The first window of a cold launch asks the daemon what survived the
-        // previous run and reattaches to it; every other window (and a launch
-        // with nothing to resume) starts with one fresh tab. The daemon is
-        // the only record — nothing about sessions is persisted app-side.
-        // A session a tab already holds is skipped: a Shortcut or URL that
-        // launched the app opens its tab before the daemon has answered,
-        // and that tab has not attached yet, so the answer still lists the
-        // session as free.
+    }
+
+    /// Fills a new window. A window made for a tab moved out of another one
+    /// (`TabWindowMove`) holds that tab and nothing else: it claims none of
+    /// the resumable sessions — the moved one is among them as soon as its
+    /// old window lets go — and opens no fresh shell beside it.
+    ///
+    /// Any other window: the first one of a cold launch asks the daemon
+    /// what survived the previous run and reattaches to it; every other
+    /// window (and a launch with nothing to resume) starts with one fresh
+    /// tab. The daemon is the only record — nothing about sessions is
+    /// persisted app-side. A session a tab already holds is skipped: a
+    /// Shortcut or URL that launched the app opens its tab before the
+    /// daemon has answered, and that tab has not attached yet, so the
+    /// answer still lists the session as free.
+    ///
+    /// Called by the scene delegate as the window connects, before anything
+    /// else can add a tab.
+    func populate(movingSession movedSessionID: UInt64?) {
+        if let movedSessionID {
+            openTab(attachingTo: movedSessionID)
+            return
+        }
         DaemonSessionDirectory.shared.claimResumable { [weak self] resumable in
             guard let self else { return }
             let held = Set(tabs.compactMap(\.daemonSessionID))
@@ -278,9 +293,28 @@ final class TabManager: ObservableObject {
         }
         AppLog.info(.tabs, "closing tab \(tab.id) (\(origin.rawValue)), session \(Self.describeSession(of: tab))")
         tab.close()
+        remove(at: index)
+    }
+
+    /// The tab is moving to another window (`TabWindowMove`): it leaves this
+    /// one detached, never closed — the shell is the one the other window
+    /// is about to attach to, and that attach waits out this detach.
+    func handOff(_ tab: TerminalTab) {
+        guard let index = tabs.firstIndex(where: { $0.id == tab.id }) else {
+            return
+        }
+        AppLog.info(.tabs, "tab \(tab.id) moves to another window, session \(Self.describeSession(of: tab))")
+        tab.detach()
+        remove(at: index)
+    }
+
+    /// Takes the tab at `index` out of the list, handing the selection to
+    /// its neighbour when it was the active one.
+    private func remove(at index: Int) {
+        let id = tabs[index].id
         withAnimation(Self.tabTransition) {
             tabs.remove(at: index)
-            if activeTabID == tab.id {
+            if activeTabID == id {
                 activeTabID = tabs.isEmpty ? nil : tabs[min(index, tabs.count - 1)].id
             }
         }

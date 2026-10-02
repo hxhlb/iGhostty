@@ -28,6 +28,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
         tabManager.windowScene = windowScene
+        // A window opened for a tab moved out of another one: that window
+        // lets go of the tab first, and this one attaches to its session.
+        let movedSessionID = TabWindowMove.sessionID(in: options.userActivities)
+        if let movedSessionID {
+            TabWindowMove.releaseSource(of: movedSessionID, into: tabManager)
+        }
+        tabManager.populate(movingSession: movedSessionID)
         #if targetEnvironment(macCatalyst)
             // No title bar: the app draws to the top edge and the traffic
             // lights float over its chrome (`CatalystWindowChrome`).

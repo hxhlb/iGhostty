@@ -67,6 +67,12 @@ final class TabAttributes: ObservableObject {
     /// switches to it.
     @Published var lock: TabLock?
 
+    /// The daemon session the tab holds, once it holds one. Not a choice
+    /// the user makes — the one fact about the session the context menu
+    /// needs (Move to New Window waits for it), kept here so the menu still
+    /// observes nothing that changes with output. Written by the tab.
+    @Published var sessionID: UInt64?
+
     /// The interaction lock as a flag — what the presentations badge and
     /// what the menus toggle. Setting it on replaces a keyboard lock;
     /// setting it off clears nothing but itself.

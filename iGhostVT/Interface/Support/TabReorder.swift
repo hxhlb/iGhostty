@@ -49,7 +49,13 @@ enum TabReorder {
     /// comes out the other side is a new provider with the pasteboard's
     /// types and nothing else: `suggestedName` was tried for this and
     /// arrived nil, so no slot ever moved.
-    static func itemProvider(for tab: TerminalTab) -> NSItemProvider {
+    ///
+    /// A tab that can move to a window of its own also carries the move's
+    /// `NSUserActivity` (`TabWindowMove`), visible to the system: dropped
+    /// beside the window rather than on a slot, the drag becomes a new
+    /// window holding the tab. A drop on a slot still only reorders.
+    @MainActor
+    static func itemProvider(for tab: TerminalTab, in tabManager: TabManager) -> NSItemProvider {
         let provider = NSItemProvider()
         let payload = Data(tab.id.uuidString.utf8)
         for type in [itemType.identifier, identityType(for: tab)] {
@@ -57,6 +63,9 @@ enum TabReorder {
                 completion(payload, nil)
                 return nil
             }
+        }
+        if let activity = TabWindowMove.activity(for: tab, in: tabManager) {
+            provider.registerObject(activity, visibility: .all)
         }
         return provider
     }
@@ -243,7 +252,7 @@ extension View {
         if TabReorder.isSupported {
             contentShape([.dragPreview, .contextMenuPreview], TabSlotShape(style: preview))
                 .onDrag {
-                    TabReorder.itemProvider(for: tab)
+                    TabReorder.itemProvider(for: tab, in: tabManager)
                 } preview: {
                     TabDragPreview.rendered(for: tab, style: preview, width: width)
                 }
