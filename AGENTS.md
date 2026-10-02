@@ -41,11 +41,14 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   for exactly this reason.
 - Depends on the **released**
   [libghostty-spm](https://github.com/Lakr233/libghostty-spm) package
-  (`upToNextMajor` from 1.6.20261002, Ghostty 0538f753 on Zig 0.16). This
-  revision bounds the main-queue work an output flood can cause — the
-  view state's publishes (title, pwd, scrollbar…) coalesce into at most
-  one flush per turn and off-main wakeups into one outstanding hop — and
-  gives `InMemoryTerminalSession` an output-backlog API
+  (`upToNextMajor` from 1.6.20261003, Ghostty 0538f753 on Zig 0.16). This
+  revision makes a tap below the cursor row, when nothing has mouse
+  capture, click the cursor's cell, so raising the keyboard no longer
+  pushes the top lines into scrollback; 1.6.20261002 bounds the main-queue
+  work an output flood can cause — the view state's publishes (title, pwd,
+  scrollbar…) coalesce into at most one flush per turn and off-main
+  wakeups into one outstanding hop — and gives `InMemoryTerminalSession`
+  an output-backlog API
   (`pendingOutputByteCount`, `setOutputBacklogHandler(highWater:lowWater:)`);
   it moves to DisplayLink 3.0 (the package formerly named MSDisplayLink).
   1.6.20260929 handed the hardware presses ghostty ignores (Caps Lock, bare
