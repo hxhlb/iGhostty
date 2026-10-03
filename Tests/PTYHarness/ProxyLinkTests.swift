@@ -839,6 +839,52 @@ func runProxyLinkTests() {
         "leaving none of the old keys behind",
     )
 
+    // Requests no client sends, over and over: each is refused, none is
+    // kept, and neither side grows with them. The harness process is the
+    // proxy and io's caller both, so its footprint stands for theirs.
+    func attributesRequest(_ fill: @escaping (xpc_object_t) -> Void) -> iGhostVTReplyCode? {
+        replyCode(request(supervisor, from: second, .setSessionAttributes) { message in
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.sessionID, sessionID)
+            fill(message)
+        })
+    }
+    let hugeValue = String(repeating: "x", count: 512 * 1024)
+    let malformed: [(String, (xpc_object_t) -> Void)] = [
+        ("a half-megabyte value", { message in
+            let dictionary = xpc_dictionary_create(nil, nil, 0)
+            xpc_dictionary_set_string(dictionary, "k", hugeValue)
+            xpc_dictionary_set_value(message, iGhostVTWireKey.attributes, dictionary)
+        }),
+        ("a nested dictionary", { message in
+            let dictionary = xpc_dictionary_create(nil, nil, 0)
+            xpc_dictionary_set_value(dictionary, "k", xpc_dictionary_create(nil, nil, 0))
+            xpc_dictionary_set_value(message, iGhostVTWireKey.attributes, dictionary)
+        }),
+        ("a request whose attributes are not a dictionary", { message in
+            xpc_dictionary_set_string(message, iGhostVTWireKey.attributes, "lock=keyboard")
+        }),
+    ]
+    for (name, fill) in malformed {
+        check(attributesRequest(fill) == .invalidRequest, "\(name) is refused")
+    }
+    let footprintBefore = footprintBytes()
+    var refusedCount = 0
+    for round in 0 ..< 600 {
+        if attributesRequest(malformed[round % malformed.count].1) == .invalidRequest {
+            refusedCount += 1
+        }
+    }
+    let footprintGrowth = Int64(footprintBytes()) - Int64(footprintBefore)
+    check(refusedCount == 600, "600 more malformed requests are all refused (\(refusedCount))")
+    check(
+        footprintGrowth < 16 << 20,
+        "and nothing grows with them (\(footprintGrowth >> 10) KiB)",
+    )
+    check(
+        attributes(in: listedRow(supervisor, from: second, sessionID: sessionID)) == lock,
+        "the session keeps the attributes it had",
+    )
+
     // The first peer's connection drops: its sessions are detached, not
     // killed, and its replay is what the next peer gets.
     harnessQueue.sync { supervisor.peerGone(1) }
