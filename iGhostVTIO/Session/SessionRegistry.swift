@@ -12,7 +12,7 @@ final class SessionRegistry {
     private let queue: DispatchQueue
     private var sessions: [UInt64: PTYSession] = [:]
     private var attachments: [UInt64: PeerSession] = [:]
-    private var nextID: UInt64 = 1
+    private var sessionIDs = SessionIDReservation()
     private var childExitSignal: DispatchSourceSignal?
     private var isOutputPaused = false
 
@@ -117,8 +117,7 @@ final class SessionRegistry {
         // saw it.
         let requestedDirectory = sourceSessionID.flatMap(inheritableDirectory)
             ?? startDirectory.flatMap(enterableDirectory)
-        let id = nextID
-        nextID &+= 1
+        let id = sessionIDs.take()
 
         let session = try PTYSession(
             id: id,

@@ -206,6 +206,11 @@ each `TerminalTab` owns a `TerminalSessionStore`, which drives a
 `TerminalTransport`. Daemon sessions outlive the app —
 `disconnect()` = detach, `closeSession()` = kill; `DaemonSessionLedger`
 persists session IDs so a cold launch reattaches (256 KiB replay).
+Those IDs never repeat across `ighostvtd-io` processes
+(`SessionIDReservation`, a block counter kept beside the daemon log): after
+io dies a kept ID must name nothing, so the attach fails and the tab opens a
+fresh shell. A counter restarting at 1 handed a reconnecting tab whatever the
+replacement had opened under its old number — a CLI `new` included.
 SSH later = another `TerminalTransport` implementation; don't collapse the
 seam.
 

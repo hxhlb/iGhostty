@@ -1084,10 +1084,22 @@ func runProxyLinkTests() {
         attributes(in: listedRow(supervisor, from: replacement, sessionID: heldID)) == [:],
         "with no attributes left over from before the crash",
     )
+    check(heldID != doomedID, "the replacement does not hand out the dead session's id again (\(doomedID) → \(heldID))")
     check(
-        heldID == doomedID
-            || setAttributes(supervisor, from: replacement, sessionID: doomedID, lock) == .unknownSession,
+        setAttributes(supervisor, from: replacement, sessionID: doomedID, lock) == .unknownSession,
         "and the dead session's id names nothing",
+    )
+    // What a tab does after the crash: attach to the id it kept.
+    let returning = HarnessPeer(peerID: 15)
+    returning.supervisor = supervisor
+    harnessQueue.sync { supervisor.register(returning) }
+    _ = request(supervisor, from: returning, .hello)
+    let staleAttach = request(supervisor, from: returning, .attachSession) {
+        xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, doomedID)
+    }
+    check(
+        replyCode(staleAttach) == .unknownSession,
+        "an attach to the dead session's id is refused, not handed the new session",
     )
     check(
         replyCode(request(supervisor, from: replacement, .shutdown)) == .sessionBusy,

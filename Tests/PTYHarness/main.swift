@@ -1040,6 +1040,32 @@ do {
     check(false, "a process-name session spawns")
 }
 
+// Session ids outlive the io process that issued them: a client attaches
+// to the id it kept, and after io dies that id must name nothing rather than
+// whatever the replacement opened first under the same number.
+print("session id reservation")
+do {
+    let path = NSTemporaryDirectory() + "ighostvt-ids-\(getpid())"
+    defer { unlink(path) }
+    var first = SessionIDReservation(path: path)
+    let issued = (0 ..< 3).map { _ in first.take() }
+    check(issued == [1, 2, 3], "a fresh store starts at 1 and counts up (\(issued))")
+    var second = SessionIDReservation(path: path)
+    let next = second.take()
+    check(next > issued.last!, "a replacement io starts past every id the last one issued (\(next))")
+    for _ in 0 ..< SessionIDReservation.blockSize * 2 {
+        _ = second.take()
+    }
+    let beyond = second.take()
+    var third = SessionIDReservation(path: path)
+    check(third.take() > beyond, "and past ids from blocks reserved later")
+    // Another writer's larger value wins; a smaller one never lowers it.
+    var laggard = SessionIDReservation(path: path)
+    _ = (0 ..< SessionIDReservation.blockSize + 1).map { _ in laggard.take() }
+    var fourth = SessionIDReservation(path: path)
+    check(fourth.take() > beyond + SessionIDReservation.blockSize, "the stored end only ever grows")
+}
+
 runProxyLinkTests()
 
 if failures.isEmpty {
