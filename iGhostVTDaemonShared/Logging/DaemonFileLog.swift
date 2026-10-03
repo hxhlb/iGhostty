@@ -18,8 +18,19 @@ import Dispatch
 /// The line format is likewise read back by the app — keep
 /// `LogReader.parseDaemonLine` in step with `log(_:)`.
 enum DaemonFileLog {
-    private static let path = iGhostVTProtocol.daemonLogPath
-    private static let rotatedPath = iGhostVTProtocol.rotatedDaemonLogPath
+    /// Names another file in place of the protocol's. Only `make harness`
+    /// sets it, so a test run on the host never writes into the log of the
+    /// user's own running daemon.
+    static let pathOverrideVariable = "IGHOSTVT_DAEMON_LOG"
+
+    private static let path: String = {
+        if let override = getenv(pathOverrideVariable), override.pointee != 0 {
+            return String(cString: override)
+        }
+        return iGhostVTProtocol.daemonLogPath
+    }()
+
+    private static let rotatedPath = path + ".1"
     private static let rotateAtBytes = 512 * 1024
     private static let queue = DispatchQueue(
         label: "wiki.qaq.ighostvt.daemon.filelog",

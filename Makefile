@@ -264,7 +264,8 @@ harness:
 		$$(find "$(ROOT_DIR)/Tests/PTYHarness" -name '*.swift' | sort) \
 		-o "$$harness_dir/harness" && \
 	IGHOSTVT_IO_BINARY="$$harness_dir/ighostvtd-io" \
-	IGHOSTVT_SESSION_ID_STORE="$$harness_dir/session-ids" "$$harness_dir/harness" && \
+	IGHOSTVT_SESSION_ID_STORE="$$harness_dir/session-ids" \
+	IGHOSTVT_DAEMON_LOG="$$harness_dir/ighostvtd.log" "$$harness_dir/harness" && \
 	xcrun --sdk macosx swiftc -swift-version 5 \
 		"$(ROOT_DIR)/Shared/Protocol/iGhostVTProtocol.swift" \
 		"$(ROOT_DIR)/Shared/Screen/ScreenRenderer.swift" \
