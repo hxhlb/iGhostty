@@ -124,12 +124,6 @@ struct RootView: View {
             TabSwitcherView(tabManager: tabManager)
         }
         .settingsPresentation(isPresented: $interface.showsSettingsSheet, onDismiss: refocus)
-        .sheet(item: $tabManager.selectionRequest, onDismiss: refocus) { box in
-            TerminalSelectionSheet(
-                text: box.request.text,
-                anchorRange: box.request.anchorRange,
-            )
-        }
         // One copy for the whole window: each confirmation presents as an
         // `AlertViewController` on the front-most context, so it lands above
         // the switcher's cover too.

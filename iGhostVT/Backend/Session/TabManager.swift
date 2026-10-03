@@ -49,9 +49,6 @@ final class TabManager: ObservableObject {
     /// libghostty's silent denial.
     @Published private(set) var clipboardRequests: [TerminalClipboardConfirmationRequest] = []
 
-    /// A long press asking for the selection sheet; `RootView` presents it.
-    @Published var selectionRequest: TerminalSelectionRequestBox?
-
     init() {
         SessionActivityController.shared.register(self) { [weak self] in
             self.map {
@@ -214,9 +211,6 @@ final class TabManager: ObservableObject {
         )
         tab.terminal.onClipboardConfirmationRequest = { [weak self] request in
             self?.clipboardRequests.append(request)
-        }
-        tab.terminal.onTextSelectionRequest = { [weak self] request in
-            self?.selectionRequest = TerminalSelectionRequestBox(request: request)
         }
         // A finished shell is a finished tab: close outright — straight to
         // `close`, not `requestClose`: the confirmation guards a running
@@ -418,11 +412,4 @@ final class TabManager: ObservableObject {
         let next = (index + offset + tabs.count) % tabs.count
         self.activeTabID = tabs[next].id
     }
-}
-
-/// Wraps a selection request for SwiftUI's `sheet(item:)`; each long press is
-/// its own presentation.
-struct TerminalSelectionRequestBox: Identifiable {
-    let id = UUID()
-    let request: TerminalTextSelectionRequest
 }
