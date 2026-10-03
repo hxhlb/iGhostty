@@ -150,7 +150,26 @@ sessions and no zombie — but see "Known, not fixed" for the app's memory.
 
 ## Phase C — iPad
 
-*See the iPad agent's results (to be filled in).*
+A virtual iPad on iPadOS 26, the roothide deb, installed over 1.0.8.
+
+- **Move to New Window** from the context menu: the new window shows the
+  tab's output and shell, and the tab leaves the source window.
+- **Drag a tab out beside the window**: makes a new window holding the tab
+  — but only after `uicache -p`. Installed over the same version, the
+  bootstrap's uikittools trigger did not re-register the app, so
+  LaunchServices still had the old `NSUserActivityTypes`. The postinst
+  calls no `uicache` of its own; a version bump re-registers.
+- **Title capsule** on the compact bar: fine.
+- **Drag preview**: a dragged tab used to show an empty white card. On
+  iPadOS 26 the SwiftUI `onDrag` `preview:` closure itself comes out empty,
+  whatever it draws, so the preview is gone and the lift snapshot of the
+  slot travels instead (`e189d98`); sidebar rows paint the theme's
+  background under themselves so the card is solid. A row now shows its
+  title; a strip chip still does not (below).
+- Not run before the device was shut down: lock persistence across a
+  relaunch, menus under a flood, the paste notice, and stress. Lock
+  persistence and menus are covered on the Mac (phase B), the paste notice
+  in phase A.
 
 ## Known, not fixed
 
@@ -191,10 +210,19 @@ sessions and no zombie — but see "Known, not fixed" for the app's memory.
   fix is not safe — sending `?997` blind would type stray characters into a
   shell that never asked for it. Deferred past 1.0.9.
 
+- **A strip chip's drag card is still blank on iPad.** The chip sits
+  inside the bar's glass container, and the system's lift snapshot of
+  glass content carries no text.
+- **Replayed output wraps after a move to a narrower window.** The attach
+  sends the new size and the shell redraws its prompt, but the replay
+  bytes were written at the old width. Fixing it needs a library API to
+  feed the replay at the old grid and reflow.
+
 ## Not run
 
-- An iPad in this pass (phase C is a separate run), and Move to New Window
-  or multiple windows on a phone, which has neither.
+- On the iPad: lock persistence, menus under a flood, the paste notice,
+  stress. Move to New Window or multiple windows on a phone, which has
+  neither.
 - Out-of-range session attributes from an on-device client: it would have
   to stand in for `ighostvt-cli`, since the daemon admits a peer by its
   executable path. The harness covers them.
