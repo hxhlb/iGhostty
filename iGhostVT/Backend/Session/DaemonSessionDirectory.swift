@@ -44,6 +44,13 @@ final class DaemonSessionDirectory {
         hasClaimedResumable = true
         XPCDaemonTransport.listSessions { rows in
             Task { @MainActor in
+                // No answer is not "nothing to resume": a daemon still
+                // starting (the Mac's helper before it is allowed) holds the
+                // last run's shells all the same, and the claim stays open
+                // for the retry once it answers (`TabManager.resumeLeftovers`).
+                if rows == nil {
+                    self.hasClaimedResumable = false
+                }
                 let rows = rows ?? []
                 self.sessions = rows
                 completion(rows.filter { !$0.isAttached }.map(\.id))

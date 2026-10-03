@@ -84,12 +84,20 @@ final class TabManager: ObservableObject {
             openTab(attachingTo: movedSessionID)
             return
         }
+        resumeLeftovers(openingFreshTab: true)
+    }
+
+    /// Adopts the sessions no peer is attached to, if this window wins the
+    /// claim. `populate` asks as the window connects; the scene asks again
+    /// when the Mac's helper comes up, because a claim the daemon could not
+    /// answer is left open and the shells it holds are reachable only now.
+    func resumeLeftovers(openingFreshTab: Bool = false) {
         DaemonSessionDirectory.shared.claimResumable { [weak self] resumable in
             guard let self else { return }
             let held = Set(tabs.compactMap(\.daemonSessionID))
             let resumable = resumable.filter { !held.contains($0) }
             guard !resumable.isEmpty else {
-                if tabs.isEmpty {
+                if openingFreshTab, tabs.isEmpty {
                     newTab()
                 }
                 return
@@ -221,14 +229,21 @@ final class TabManager: ObservableObject {
         return tab
     }
 
-    /// Puts a freshly made tab in front: appended, activated, and — when the
+    /// Puts a freshly made tab in front: placed, activated, and — when the
     /// scene is already up — told so, since a tab created after
-    /// `noteSceneActive()` gets no replay of it. The cold-launch resume batch
-    /// does not go through here: it appends several at once and notifies every
-    /// tab, not only the new ones.
-    private func adopt(_ tab: TerminalTab) -> TerminalTab {
+    /// `noteSceneActive()` gets no replay of it. A tab the user opens goes
+    /// right after the one they were in, as a browser's does, so it lands
+    /// beside the work it came from instead of past every other tab; one
+    /// that arrives from outside (a Shortcut, a URL, a moved session) is
+    /// appended. The cold-launch resume batch does not go through here: it
+    /// appends several at once and notifies every tab, not only the new ones.
+    private func adopt(_ tab: TerminalTab, afterActiveTab: Bool = false) -> TerminalTab {
         withAnimation(Self.tabTransition) {
-            tabs.append(tab)
+            if afterActiveTab, let index = tabs.firstIndex(where: { $0.id == activeTabID }) {
+                tabs.insert(tab, at: index + 1)
+            } else {
+                tabs.append(tab)
+            }
             activeTabID = tab.id
         }
         if isSceneActive {
@@ -269,16 +284,17 @@ final class TabManager: ObservableObject {
     /// directory is ever typed into a PTY.
     @discardableResult
     func newTab(_ origin: Origin = .activeTab) -> TerminalTab {
-        switch origin {
+        let tab = switch origin {
         case .activeTab:
-            adopt(makeTab(inheritDirectoryFrom: activeTab?.daemonSessionID))
+            makeTab(inheritDirectoryFrom: activeTab?.daemonSessionID)
         case .home:
-            adopt(makeTab())
+            makeTab()
         case let .session(sessionID):
-            adopt(makeTab(inheritDirectoryFrom: sessionID))
+            makeTab(inheritDirectoryFrom: sessionID)
         case let .directory(directory):
-            adopt(makeTab(startDirectory: directory.path))
+            makeTab(startDirectory: directory.path)
         }
+        return adopt(tab, afterActiveTab: true)
     }
 
     /// Closing the last tab leaves the window empty on purpose: the empty

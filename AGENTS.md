@@ -420,9 +420,9 @@ A tab moves to a window of its own by its daemon session, never by its
 shell (`TabWindowMove`). The request is an `NSUserActivity`
 (`wiki.qaq.ighostvt.move-tab`, declared in `NSUserActivityTypes`) naming
 the session: the context menu's Move to New Window asks for a scene with
-it, and the drag item of a sidebar row or an iPad strip chip carries it, so
-iPadOS turns a drop beside the window into a new one while a drop on a
-slot still only reorders. The *new* scene does the hand-off as it connects
+it, the drag item of a sidebar row carries it, so iPadOS turns a drop
+beside the window into a new one while a drop on a slot still only
+reorders, and a strip chip pulled out of the bar asks for it on release. The *new* scene does the hand-off as it connects
 — the window holding the tab detaches it (`TabManager.handOff`:
 `disconnect`, not `closeSession`) and drops it, and the new window attaches
 to the session (`populate(movingSession:)`, which claims no resumable
@@ -434,8 +434,33 @@ output and the attach reply's attributes bring the lock. Offered only where
 `supportsMultipleScenes` (never on a phone), and only for a tab that has a
 session and is not its window's only tab — the menu item reads both off
 `TabAttributes.sessionID` and the tab list, so it still observes nothing
-output changes. The Mac strip's chips reorder with a plain `DragGesture`,
-which no system drag comes out of; on the Mac the menu is the way.
+output changes.
+
+The top bar's strip picks a chip up with a long press and never with a
+plain drag, which has another job on each platform: on the Mac the strip
+*is* the title bar and a drag moves the window; on a touch screen it
+scrolls the strip (a chip's system drag began as the finger moved, so a
+swipe picked up a tab). The press lifts the chip onto an opaque capsule
+of its own — bare text carried over another chip printed the two titles
+over each other — and from there it reorders, or, pulled out of the bar,
+its × turns into `arrow.up.right` and release opens it in a window of its
+own (on the Mac placed so its chip lands under the pointer). On the Mac a
+lifted chip over *another* window's bar turns into `arrow.down.left` and
+joins that window (`TabWindowMove.merge`: the same detach-then-attach,
+with no scene to create) — the way back from a torn-off window, whose only
+tab may go and whose window then closes. Brought back into its own bar it
+is only being reordered again. The Mac's press is a SwiftUI gesture
+*simultaneous* with the chip's button (one that outranked the button
+swallowed every click); a touch screen's is `ChipPressRecognizer`, a
+UIKit recognizer on the strip's scroll view that every other recognizer
+on the touch waits for — any SwiftUI gesture on a chip stopped the strip
+scrolling. It decides a touch the way the Home Screen does: moved early
+is a scroll, let go early a tap, held 0.3 s lifts, moved once lifted is
+a carry, and held still to 0.6 s gives the touch to the context menu.
+
+A tab opened from inside the window (⌘T, a `+`, the menus) goes right
+after the active tab, as a browser's does; one that arrives from outside
+— a Shortcut, a URL, a moved session — is appended.
 
 Every `+` is a `NewTabMenu`: the only decision a new terminal has is where
 its shell starts, so the control opens a menu of directories instead of a
@@ -791,6 +816,16 @@ Gotchas that bit us:
   machine's build and update. `make check` rejects any `Name (TEAMID)`
   shaped literal in `Scripts/`, the `Makefile`, and `Packaging/` — keep it
   that way.
+- **A Mac launch brings back one window.** macOS restores every window
+  the last run had open (after a crash too), but tabs live only in the
+  daemon and the first window claims every unattached session; the others
+  came up with one fresh shell each, and a tab looked lost in whichever
+  window was checked. `SceneDelegate` records the scene sessions that
+  exist as the first window connects and closes any later window whose
+  session is one of them — timing cannot tell them apart, since macOS
+  connects a restored window after the first is already active — and the
+  first ignores a restored move request: every leftover is its tab. A claim the daemon did not
+  answer stays open and is retried when the Mac's helper comes up.
 - **A drop pastes a path the shell can use, and where that path comes from
   depends on where the item lives.** `TerminalDropDelegate` replaces the
   library's drop interaction on both platforms (it has to *replace* the
@@ -831,9 +866,9 @@ Gotchas that bit us:
   a chip pressed to reorder took the window with it — so the window is
   kept not movable and `WindowDragRegion` makes it movable for its own
   drag only. That band also never hands a system drag to the content as a
-  drop target, movable or not, which is why the Mac strip reorders its
-  chips with a plain `DragGesture` while the sidebar (and the iPad strip)
-  use `onDrag`/`onDrop`. A `ScrollView` in that band draws Tahoe's scroll
+  drop target, movable or not, which is why the strip reorders its chips
+  with a gesture of its own (long press to lift; a plain drag moves the
+  window) while the sidebar uses `onDrag`/`onDrop`. A `ScrollView` in that band draws Tahoe's scroll
   edge effect over its own content — the chips came up frosted — so the
   strip's scroller hides it (`scrollEdgeEffectHidden`).
 - `SMAppService` is `macCatalyst(16.0)`, above this app's iOS 15 deployment

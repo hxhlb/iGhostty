@@ -21,20 +21,68 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// Watches the Mac's background helper. Nothing on iOS ever publishes.
     private var agentObserver: AnyCancellable?
 
+    /// Whether a window has connected in this process yet. The first one is
+    /// the launch's window, and it takes every session the last run left.
+    private static var hasConnectedWindow = false
+    #if targetEnvironment(macCatalyst)
+        /// The scene sessions that existed as the first window connected:
+        /// the windows the last run left, which macOS brings back one by
+        /// one — not all before the first is active, so timing cannot tell
+        /// them from a window opened since. A window opened in this run
+        /// gets a session that is not in here.
+        private static var restoredSessionIDs: Set<String> = []
+    #endif
+    /// A window restored at launch beside the first one, closed again
+    /// before it built anything (`scene(_:willConnectTo:options:)`).
+    private var isDiscarded = false
+
     func scene(
         _ scene: UIScene,
-        willConnectTo _: UISceneSession,
+        willConnectTo session: UISceneSession,
         options: UIScene.ConnectionOptions,
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
+        let isFirstWindow = !Self.hasConnectedWindow
+        Self.hasConnectedWindow = true
+        #if targetEnvironment(macCatalyst)
+            if isFirstWindow {
+                Self.restoredSessionIDs = Set(UIApplication.shared.openSessions.map(\.persistentIdentifier))
+            }
+            let isRestored = Self.restoredSessionIDs.remove(session.persistentIdentifier) != nil
+            // After a crash (or a quit with windows open) macOS restores
+            // every window the last run had. The daemon's sessions are the
+            // only record of their tabs, and the first window claims them
+            // all; each other window would come up holding one fresh shell
+            // and nothing it used to show, so a tab looked lost in whichever
+            // window was checked. One window comes back, holding every tab.
+            if !isFirstWindow, isRestored {
+                isDiscarded = true
+                AppLog.info(.tabs, "closing a window restored beside the launch window")
+                DispatchQueue.main.async {
+                    UIApplication.shared.requestSceneSessionDestruction(session, options: nil)
+                }
+                return
+            }
+        #endif
         tabManager.windowScene = windowScene
         // A window opened for a tab moved out of another one: that window
         // lets go of the tab first, and this one attaches to its session.
-        let movedSessionID = TabWindowMove.sessionID(in: options.userActivities)
+        // The first window of a launch has no other window to take it from
+        // — it is one restored with the request that once opened it — and
+        // claims every leftover session, that one included.
+        let movedSessionID = isFirstWindow ? nil : TabWindowMove.sessionID(in: options.userActivities)
         if let movedSessionID {
             TabWindowMove.releaseSource(of: movedSessionID, into: tabManager)
         }
         tabManager.populate(movingSession: movedSessionID)
+        #if targetEnvironment(macCatalyst)
+            // A tab pulled out of a strip opens its window where it was
+            // dropped, once AppKit has a window to move
+            // (`placeWindowIfPending`).
+            if movedSessionID != nil {
+                pendingWindowOrigin = TabWindowMove.origin(in: options.userActivities)
+            }
+        #endif
         #if targetEnvironment(macCatalyst)
             // No title bar: the app draws to the top edge and the traffic
             // lights float over its chrome (`CatalystWindowChrome`).
@@ -57,6 +105,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = host
         window.makeKeyAndVisible()
         self.window = window
+
         observeLaunchAgent()
         for context in options.urlContexts {
             ShortcutBridge.handle(context.url)
@@ -87,6 +136,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         /// the two, and a cap lifted at activation never touches it.
         private var sceneIsActive = false
         private var windowHasFrame = false
+        /// Where this window's top-left corner goes once it has a frame:
+        /// under the pointer that pulled its tab out of another window.
+        private var pendingWindowOrigin: CGPoint?
 
         private func capInitialWindowSize(_ windowScene: UIWindowScene) {
             guard let restrictions = windowScene.sizeRestrictions else { return }
@@ -103,11 +155,30 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             restrictions.maximumSize = cap
         }
 
+        /// Moves a window opened for a dropped tab under the drop. Tried as
+        /// the scene first reports a frame and again as it becomes active,
+        /// whichever finds AppKit's window first — and once more a moment
+        /// later, because AppKit cascades a new window after it is active
+        /// and that undid a move made any sooner.
+        private func placeWindowIfPending(_ windowScene: UIWindowScene) {
+            guard let origin = pendingWindowOrigin, CatalystWindowChrome.frame(of: windowScene) != nil else { return }
+            pendingWindowOrigin = nil
+            CatalystWindowChrome.placeWindow(of: windowScene, topLeft: origin)
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.cascadeSettle) { [weak windowScene] in
+                guard let windowScene else { return }
+                CatalystWindowChrome.placeWindow(of: windowScene, topLeft: origin)
+            }
+        }
+
+        /// Long enough for AppKit to have cascaded a new window.
+        private static let cascadeSettle: TimeInterval = 0.25
+
         @available(macCatalyst 16.0, *)
         func windowScene(_ windowScene: UIWindowScene, didUpdateEffectiveGeometry _: UIWindowScene.Geometry) {
             if !windowScene.effectiveGeometry.systemFrame.isEmpty {
                 windowHasFrame = true
                 liftWindowSizeCapIfReady(windowScene)
+                placeWindowIfPending(windowScene)
             }
         }
     #endif
@@ -130,10 +201,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 guard let self else { return }
                 tabManager.noteSceneActive()
                 tabManager.retryFailedTabs()
+                tabManager.resumeLeftovers()
             }
     }
 
     func sceneDidDisconnect(_: UIScene) {
+        // A discarded window holds no tabs and never claimed the sessions;
+        // detaching would hand the launch window's claim back.
+        guard !isDiscarded else { return }
         tabManager.detachAllTabs()
     }
 
@@ -147,10 +222,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// that names the wrong problem. So the first attempt waits for the
     /// helper, and `observeLaunchAgent()` makes it when the helper arrives.
     func sceneDidBecomeActive(_ scene: UIScene) {
+        guard !isDiscarded else { return }
         #if targetEnvironment(macCatalyst)
             sceneIsActive = true
             if let windowScene = scene as? UIWindowScene {
                 liftWindowSizeCapIfReady(windowScene)
+                placeWindowIfPending(windowScene)
             }
         #endif
         MacLaunchAgent.shared.refresh()
@@ -163,6 +240,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// detached shells it was advertising died in the meantime, this is the
     /// moment the activity finds out and folds.
     func sceneWillEnterForeground(_: UIScene) {
+        guard !isDiscarded else { return }
         DaemonSessionDirectory.shared.refresh()
     }
 }

@@ -7,9 +7,9 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// Drag-to-reorder for the tab list, shared by the sidebar's rows and the
-/// iPad strip's chips (the Mac strip reorders with a gesture of its own,
-/// `TabStripBar`). The row under the pointer takes the dragged tab's slot
+/// Drag-to-reorder for the sidebar's rows (the top bar's strip reorders
+/// with a gesture of its own, `TabStripBar`, so that a plain drag along it
+/// still scrolls it or moves the Mac window). The row under the pointer takes the dragged tab's slot
 /// as the drag passes over it (`dropEntered`, re-checked from
 /// `dropUpdated` — a reorder slides rows under a pointer that never
 /// crossed their edge, and the enter event alone missed those), so the
@@ -110,8 +110,7 @@ final class TabReorderPacing: ObservableObject {
     var lastSlotChange = Date.distantPast
 }
 
-/// The slot's outline: the strip's capsule or the sidebar's rounded card.
-/// One shape serves as the drag preview's clip, the hairline's path, and
+/// The slot's outline: the sidebar's rounded card. One shape serves as the drag preview's clip, the hairline's path, and
 /// the corner mask `contentShape(.dragPreview, …)` puts on the lift — the
 /// system's default lift is the view's rectangular snapshot, whose sharp
 /// corners over the terminal read as a glitch.
@@ -122,8 +121,6 @@ struct TabSlotShape: InsettableShape {
     func path(in rect: CGRect) -> Path {
         let rect = rect.insetBy(dx: insetAmount, dy: insetAmount)
         switch style {
-        case .chip:
-            return Capsule().path(in: rect)
         case .row:
             return RoundedRectangle(cornerRadius: DS.Radius.m, style: .continuous).path(in: rect)
         }
@@ -146,13 +143,9 @@ struct TabSlotShape: InsettableShape {
 /// sidebar row paints the theme's background under itself
 /// (`TabSlotBackground`) — invisible in place, since the sidebar shows that
 /// same colour, and what keeps the lifted card solid to its edge in a dark
-/// theme. A strip chip's lift is still an empty capsule: the chip sits
-/// inside the strip's glass container, and the snapshot carries none of
-/// that container's content.
+/// theme.
 enum TabDragPreview {
     enum Style {
-        /// The strip's capsule: one line, the chip's height.
-        case chip
         /// The sidebar's card: title over the secondary line.
         case row
     }
@@ -166,8 +159,6 @@ private struct TabSlotBackground: ViewModifier {
 
     func body(content: Content) -> some View {
         switch style {
-        case .chip:
-            content
         case .row:
             content.background(theme.background(for: colorScheme), in: TabSlotShape(style: style))
         }

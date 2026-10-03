@@ -112,6 +112,58 @@ import UIKit
             return nsWindow
         }
 
+        /// Where the pointer is, in AppKit's screen coordinates (points,
+        /// origin at the bottom left of the main screen) — the space every
+        /// `frame(of:)` is in, so the two compare without conversion.
+        @MainActor
+        static var pointerLocation: CGPoint? {
+            guard let eventClass = NSClassFromString("NSEvent") as? NSObject.Type,
+                  let value = eventClass.value(forKey: "mouseLocation") as? NSValue
+            else { return nil }
+            var point = CGPoint.zero
+            value.getValue(&point, size: MemoryLayout<CGPoint>.size)
+            return point
+        }
+
+        /// The scene's window frame in AppKit's screen coordinates.
+        @MainActor
+        static func frame(of scene: UIWindowScene) -> CGRect? {
+            guard let nsWindow = hostWindow(for: scene),
+                  let value = nsWindow.value(forKey: "frame") as? NSValue
+            else { return nil }
+            var frame = CGRect.zero
+            value.getValue(&frame, size: MemoryLayout<CGRect>.size)
+            return frame
+        }
+
+        /// Whether `point` (screen coordinates) is over the top bar of a
+        /// window with this frame — the band a tab is dropped on to join it.
+        @MainActor
+        static func barContains(_ point: CGPoint, inWindowFrame frame: CGRect) -> Bool {
+            let barHeight = titleBarHeight / pointsPerScreenPoint
+            return point.x >= frame.minX && point.x <= frame.maxX
+                && point.y <= frame.maxY && point.y >= frame.maxY - barHeight
+        }
+
+        /// Moves the scene's window so its top-left corner sits at `point`
+        /// (screen coordinates), kept below the menu bar by AppKit itself.
+        @MainActor
+        static func placeWindow(of scene: UIWindowScene, topLeft point: CGPoint) {
+            guard let nsWindow = hostWindow(for: scene) else { return }
+            typealias SetTopLeft = @convention(c) (AnyObject, Selector, CGPoint) -> Void
+            let selector = NSSelectorFromString("setFrameTopLeftPoint:")
+            guard nsWindow.responds(to: selector) else { return }
+            let setTopLeft = unsafeBitCast(nsWindow.method(for: selector), to: SetTopLeft.self)
+            setTopLeft(nsWindow, selector, point)
+        }
+
+        /// Screen points per UIKit point, for a distance measured in the
+        /// app that has to land on the screen.
+        @MainActor
+        static func screenDistance(_ points: CGFloat) -> CGFloat {
+            points / pointsPerScreenPoint
+        }
+
         @MainActor
         private static func dress(_ nsWindow: NSObject) {
             clearTitlebarFill(in: nsWindow)
