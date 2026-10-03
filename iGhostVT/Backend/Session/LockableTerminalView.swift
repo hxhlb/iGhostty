@@ -9,17 +9,20 @@ import UIKit
 
 /// The app's terminal view: `TerminalView` plus the two locks.
 ///
-/// A locked tab freezes the *user*, never the program: output keeps
+/// The locks are for touch: a tab whose program takes taps of its own, or
+/// one that is only being watched, should not have a stray touch raise the
+/// software keyboard or move the focus. Hardware keys, paste and drops are
+/// allowed under both; the program never notices a lock — output keeps
 /// flowing, the surface keeps rendering, the session keeps running. The
-/// blocking therefore lives here, at the view — refuse hit testing, first
-/// responder, or the keyboard, and every path into the terminal is closed at
-/// its end — instead of being scattered across SwiftUI modifiers that each
-/// have to remember. Installed through `TerminalViewState.makePlatformView`
-/// (see `TerminalTab`).
+/// blocking lives here, at the view — refuse hit testing and first
+/// responder, or the software keyboard — instead of being scattered across
+/// SwiftUI modifiers that each have to remember. Installed through
+/// `TerminalViewState.makePlatformView` (see `TerminalTab`).
 final class LockableTerminalView: TerminalView {
-    /// When true the view refuses every interaction: touches never land
-    /// (`hitTest` returns nil) and keyboard focus is refused and released,
-    /// which closes the hardware-key path too.
+    /// When true touches never land (`hitTest` returns nil) and first
+    /// responder is refused and released, so a tap cannot take the focus.
+    /// Not an input barrier: with keyboard navigation on, the focus system
+    /// still hands the view keys and the menu's Paste, which is allowed.
     var isInteractionLocked = false {
         didSet {
             updateAccessibility()

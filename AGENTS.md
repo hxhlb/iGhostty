@@ -468,8 +468,13 @@ recording — a switch that says the app is not keeping this has to mean it —
 Sort By is Last Visited or Most Visited, and Clear is the only thing that
 throws the list away, so turning the switch back on restores it.
 
-The two locks freeze the *user*, never the
-program: output keeps flowing and the surface keeps rendering. They are
+The two locks are for touch. Some programs in a terminal take taps and
+drags of their own, and a tab showing one of them — or just being watched —
+should not have a stray touch raise the software keyboard, move the focus,
+or start a selection. That is all they guard: hardware keys, paste and
+drag and drop are allowed under both, by design, and neither lock is a
+way to keep input away from the program. The program itself never
+notices: output keeps flowing and the surface keeps rendering. They are
 one choice (`TabAttributes.lock`, at most one of `.interaction` /
 `.keyboard`): picking the other lock switches, picking the one that is on
 clears it, and the `isLocked` / `isKeyboardLocked` flags the menus toggle
@@ -482,8 +487,13 @@ padlock while locked (the × is gone, not a second glyph); close stays on
 the context menu.
 Both locks live on
 `LockableTerminalView`, the app's `TerminalView` subclass installed through
-the library's `makePlatformView` seam — refusing `hitTest` and first responder
-closes every input path at once, which SwiftUI modifiers could not. That
+the library's `makePlatformView` seam. The interaction lock refuses
+`hitTest`, which keeps every touch off the surface at once — something
+SwiftUI modifiers could not — and refuses first responder so a tap cannot
+take the focus. It is not an input barrier and is not meant to be one:
+with keyboard navigation on (the Mac's setting, or Full Keyboard Access)
+the focus system still hands the locked view keys and the menu's Paste,
+and that is fine. That
 factory closure reads the tab, because a view is made whenever the surface
 mounts and one born after the user locked the tab would otherwise come up
 unlocked.
