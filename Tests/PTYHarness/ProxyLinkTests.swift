@@ -246,6 +246,54 @@ func waitUntil(_ timeout: TimeInterval = 5, _ condition: () -> Bool) -> Bool {
     return condition()
 }
 
+/// A writer whose reader keeps up only most of the time: the backlog rises
+/// and falls but never empties, which is what the flow control produces
+/// under a steady flood. The accumulator must not keep what was written.
+func runChannelBacklogTest() {
+    print("channel backlog that never fully drains")
+    var pair: [Int32] = [-1, -1]
+    guard socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0 else {
+        check(false, "a socket pair for the channel")
+        return
+    }
+    let channel = IOChannel(descriptor: pair[0], queue: harnessQueue)
+    harnessQueue.sync { channel.activate() }
+    let reader = pair[1]
+    _ = fcntl(reader, F_SETFL, fcntl(reader, F_GETFL, 0) | O_NONBLOCK)
+    let frame = xpc_dictionary_create(nil, nil, 0)
+    let payload = [UInt8](repeating: 0x78, count: 60 * 1024)
+    payload.withUnsafeBytes { xpc_dictionary_set_data(frame, "d", $0.baseAddress!, $0.count) }
+    var live = 0
+    channel.onPendingChange = { live = $0 }
+    var buffer = [UInt8](repeating: 0, count: 16 * 1024)
+    var sent = 0
+    var largest = 0
+    let total = 256 << 20
+    while sent < total {
+        // Up to a megabyte queued, then read until half a megabyte is: the
+        // backlog never reaches zero, so a reset-on-empty never happens.
+        let storage = harnessQueue.sync { () -> Int in
+            while live < 1 << 20 {
+                channel.send(.event, peer: 1, tag: 0, object: frame)
+                sent += payload.count
+            }
+            return channel.outboundStorageByteCount
+        }
+        largest = max(largest, storage)
+        while harnessQueue.sync(execute: { live }) > 512 * 1024 {
+            if read(reader, &buffer, buffer.count) <= 0 {
+                usleep(1000)
+            }
+        }
+    }
+    check(
+        largest < 8 << 20,
+        "a backlog that never empties stays bounded (\(largest >> 10) KiB at most after \(total >> 20) MiB)",
+    )
+    harnessQueue.sync { channel.close() }
+    close(reader)
+}
+
 func runCodecTests() {
     print("wire codec")
     let original = xpc_dictionary_create(nil, nil, 0)
@@ -324,6 +372,7 @@ func runCodecTests() {
 
 func runProxyLinkTests() {
     runCodecTests()
+    runChannelBacklogTest()
 
     print("proxy link")
     guard let ioBinary = ProcessInfo.processInfo.environment["IGHOSTVT_IO_BINARY"] else {

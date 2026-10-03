@@ -111,6 +111,7 @@ final class IOChannel {
                 continue
             }
             if written < 0, errno == EAGAIN {
+                compactOutbound()
                 armWriteSource()
                 updatePending()
                 return
@@ -123,6 +124,24 @@ final class IOChannel {
         outboundOffset = 0
         disarmWriteSource()
         updatePending()
+    }
+
+    /// Drops the written prefix once it outweighs what is left. The
+    /// accumulator otherwise resets only on a full drain, and under a steady
+    /// flood the flow control keeps it from ever draining fully — it pauses
+    /// above a megabyte or two and resumes with a quarter of that still
+    /// queued — so the dead prefix grew by every byte ever sent. Compacting
+    /// at the halfway mark keeps it within twice the live bytes.
+    private func compactOutbound() {
+        guard outboundOffset > outbound.count - outboundOffset else { return }
+        outbound.removeFirst(outboundOffset)
+        outboundOffset = 0
+    }
+
+    /// Bytes the outbound accumulator holds, written or not — what the
+    /// backlog costs, for the harness's bound.
+    var outboundStorageByteCount: Int {
+        outbound.count
     }
 
     private func armWriteSource() {
