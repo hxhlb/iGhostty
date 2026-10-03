@@ -205,6 +205,11 @@ final class LockableTerminalView: TerminalView {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         updateAccessibility()
+        // With keyboard navigation on (the Mac's setting, Full Keyboard
+        // Access) the focus system rings its focused item, and the terminal
+        // is a whole pane: a grey or tinted frame around every terminal,
+        // saying nothing the cursor does not. The view stays focusable.
+        focusEffect = nil
         if !observesHardwareKeyboard {
             observeHardwareKeyboard()
         }
