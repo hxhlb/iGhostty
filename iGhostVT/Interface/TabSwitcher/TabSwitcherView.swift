@@ -265,13 +265,15 @@ private struct TabCardPreview: View {
 
     var body: some View {
         if let image = tab.previewImage {
-            // Scaled to the card's width and anchored at the top, the way
-            // Safari shows a page: the prompt's neighbourhood is the part
-            // that identifies a terminal, and the frame keeps the grid's
-            // row height whatever the surface's aspect.
+            // Filling the card and anchored at its top-leading corner: the
+            // prompt and the start of each line are the part that
+            // identifies a terminal, and the frame keeps the grid's row
+            // height whatever the surface's aspect. A surface wider than
+            // the card — any landscape window — loses its right-hand side;
+            // centred, it lost the start of every line instead.
             Color.clear
                 .frame(height: TabCard.previewHeight)
-                .overlay(alignment: .top) {
+                .overlay(alignment: .topLeading) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
