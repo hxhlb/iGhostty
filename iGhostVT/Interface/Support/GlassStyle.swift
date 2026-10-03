@@ -32,6 +32,26 @@ extension View {
 }
 
 extension View {
+    /// Glass inside this view fades in and out on its own when it is
+    /// inserted or removed, instead of the container's default of melting
+    /// into the glass beside it. For a bar that swaps one set of controls
+    /// for another: morphing between them drew a capsule shrinking into a
+    /// circle and blobs splitting and merging on the way.
+    @ViewBuilder
+    func glassMaterializes() -> some View {
+        #if os(visionOS)
+            self
+        #else
+            if #available(iOS 26.0, *) {
+                glassEffectTransition(.materialize)
+            } else {
+                self
+            }
+        #endif
+    }
+}
+
+extension View {
     /// The card treatment — the alert, the Mac's settings panel: Liquid
     /// Glass on iOS 26+, the material card it replaces below. The content is
     /// clipped to the shape either way, so a scrolling pane inside stays

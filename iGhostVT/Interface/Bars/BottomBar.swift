@@ -12,29 +12,24 @@ struct BottomBar: View {
 
     var body: some View {
         GlassBarContainer(spacing: DS.Padding.m) {
+            // The two clusters swap as the last tab closes or the first one
+            // opens, inside the tab list's animation. Each fades as a whole
+            // (`glassMaterializes`): left to the container, the title capsule
+            // melted into the `+` and the buttons split into blobs between.
             HStack(spacing: DS.Padding.m) {
                 if let tab = tabManager.activeTab {
-                    TitleCapsule(tab: tab)
-                        .highPriorityGesture(switchTabGesture)
-                    overflowMenu
-                    switcherButton
+                    Group {
+                        TitleCapsule(tab: tab)
+                            .highPriorityGesture(switchTabGesture)
+                        overflowMenu
+                        switcherButton
+                    }
+                    .glassMaterializes()
+                    .transition(.opacity)
                 } else {
-                    NewTabMenu(tabManager: tabManager) {
-                        Image(systemName: "plus")
-                            .font(DS.Font.control)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Circle())
-                    }
-                    .barGlass(in: Circle())
-
-                    Button(action: onShowSettings) {
-                        Image(systemName: "gearshape")
-                            .font(DS.Font.control)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Circle())
-                    }
-                    .barGlass(in: Circle())
-                    .accessibilityLabel("Settings")
+                    emptyCluster
+                        .glassMaterializes()
+                        .transition(.opacity)
                 }
             }
             .padding(.horizontal, DS.Padding.l)
@@ -43,6 +38,27 @@ struct BottomBar: View {
         }
         .buttonStyle(.plain)
         .background(WindowReader(window: $window))
+    }
+
+    /// No tab: a new one, and settings.
+    @ViewBuilder
+    private var emptyCluster: some View {
+        NewTabMenu(tabManager: tabManager) {
+            Image(systemName: "plus")
+                .font(DS.Font.control)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .barGlass(in: Circle())
+
+        Button(action: onShowSettings) {
+            Image(systemName: "gearshape")
+                .font(DS.Font.control)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .barGlass(in: Circle())
+        .accessibilityLabel("Settings")
     }
 
     private var overflowMenu: some View {

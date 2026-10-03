@@ -14,9 +14,10 @@ import UIKit
 /// The card is the shared `AlertCardView` — the same design
 /// `AlertViewController` presents — drawn inline over the pane rather than
 /// presented, because it must persist while the dead terminal stays on
-/// screen. An exited session's card offers Close Tab as the emphasized
-/// default — a finished shell is nearly always a finished tab — and Keep Tab
-/// as the quieter way to keep the scrollback around and selectable.
+/// screen. A session whose shell exited gets no card: its tab closes on its
+/// own (`TabManager`), and the disconnect that follows the exit lands while
+/// the pane is already animating out — a card shown then only flashed over
+/// a tab on its way out.
 ///
 /// The launch agent is consulted *before* the session, because on a fresh Mac
 /// install the session cannot possibly connect: nothing has started the daemon
@@ -32,11 +33,6 @@ struct SessionStatusOverlay: View {
 
     /// Closes the tab this session belongs to; provided by the pane's owner.
     var onCloseTab: () -> Void
-
-    /// The failure the user dismissed with Keep Tab. Stored as the dismissed
-    /// status so a later, different failure (or a reconnect cycle) presents
-    /// its own card again.
-    @State private var acknowledged: TerminalSessionStore.Status?
 
     var body: some View {
         content
@@ -156,7 +152,7 @@ struct SessionStatusOverlay: View {
             pill("Connecting…")
 
         case let .failed(reason):
-            if acknowledged != store.status {
+            if store.processExitStatus == nil {
                 ZStack {
                     dim
                     alertCard(reason: reason)
@@ -216,33 +212,18 @@ struct SessionStatusOverlay: View {
             .ignoresSafeArea(.all)
     }
 
-    private var processExited: Bool {
-        store.processExitStatus != nil
-    }
-
     private func alertCard(reason: String) -> some View {
         AlertCardView(
-            title: processExited
-                ? String(localized: "Session Ended")
-                : String(localized: "Terminal Unavailable"),
+            title: String(localized: "Terminal Unavailable"),
             message: reason,
-            actions: processExited
-                ? [
-                    AlertAction("Keep Tab") {
-                        acknowledged = store.status
-                    },
-                    AlertAction("Close Tab", kind: .accent) {
-                        onCloseTab()
-                    },
-                ]
-                : [
-                    AlertAction("Close Tab") {
-                        onCloseTab()
-                    },
-                    AlertAction("Retry", kind: .accent) {
-                        store.connect()
-                    },
-                ],
+            actions: [
+                AlertAction("Close Tab") {
+                    onCloseTab()
+                },
+                AlertAction("Retry", kind: .accent) {
+                    store.connect()
+                },
+            ],
             claimsFirstResponder: isActive,
         )
     }
