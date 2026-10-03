@@ -15,13 +15,21 @@ import Darwin
 ///
 /// The file only ever grows. A reservation takes an exclusive lock, reads
 /// what is there, and writes back the larger of that and its own end, so two
-/// io processes sharing it (the harness's beside a running daemon) cannot
+/// io processes sharing it (a dying one and its replacement) cannot
 /// pull it below an id either has handed out. A file that cannot be read or
 /// written costs only that guarantee: ids still never repeat within one io.
 struct SessionIDReservation {
     static let blockSize: UInt64 = 64
 
+    /// Names another file in place of the one beside the daemon log. Only
+    /// `make harness` sets it, so the io processes it spawns on the host never
+    /// share a counter with the user's own running daemon.
+    static let pathOverrideVariable = "IGHOSTVT_SESSION_ID_STORE"
+
     static var defaultPath: String {
+        if let override = getenv(pathOverrideVariable), override.pointee != 0 {
+            return String(cString: override)
+        }
         let log = iGhostVTProtocol.daemonLogPath
         let directory = log[..<(log.lastIndex(of: "/") ?? log.startIndex)]
         return directory + "/ighostvtd.session-ids"
