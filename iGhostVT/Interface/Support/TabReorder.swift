@@ -136,100 +136,40 @@ struct TabSlotShape: InsettableShape {
     }
 }
 
-/// What travels under the finger. The system's default is a snapshot of
-/// the source view, and a chip or row that is not the active one has no
-/// background of its own — the snapshot came up as a blank grey slab. So
-/// the preview is drawn on purpose: the tab's name on a card that
-/// is *solid to its edge* — the background colour fills the whole frame
-/// and the slot's shape clips it, so no corner of it is transparent and
-/// nothing behind the drag shows through — sized to the source. No accent
-/// anywhere in it: the lifted card is neutral whichever tab is active.
-///
-/// Plain values, not the tab: the closure captures what the tab says at
-/// the moment the drag begins, which is all a snapshot needs — the
-/// preview is rendered in a detached hosting where an observed object's
-/// updates have nowhere to land, and rendering through one there came up
-/// as an empty card.
-struct TabDragPreview: View {
+/// What travels under the finger: the slot itself, lifted. Drawn previews
+/// were tried twice and both came up as an empty card on iPadOS 26 — the
+/// view handed to `onDrag(_:preview:)`, and an image rasterized from it
+/// through an offscreen hosting controller: SwiftUI's text never reaches a
+/// layer tree that is not on screen, so the card carried the background
+/// and the hairline and no title. The lift is a snapshot of the on-screen
+/// slot, text and all, masked to the slot's shape (`TabSlotShape`). A
+/// sidebar row paints the theme's background under itself
+/// (`TabSlotBackground`) — invisible in place, since the sidebar shows that
+/// same colour, and what keeps the lifted card solid to its edge in a dark
+/// theme. A strip chip's lift is still an empty capsule: the chip sits
+/// inside the strip's glass container, and the snapshot carries none of
+/// that container's content.
+enum TabDragPreview {
     enum Style {
         /// The strip's capsule: one line, the chip's height.
         case chip
         /// The sidebar's card: title over the secondary line.
         case row
     }
+}
 
-    let title: String
-    let subtitle: String
-    let style: Style
-    let width: CGFloat
+/// The theme's background under a sidebar row, for the lift to snapshot.
+private struct TabSlotBackground: ViewModifier {
+    let style: TabDragPreview.Style
+    @ObservedObject private var theme = AppTheme.shared
+    @Environment(\.colorScheme) private var colorScheme
 
-    init(tab: TerminalTab, style: Style, width: CGFloat) {
-        title = tab.displayTitle
-        subtitle = tab.secondaryTitle
-        self.style = style
-        self.width = width
-    }
-
-    var body: some View {
-        content
-            .foregroundColor(.primary)
-            .background(Color(uiColor: .systemBackground))
-            .clipShape(shape)
-            .overlay(shape.strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
-    }
-
-    private var shape: TabSlotShape {
-        TabSlotShape(style: style)
-    }
-
-    /// The preview, rasterized up front. Handing SwiftUI the view itself
-    /// through `onDrag(_:preview:)` produced an empty card — the detached
-    /// hosting the system renders that closure in drew the background, the
-    /// mask and the hairline but none of the glyphs — so the card is drawn
-    /// into an image through a hosting controller of our own, at drag
-    /// start, and the drag carries the image.
-    @MainActor
-    static func rendered(for tab: TerminalTab, style: Style, width: CGFloat) -> Image {
-        let host = UIHostingController(rootView: TabDragPreview(tab: tab, style: style, width: width))
-        host.view.backgroundColor = .clear
-        let size = host.sizeThatFits(in: CGSize(width: width, height: 1000))
-        host.view.bounds = CGRect(origin: .zero, size: size)
-        host.view.layoutIfNeeded()
-        let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { context in
-            host.view.layer.render(in: context.cgContext)
-        }
-        return Image(uiImage: image)
-    }
-
-    @ViewBuilder
-    private var content: some View {
+    func body(content: Content) -> some View {
         switch style {
         case .chip:
-            HStack(spacing: DS.Padding.xs) {
-                Text(title)
-                    .font(DS.Font.label)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, DS.Padding.m)
-            .frame(width: width, height: 32)
+            content
         case .row:
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(DS.Font.labelEmphasis)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Text(subtitle)
-                    .font(DS.Font.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, DS.Padding.m)
-            .padding(.vertical, DS.Padding.s)
-            .frame(width: width)
+            content.background(theme.background(for: colorScheme), in: TabSlotShape(style: style))
         }
     }
 }
@@ -247,14 +187,12 @@ extension View {
         in tabManager: TabManager,
         pacing: TabReorderPacing,
         preview: TabDragPreview.Style,
-        width: CGFloat,
     ) -> some View {
         if TabReorder.isSupported {
-            contentShape([.dragPreview, .contextMenuPreview], TabSlotShape(style: preview))
+            modifier(TabSlotBackground(style: preview))
+                .contentShape([.dragPreview, .contextMenuPreview], TabSlotShape(style: preview))
                 .onDrag {
                     TabReorder.itemProvider(for: tab, in: tabManager)
-                } preview: {
-                    TabDragPreview.rendered(for: tab, style: preview, width: width)
                 }
                 .onDrop(
                     of: [TabReorder.itemType],

@@ -13,8 +13,6 @@ struct SidebarView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var window: UIWindow?
     @StateObject private var reorderPacing = TabReorderPacing()
-    /// The rows' width, so a row's drag preview is the row's size.
-    @State private var rowWidth: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,7 +44,7 @@ struct SidebarView: View {
                             tabManager: tabManager,
                             window: window,
                         )
-                        .tabReorderable(tab, in: tabManager, pacing: reorderPacing, preview: .row, width: rowWidth)
+                        .tabReorderable(tab, in: tabManager, pacing: reorderPacing, preview: .row)
                     }
 
                     NewTabMenu(tabManager: tabManager) {
@@ -67,15 +65,6 @@ struct SidebarView: View {
                 }
                 .padding(DS.Padding.m)
                 .frame(maxWidth: .infinity)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: SidebarRowWidthKey.self,
-                            value: proxy.size.width - DS.Padding.m * 2,
-                        )
-                    },
-                )
-                .onPreferenceChange(SidebarRowWidthKey.self) { rowWidth = $0 }
                 .tabReorderContainer()
             }
 
@@ -228,12 +217,5 @@ private struct SidebarRowTrailingSlot: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Close Tab")
         }
-    }
-}
-
-private struct SidebarRowWidthKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }

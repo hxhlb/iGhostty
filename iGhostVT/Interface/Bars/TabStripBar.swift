@@ -160,7 +160,7 @@ struct TabStripBar: View {
                             .transaction { if chipDrag?.id == tab.id { $0.animation = nil } }
                             .highPriorityGesture(chipDragGesture(for: tab, pitch: width + DS.Padding.xs, scroller: scroller))
                         #else
-                            .tabReorderable(tab, in: tabManager, pacing: reorderPacing, preview: .chip, width: width)
+                            .tabReorderable(tab, in: tabManager, pacing: reorderPacing, preview: .chip)
                         #endif
                             .id(tab.id)
                         }
