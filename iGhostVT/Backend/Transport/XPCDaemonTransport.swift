@@ -176,10 +176,18 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     /// feeds its PTY in that same order. Nothing needs an acknowledgement to
     /// stay in sequence, and asking for one would pace every paste at a
     /// round trip per chunk.
+    ///
+    /// Input larger than a keystroke carries a paste id on every chunk and
+    /// asks for a reply it does not wait for. A program that is not reading
+    /// fills the session's input backlog, and the daemon refuses from the
+    /// first chunk that does not fit to the end of that paste — so what
+    /// arrives is a prefix, never a paste with a hole in it — and the first
+    /// refusal is reported once (`TerminalTransportEvent.inputRefused`).
     func send(_ data: Data) {
         guard !data.isEmpty else { return }
         queue.async {
             guard let link = self.attachedLink() else { return }
+            let paste = data.count > Self.pasteByteCount ? UInt64.random(in: 1 ... .max) : 0
             var offset = data.startIndex
             while offset < data.endIndex {
                 let end = data.index(
@@ -193,11 +201,30 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                         xpc_dictionary_set_data(message, iGhostVTWireKey.data, base, buffer.count)
                     }
                 }
-                xpc_connection_send_message(link.connection, message)
+                if paste == 0 {
+                    xpc_connection_send_message(link.connection, message)
+                } else {
+                    xpc_dictionary_set_uint64(message, iGhostVTWireKey.paste, paste)
+                    xpc_connection_send_message_with_reply(link.connection, message, self.queue) { [weak self] reply in
+                        guard let self, Self.replyCode(of: reply) == .inputBacklog,
+                              reportedRefusedPaste != paste else { return }
+                        reportedRefusedPaste = paste
+                        AppLog.warning(.transport, "session \(link.sessionID) refused the rest of a \(data.count) byte paste: its program is not reading")
+                        emit(.inputRefused)
+                    }
+                }
                 offset = end
             }
         }
     }
+
+    /// More than the kernel takes into a terminal's input at once (about a
+    /// kilobyte): input that may have to wait, which is what a refusal can
+    /// cut short.
+    private static let pasteByteCount = 1024
+    /// Confined to `queue`: the paste whose refusal was last reported, so
+    /// one paste is reported once however many of its chunks are refused.
+    private var reportedRefusedPaste: UInt64 = 0
 
     /// Sizes the session, or records the size for the open to start at
     /// while there is none yet. The host calls this again on `.connected`,

@@ -214,6 +214,12 @@ enum iGhostVTWireKey {
     static let sessions = "sessions"
     static let shells = "shells"
     static let data = "data"
+    /// On `write` and `injectInput`: one id on every chunk of an input sent
+    /// as several messages (a paste). Once the session refuses one chunk as
+    /// `inputBacklog`, it refuses every later chunk with the same id, so a
+    /// paste arrives whole or as a prefix — never with a hole where a
+    /// refused chunk was. Absent or 0 for input that is one message.
+    static let paste = "paste"
     static let columns = "cols"
     static let rows = "rows"
     /// On `openSession`: an argv to run verbatim, one word included. Absent

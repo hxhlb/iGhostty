@@ -60,6 +60,8 @@ final class PTYSession {
     /// arrive, which is what keeps a chunked paste in sequence.
     private var pendingInput: [UInt8] = []
     private var pendingInputOffset = 0
+    /// The paste a chunk of which was last refused (`write(_:paste:)`).
+    private var refusedPaste: UInt64 = 0
     private var writeSource: DispatchSourceWrite?
     private var isWriteArmed = false
 
@@ -430,10 +432,19 @@ final class PTYSession {
     /// `sessionPendingInputByteCount` of unread input — the program is not
     /// reading its terminal. Nothing of `data` is queued then: a refusal the
     /// caller can report beats a paste that silently loses its second half.
+    ///
+    /// `paste` names the input `data` is a chunk of (`iGhostVTWireKey.paste`):
+    /// after one chunk of it is refused, the rest is refused too, however
+    /// much room the program has made since — the tail of a paste whose
+    /// middle is gone is not the paste anyone sent.
     @discardableResult
-    func write(_ data: Data) -> Bool {
+    func write(_ data: Data, paste: UInt64 = 0) -> Bool {
         guard isAlive, !data.isEmpty else { return true }
+        guard paste == 0 || paste != refusedPaste else { return false }
         guard pendingInputByteCount + data.count <= iGhostVTProtocol.sessionPendingInputByteCount else {
+            if paste != 0 {
+                refusedPaste = paste
+            }
             return false
         }
         // The common case — a keystroke, a paste small enough for the

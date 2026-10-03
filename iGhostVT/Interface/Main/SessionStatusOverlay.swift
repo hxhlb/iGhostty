@@ -8,7 +8,8 @@ import UIKit
 
 /// Covers the terminal while its session is not usable: a quiet pill while
 /// the surface starts up or the daemon connection opens, and an alert card
-/// once the session ended or the connection failed. Connected shows nothing.
+/// once the session ended or the connection failed. Connected shows nothing
+/// but a short notice when a paste was cut short.
 ///
 /// The card is the shared `AlertCardView` — the same design
 /// `AlertViewController` presents — drawn inline over the pane rather than
@@ -41,6 +42,7 @@ struct SessionStatusOverlay: View {
         content
             .animation(DS.Motion.smooth, value: store.status)
             .animation(DS.Motion.smooth, value: store.isAwaitingFirstOutput)
+            .animation(DS.Motion.smooth, value: store.isPasteTruncated)
             .animation(DS.Motion.smooth, value: agent.status)
     }
 
@@ -171,6 +173,8 @@ struct SessionStatusOverlay: View {
             // that looks exactly like a broken one.
             if store.isAwaitingFirstOutput {
                 pill("Starting Shell…")
+            } else if store.isPasteTruncated {
+                notice("Paste truncated: the program is not reading its input.")
             }
         }
     }
@@ -190,6 +194,19 @@ struct SessionStatusOverlay: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.updatesFrequently)
         .transition(.opacity)
+    }
+
+    /// A pill without the spinner: something that already happened, said
+    /// once and gone on its own.
+    private func notice(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(DS.Font.labelEmphasis)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, DS.Padding.l)
+            .padding(.vertical, DS.Padding.m)
+            .barGlass(in: Capsule(), interactive: false)
+            .padding(.horizontal, DS.Padding.l)
+            .transition(.opacity)
     }
 
     /// The dim reaches under the bars: they are glass, and a dim that

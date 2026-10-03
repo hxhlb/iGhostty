@@ -79,6 +79,14 @@ final class TerminalSessionStore: ObservableObject {
     /// never flashes the pill; cleared by the first byte the session
     /// writes (a replay counts) and by any state change.
     @Published private(set) var isAwaitingFirstOutput = false
+
+    /// Whether a paste was just cut short because the program is not
+    /// reading its input (`TerminalTransportEvent.inputRefused`). Up for a
+    /// few seconds: the user pasted and saw only part of it arrive, and
+    /// nothing on the terminal says why.
+    @Published private(set) var isPasteTruncated = false
+    private var pasteNoticeGeneration: UInt64 = 0
+    private static let pasteNoticeDuration: UInt64 = 4_000_000_000
     private var hasReceivedOutput = false
     private var firstOutputGeneration: UInt64 = 0
     private static let firstOutputGrace: UInt64 = 1_000_000_000
@@ -326,6 +334,8 @@ final class TerminalSessionStore: ObservableObject {
             RecentDirectoryStore.shared.record(directory)
         case let .sessionAttributes(attributes, isResumed):
             onSessionAttributes?(attributes, isResumed)
+        case .inputRefused:
+            notePasteTruncated()
         case let .state(state):
             apply(state)
         }
@@ -409,6 +419,17 @@ final class TerminalSessionStore: ObservableObject {
                 .session,
                 "no output \(Self.firstOutputGrace / 1_000_000) ms after connect; showing the shell pill",
             )
+        }
+    }
+
+    private func notePasteTruncated() {
+        isPasteTruncated = true
+        pasteNoticeGeneration &+= 1
+        let generation = pasteNoticeGeneration
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.pasteNoticeDuration)
+            guard let self, pasteNoticeGeneration == generation else { return }
+            isPasteTruncated = false
         }
     }
 

@@ -64,6 +64,9 @@ enum TerminalTransportEvent: Sendable {
     /// empty) or reattached (`isResumed` true, as last set). A backend that
     /// keeps nothing never sends it, and the host's copy is all there is.
     case sessionAttributes([String: String], isResumed: Bool)
+    /// The endpoint refused input because the program is not reading it:
+    /// what was pasted from that point on is gone. Sent once per paste.
+    case inputRefused
 }
 
 enum TerminalTransportState: Sendable, Equatable {

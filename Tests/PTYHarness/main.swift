@@ -265,6 +265,29 @@ do {
         held <= iGhostVTProtocol.sessionPendingInputByteCount,
         "and holds no more than its cap (\(held) bytes after \(accepted) chunks)",
     )
+    // A paste whose chunk was refused stays refused: its next, smaller
+    // chunk would fit in the room left, and taking it would deliver the
+    // tail of a paste whose middle is gone.
+    let room = iGhostVTProtocol.sessionPendingInputByteCount - held
+    let tail = Data(repeating: UInt8(ascii: "y"), count: max(1, room / 2))
+    let paste: UInt64 = 77
+    check(
+        !harnessQueue.sync(execute: { session.write(chunk, paste: paste) }),
+        "a paste chunk past the cap is refused (\(room) bytes of room)",
+    )
+    check(
+        !harnessQueue.sync(execute: { session.write(tail, paste: paste) }),
+        "and so is the rest of that paste, though it would fit",
+    )
+    check(harnessQueue.sync { session.pendingInputByteCount } == held, "nothing of the refused paste is held")
+    check(
+        harnessQueue.sync(execute: { session.write(tail, paste: paste + 1) }),
+        "another paste that fits is taken",
+    )
+    check(
+        harnessQueue.sync(execute: { session.write(tail) }),
+        "as is input that is not a paste",
+    )
     harnessQueue.sync { session.invalidate() }
     check(harnessQueue.sync { session.pendingInputByteCount } == 0, "invalidating releases the pending input")
 } catch {

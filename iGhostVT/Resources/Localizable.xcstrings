@@ -15715,6 +15715,90 @@
         }
       }
     },
+    "Paste truncated: the program is not reading its input." : {
+      "comment" : "A short notice over the terminal after a paste was cut short because the running program stopped reading input",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم اقتطاع اللصق: البرنامج لا يقرأ مدخلاته."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einfügen gekürzt: Das Programm liest seine Eingabe nicht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste truncated: the program is not reading its input."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pegado truncado: el programa no está leyendo su entrada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collage tronqué : le programme ne lit pas son entrée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incolla troncato: il programma non sta leggendo il suo input."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペーストが途中で切れました: プログラムが入力を読み取っていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "붙여넣기가 잘렸습니다: 프로그램이 입력을 읽지 않고 있습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colagem truncada: o programa não está lendo a entrada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставка обрезана: программа не читает ввод."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã cắt bớt nội dung dán: chương trình không đọc dữ liệu nhập."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴内容被截断：程序没有读取输入。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼上內容被截斷：程式沒有讀取輸入。"
+          }
+        }
+      }
+    },
     "Paste Unsafe Text?" : {
       "localizations" : {
         "ar" : {

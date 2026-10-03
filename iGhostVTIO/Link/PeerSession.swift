@@ -330,7 +330,8 @@ final class PeerSession {
             return .unknownSession
         }
         guard let input = Self.inputData(in: message) else { return .invalidRequest }
-        guard session.write(input) else {
+        let paste = xpc_dictionary_get_uint64(message, iGhostVTWireKey.paste)
+        guard session.write(input, paste: paste) else {
             DaemonFileLog.log(
                 "peer \(peerID) write of \(input.count) byte(s) refused: session \(id) holds \(session.pendingInputByteCount) byte(s) its program has not read",
             )
@@ -349,7 +350,8 @@ final class PeerSession {
         guard let session = registry.session(id) else { return .unknownSession }
         guard let input = Self.inputData(in: message) else { return .invalidRequest }
         DaemonFileLog.log("peer \(peerID) injectInput \(input.count) byte(s) into session \(id)")
-        guard session.write(input) else { return .inputBacklog }
+        let paste = xpc_dictionary_get_uint64(message, iGhostVTWireKey.paste)
+        guard session.write(input, paste: paste) else { return .inputBacklog }
         return .success
     }
 
