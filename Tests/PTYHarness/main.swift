@@ -327,6 +327,51 @@ if let result = run(
     check(false, "spawning a shell that floods the buffer succeeded")
 }
 
+// The count above is the logical size; what the session *costs* is the
+// storage behind it. Trimming a `Data` with `removeFirst` only moved the
+// slice's start, so the replay kept every byte ever printed — a flood grew
+// ighostvtd-io by its whole output. Nothing collects the output here, so the
+// harness's own footprint is the session's.
+print("replay storage stays bounded under a long flood")
+func footprintBytes() -> UInt64 {
+    var info = rusage_info_current()
+    _ = withUnsafeMutablePointer(to: &info) {
+        $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) {
+            proc_pid_rusage(getpid(), RUSAGE_INFO_CURRENT, $0)
+        }
+    }
+    return info.ri_phys_footprint
+}
+do {
+    let floodMiB = 128
+    let session = try PTYSession(
+        id: 1,
+        command: ["/bin/sh", "-c", "dd if=/dev/zero bs=1048576 count=\(floodMiB) 2>/dev/null | tr '\\0' 'x'"],
+        environment: ["PATH": "/usr/bin:/bin"],
+        columns: 80,
+        rows: 24,
+        queue: harnessQueue,
+    )
+    let before = footprintBytes()
+    let finished = DispatchSemaphore(value: 0)
+    session.start(onOutput: { _, _ in }, onExit: { _, _ in finished.signal() })
+    let exited = finished.wait(timeout: .now() + 120) == .success
+    let grown = Int64(footprintBytes()) - Int64(before)
+    let stored = harnessQueue.sync { session.replayStorageByteCount }
+    check(exited, "a \(floodMiB) MiB flood runs to completion")
+    check(
+        stored <= 2 * iGhostVTProtocol.sessionReplayByteCount,
+        "the replay's storage stays within twice its cap (\(stored / 1024) KiB)",
+    )
+    check(
+        grown < 32 << 20,
+        "and the process does not grow with the flood (\(grown >> 20) MiB after \(floodMiB) MiB printed)",
+    )
+    session.invalidate()
+} catch {
+    check(false, "spawning a long flood succeeded")
+}
+
 // A shell inherits every descriptor that survives execve. With another
 // session alive — its PTY master, the spawn pipe, the dispatch sources'
 // kqueue — a new shell must still see nothing beyond its own terminal:

@@ -63,14 +63,14 @@ enum iGhostVTProtocol {
     /// the connection that opened them, so an app that opens its 32 and
     /// relaunches would leave the old ones behind and start counting from
     /// zero again. This is the ceiling that actually holds — worst case
-    /// `maximumSessions × sessionReplayByteCount` of retained output, plus one
+    /// `maximumSessions × 2 × sessionReplayByteCount` of retained output, plus one
     /// shell each.
     static let maximumSessions = 64
 
     /// Output retained per session for replay when a client attaches. Enough
     /// for a screenful of a busy TUI plus scrollback context. Hard cap: the
-    /// buffer is trimmed from the front on every append, so a session that
-    /// prints forever still costs this much and no more.
+    /// buffer is trimmed from the front in batches, so a session that prints
+    /// forever costs at most twice this much.
     static let sessionReplayByteCount = 256 * 1024
 
     /// What one session's attributes (`setSessionAttributes`) may hold: at

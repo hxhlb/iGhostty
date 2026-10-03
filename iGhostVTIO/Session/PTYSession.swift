@@ -582,7 +582,13 @@ final class PTYSession {
 
     /// Everything the daemon has buffered for this session, oldest first.
     func replayData() -> Data {
-        replayBuffer
+        replayBuffer.suffix(iGhostVTProtocol.sessionReplayByteCount)
+    }
+
+    /// Bytes the replay buffer holds, trimmed or not — what the session
+    /// costs the daemon, for the harness's bound.
+    var replayStorageByteCount: Int {
+        replayBuffer.count
     }
 
     /// Stops or resumes draining the PTY. Idempotent; the source is
@@ -704,11 +710,17 @@ final class PTYSession {
         }
     }
 
+    /// Keeps the newest `sessionReplayByteCount` bytes, trimmed in batches:
+    /// once the buffer holds twice that, the tail is copied into fresh
+    /// storage and the old storage freed. Not `removeFirst` on every append
+    /// — on a `Data` that only moves the slice's start, so the storage kept
+    /// every byte the session had ever printed: a flood grew `ighostvtd-io`
+    /// by its whole output and nothing gave it back. The copy moves each
+    /// byte at most once more.
     private func append(_ data: Data) {
         replayBuffer.append(data)
-        let excess = replayBuffer.count - iGhostVTProtocol.sessionReplayByteCount
-        if excess > 0 {
-            replayBuffer.removeFirst(excess)
+        if replayBuffer.count > 2 * iGhostVTProtocol.sessionReplayByteCount {
+            replayBuffer = Data(replayBuffer.suffix(iGhostVTProtocol.sessionReplayByteCount))
         }
     }
 
