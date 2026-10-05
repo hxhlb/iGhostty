@@ -192,13 +192,16 @@ import SwiftUI
         }
     }
 
-    /// The two theme slots and the two text sizes.
+    /// The accent, the two theme slots and the two text sizes.
     private struct MacAppearancePane: View {
         @AppStorage(TerminalFontSize.key) private var terminalFontSize = TerminalFontSize.default
         @AppStorage(InterfaceTextSize.key) private var interfaceTextStep = 0
 
         var body: some View {
             MacSettingsForm {
+                MacSettingsRow("Accent Color") {
+                    AccentColorPicker()
+                }
                 MacSettingsRow("Light Theme") {
                     MacThemeMenuButton(slot: .light)
                 }

@@ -9,6 +9,8 @@
 #if targetEnvironment(macCatalyst)
     // Before any scene exists: it hooks the scene's window creation.
     CatalystWindowChrome.install()
+    // Before AppKit draws anything in the accent; see `CatalystAccentColor`.
+    CatalystAccentColor.install()
 #else
     // Before UIKit reads saved sessions: a leftover archive restores whatever
     // scene delegate wrote it and never reaches the current one. Tabs come

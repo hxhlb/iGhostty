@@ -249,6 +249,7 @@ import UIKit
                 }
             }
             .interfaceTextSize()
+            .interfaceAccent()
             let child = UIHostingController(rootView: AnyView(content))
             if #available(macCatalyst 16.0, *) {
                 child.sizingOptions = .preferredContentSize

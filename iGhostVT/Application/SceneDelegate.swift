@@ -100,7 +100,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             interface: interface,
         )
         let host = UIHostingController(
-            rootView: RootView(tabManager: tabManager, interface: interface).interfaceTextSize(),
+            rootView: RootView(tabManager: tabManager, interface: interface).interfaceTextSize().interfaceAccent(),
         )
         window.rootViewController = host
         window.makeKeyAndVisible()

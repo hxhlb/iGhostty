@@ -5,12 +5,18 @@
 
 import SwiftUI
 
-/// The two theme slots, light and dark; each opens the catalog list.
+/// The interface's accent, then the two theme slots, light and dark; each
+/// slot opens the catalog list.
 struct AppearanceSettingsSection: View {
     @ObservedObject private var theme = AppTheme.shared
 
     var body: some View {
         Section {
+            VStack(alignment: .leading, spacing: DS.Padding.s) {
+                Text("Accent Color")
+                AccentColorPicker()
+            }
+            .padding(.vertical, DS.Padding.xs)
             NavigationLink {
                 ThemeListView(slot: .light)
             } label: {
