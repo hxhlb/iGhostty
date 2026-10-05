@@ -9,12 +9,20 @@ import SwiftUI
 /// slot opens the catalog list.
 struct AppearanceSettingsSection: View {
     @ObservedObject private var theme = AppTheme.shared
+    @AppStorage(AccentColorPreference.key) private var accent = AccentColorPreference.appDefault.rawValue
 
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: DS.Padding.s) {
-                Text("Accent Color")
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Accent Color")
+                    Spacer()
+                    Text(verbatim: (AccentColorPreference(rawValue: accent) ?? .appDefault).title)
+                        .font(DS.Font.detail)
+                        .foregroundColor(.secondary)
+                }
                 AccentColorPicker()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.vertical, DS.Padding.xs)
             NavigationLink {

@@ -80,7 +80,7 @@ import Foundation
         /// colours, the ones System Settings' accents are.
         var appKitSelector: String? {
             switch self {
-            case .multicolor: nil
+            case .appDefault: nil
             case .blue: "systemBlueColor"
             case .purple: "systemPurpleColor"
             case .pink: "systemPinkColor"

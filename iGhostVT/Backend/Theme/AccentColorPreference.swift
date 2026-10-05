@@ -8,13 +8,14 @@ import UIKit
 
 /// The accent the interface is tinted with — selections, switches, links,
 /// the settings window's controls, and on the Mac what AppKit draws in the
-/// accent itself. Multicolor is no override at all: the
-/// app's own accent from the asset catalog, as macOS's Multicolor leaves
-/// each app its own. The other choices are the colours macOS offers in
+/// accent itself. Default is the app's own accent from the asset catalog.
+/// The other choices are the colours macOS offers in
 /// System Settings ▸ Appearance, as UIKit's system colours so each one
 /// adapts to light and dark the way the system's do.
 enum AccentColorPreference: String, CaseIterable, Identifiable {
-    case multicolor
+    /// The app's own accent. Stored as `multicolor`, its first name, so a
+    /// choice made before the rename still reads as the default.
+    case appDefault = "multicolor"
     case blue
     case purple
     case pink
@@ -31,14 +32,15 @@ enum AccentColorPreference: String, CaseIterable, Identifiable {
     }
 
     static var current: AccentColorPreference {
-        UserDefaults.standard.string(forKey: key).flatMap(Self.init(rawValue:)) ?? .multicolor
+        UserDefaults.standard.string(forKey: key).flatMap(Self.init(rawValue:)) ?? .appDefault
     }
 
-    /// The override, or nil for Multicolor — UIKit and SwiftUI then fall
-    /// back to the asset catalog's accent on their own.
-    var uiColor: UIColor? {
+    /// The colour itself; Default is the asset catalog's accent, named
+    /// outright — left nil, a presented controller's hosting view fell back
+    /// to the system blue instead.
+    var uiColor: UIColor {
         switch self {
-        case .multicolor: nil
+        case .appDefault: UIColor(named: "AccentColor") ?? .systemBlue
         case .blue: .systemBlue
         case .purple: .systemPurple
         case .pink: .systemPink
@@ -50,13 +52,13 @@ enum AccentColorPreference: String, CaseIterable, Identifiable {
         }
     }
 
-    var color: Color? {
-        uiColor.map(Color.init(uiColor:))
+    var color: Color {
+        Color(uiColor: uiColor)
     }
 
     var title: String {
         switch self {
-        case .multicolor: String(localized: "Multicolor")
+        case .appDefault: String(localized: "Default", comment: "Accent colour: the app's own")
         case .blue: String(localized: "Blue")
         case .purple: String(localized: "Purple")
         case .pink: String(localized: "Pink")
@@ -91,10 +93,10 @@ enum AccentColorPreference: String, CaseIterable, Identifiable {
 /// hosting controller's root reads (`Color.accentColor` included), and the
 /// windows' UIKit tint kept in step as the preference changes.
 private struct InterfaceAccentModifier: ViewModifier {
-    @AppStorage(AccentColorPreference.key) private var rawValue = AccentColorPreference.multicolor.rawValue
+    @AppStorage(AccentColorPreference.key) private var rawValue = AccentColorPreference.appDefault.rawValue
 
     private var preference: AccentColorPreference {
-        AccentColorPreference(rawValue: rawValue) ?? .multicolor
+        AccentColorPreference(rawValue: rawValue) ?? .appDefault
     }
 
     func body(content: Content) -> some View {

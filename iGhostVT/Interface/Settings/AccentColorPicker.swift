@@ -5,12 +5,12 @@
 
 import SwiftUI
 
-/// The accent row as macOS draws it in System Settings ▸ Appearance: one
-/// round swatch per colour, Multicolor first as the conic rainbow, the
-/// chosen one ringed and named underneath. Shared by the iOS settings page
-/// and the Mac's Appearance pane.
+/// One round swatch per colour, the app's own accent first, the chosen one
+/// ringed. Its name is the row's to show (`AccentColorPreference.current`),
+/// beside the row's title. Shared by the iOS settings page and the Mac's
+/// Appearance pane.
 struct AccentColorPicker: View {
-    @AppStorage(AccentColorPreference.key) private var rawValue = AccentColorPreference.multicolor.rawValue
+    @AppStorage(AccentColorPreference.key) private var rawValue = AccentColorPreference.appDefault.rawValue
 
     private static let side: CGFloat = 20
     private static let ring: CGFloat = 2
@@ -24,7 +24,7 @@ struct AccentColorPicker: View {
     }()
 
     private var selection: AccentColorPreference {
-        AccentColorPreference(rawValue: rawValue) ?? .multicolor
+        AccentColorPreference(rawValue: rawValue) ?? .appDefault
     }
 
     var body: some View {
@@ -35,14 +35,6 @@ struct AccentColorPicker: View {
             }
         }
         .frame(maxWidth: Self.preferredWidth)
-        // Room for the name under the chosen swatch, which is an overlay so
-        // a long name never pushes the swatches apart.
-        .padding(.bottom, 18)
-        // A row that centres its label on this control (the Mac's settings
-        // rows) centres it on the swatches, not on swatches plus name.
-        .alignmentGuide(VerticalAlignment.center) { _ in
-            (Self.side + 2 * (Self.ring + Self.gap)) / 2
-        }
     }
 
     private func swatch(_ choice: AccentColorPreference) -> some View {
@@ -65,45 +57,16 @@ struct AccentColorPicker: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .overlay(alignment: nameAlignment(for: choice)) {
-            if isSelected {
-                Text(verbatim: choice.title)
-                    .font(DS.Font.detail)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .offset(y: 18)
-                    .accessibilityHidden(true)
-            }
-        }
         .accessibilityLabel(Text(verbatim: choice.title))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     @ViewBuilder
     private func fill(for choice: AccentColorPreference) -> some View {
-        if let color = choice.color {
-            Circle().fill(color)
-        } else {
-            Circle().fill(AngularGradient(
-                colors: [.red, .orange, .yellow, .green, .blue, .purple, .pink, .red],
-                center: .center,
-            ))
-        }
-    }
-
-    /// Centred under its swatch, except at the ends of the row, where a
-    /// long name ("Multicolor" in most languages) would hang past the
-    /// row's edge; there it runs inward from the swatch's outer edge.
-    private func nameAlignment(for choice: AccentColorPreference) -> Alignment {
-        switch choice {
-        case AccentColorPreference.allCases.first: .bottomLeading
-        case AccentColorPreference.allCases.last: .bottomTrailing
-        default: .bottom
-        }
+        Circle().fill(choice.color)
     }
 
     private func ringColor(for choice: AccentColorPreference) -> Color {
-        choice.color ?? Color.secondary
+        choice.color
     }
 }
