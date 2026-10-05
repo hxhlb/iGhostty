@@ -78,6 +78,7 @@ final class SessionActivityController {
                         title: tab.reportedTitle,
                         directory: Self.displayPath(of: tab),
                         shell: Self.configuredShellName,
+                        process: tab.store.processName.isEmpty ? nil : tab.store.processName,
                         number: number,
                         status: Self.status(for: tab.store.status),
                         isActive: tab.id == window.activeTabID,

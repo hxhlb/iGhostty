@@ -6,11 +6,10 @@
 import SwiftUI
 import WidgetKit
 
-/// The summary card, shaped like Tesla's charging card: one big number, a
-/// status bar under it, a couple of label/value pairs, and the ghost where
-/// the car goes. Session titles and paths are the user's shell's data —
-/// arbitrarily ugly — so the card shows only what the app controls: counts,
-/// statuses, and the frontmost shell's name.
+/// The lock screen card: one header line — the ghost, the name, and the
+/// counts in a single phrase — and a row per session saying what it is
+/// running and where. A card that only counted spent its height on a big
+/// number and a status bar that, with one session, was always full.
 ///
 /// Rendered on the lock screen only; the island has its own trimmed rendition.
 struct LockScreenView: View {
@@ -20,43 +19,8 @@ struct LockScreenView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.line) {
-            HStack(alignment: .center, spacing: Spacing.line) {
-                Text("iGhostVT")
-                    .font(.subheadline.weight(.bold))
-                Spacer(minLength: Spacing.line)
-                if let shell = state.activeShell {
-                    Text(shell)
-                        .font(.subheadline)
-                        .opacity(0.5)
-                }
-            }
-            HStack(alignment: .center, spacing: Spacing.block) {
-                VStack(alignment: .leading, spacing: Spacing.block) {
-                    HStack(alignment: .firstTextBaseline, spacing: Spacing.line) {
-                        Text("\(state.totalCount)")
-                            .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
-                            .contentTransition(.numericText())
-                        Text("total")
-                            .font(.subheadline)
-                            .opacity(0.5)
-                    }
-                    .accessibilityElement(children: .combine)
-                    StatusBar(state: state)
-                    HStack(alignment: .top, spacing: Spacing.card) {
-                        if let running = state.runningSummary {
-                            InfoPair(label: "Status", value: running)
-                        }
-                        if state.detachedCount > 0 {
-                            InfoPair(label: "Detached", value: "\(state.detachedCount)")
-                        }
-                    }
-                }
-                Image("GhostGlyph")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 72)
-                    .accessibilityHidden(true)
-            }
+            SummaryHeader(state: state, glyphSize: 22)
+            SessionRows(state: state, limit: Self.rowLimit)
         }
         .padding(Spacing.card)
         .fontDesign(.rounded)
@@ -64,67 +28,118 @@ struct LockScreenView: View {
         .activityBackgroundTint(colorScheme == .dark ? .black : .white)
         .activitySystemActionForegroundColor(Palette.accent)
     }
+
+    /// The lock screen's card keeps to about the height the old one had.
+    private static let rowLimit = 3
 }
 
-/// Tesla's charge bar, repurposed: one segment per status, sized by its
-/// share of the listed sessions. All green means all live.
-struct StatusBar: View {
+/// The ghost, the name, and the counts phrase trailing in the dim style.
+struct SummaryHeader: View {
     let state: TerminalSessionAttributes.ContentState
-
-    private var total: Int {
-        state.liveCount + state.startingCount + state.failedCount
-    }
+    let glyphSize: CGFloat
 
     var body: some View {
-        GeometryReader { geo in
-            if total == 0 {
-                Capsule()
-                    .fill(.primary.opacity(0.12))
-            } else {
-                let groups: [(color: Color, count: Int)] = [
-                    (Palette.accent, state.liveCount),
-                    (Palette.starting, state.startingCount),
-                    (Palette.failed, state.failedCount),
-                ].filter { $0.1 > 0 }
-                let gaps = CGFloat(groups.count - 1) * Spacing.line
-                HStack(spacing: Spacing.line) {
-                    ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                        Capsule()
-                            .fill(group.color)
-                            .frame(width: (geo.size.width - gaps) * CGFloat(group.count) / CGFloat(total))
-                    }
-                }
+        HStack(alignment: .center, spacing: Spacing.line) {
+            Image("GhostGlyph")
+                .resizable()
+                .scaledToFit()
+                .frame(width: glyphSize, height: glyphSize)
+                .accessibilityHidden(true)
+            Text("iGhostVT")
+                .font(.subheadline.weight(.bold))
+            Spacer(minLength: Spacing.line)
+            if let summary = state.summaryLine {
+                Text(summary)
+                    .font(.subheadline)
+                    .opacity(0.6)
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
             }
         }
-        .frame(height: 6)
-        // Purely a rendering of the counts the summary line already speaks.
-        .accessibilityHidden(true)
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// A dim label over its value, both in the card's one text size.
-private struct InfoPair: View {
-    let label: LocalizedStringKey
-    let value: String
+/// One line per listed session — its status dot, the program in front, and
+/// the directory — then how many more there are past the last row.
+struct SessionRows: View {
+    let state: TerminalSessionAttributes.ContentState
+    let limit: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.subheadline)
-                .opacity(0.5)
-            Text(value)
-                .font(.subheadline)
-                .contentTransition(.numericText())
+        let shown = Array(state.sessions.prefix(limit))
+        let hidden = state.totalCount - shown.count
+        VStack(alignment: .leading, spacing: Spacing.row) {
+            ForEach(shown) { session in
+                SessionRow(session: session)
+            }
+            if hidden > 0 {
+                Text("+\(hidden) more")
+                    .font(.footnote)
+                    .opacity(0.5)
+                    .padding(.leading, SessionRow.dotColumn)
+            }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(label))
-        .accessibilityValue(value)
     }
 }
 
-/// What the card and the island's status ring derive from the payload.
-/// The counts describe the listed sessions — the payload carries no status
-/// for overflowed or detached ones.
+private struct SessionRow: View {
+    let session: TerminalSessionAttributes.Session
+
+    /// The dot and its gap, so the "more" line can start where names do.
+    static let dotColumn: CGFloat = 8 + Spacing.line
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.line) {
+            Circle()
+                .fill(session.status.color)
+                .frame(width: 8, height: 8)
+                .accessibilityHidden(true)
+            Text(verbatim: session.name)
+                .font(.subheadline.weight(session.isActive ? .semibold : .regular))
+                .lineLimit(1)
+                .layoutPriority(1)
+            Spacer(minLength: Spacing.line)
+            if !session.directory.isEmpty {
+                Text(verbatim: session.directory)
+                    .font(.footnote.monospaced())
+                    .opacity(0.5)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+extension TerminalSessionAttributes.Session {
+    /// The program in front first — it is the daemon's short, stable name
+    /// — then whatever the shell titled itself, then the configured shell,
+    /// then the session's number.
+    var name: String {
+        if let process, !process.isEmpty { return process }
+        if !title.isEmpty { return title }
+        if !shell.isEmpty { return shell }
+        if let number {
+            return String(localized: "Session \(number)", comment: "A session the widget has no other name for")
+        }
+        return "—"
+    }
+}
+
+extension TerminalSessionAttributes.Session.Status {
+    var color: Color {
+        switch self {
+        case .live: Palette.accent
+        case .starting: Palette.starting
+        case .failed: Palette.failed
+        }
+    }
+}
+
+/// What the card and the island derive from the payload. The counts
+/// describe the listed sessions — the payload carries no status for
+/// overflowed or detached ones.
 extension TerminalSessionAttributes.ContentState {
     var liveCount: Int {
         sessions.filter { $0.status == .live }.count
@@ -138,16 +153,9 @@ extension TerminalSessionAttributes.ContentState {
         sessions.filter { $0.status == .failed }.count
     }
 
-    /// The frontmost session's shell — the one line of shell-adjacent data
-    /// the app itself picked, so it can't be ugly.
-    var activeShell: String? {
-        guard let active = sessions.first(where: { $0.isActive }) else { return nil }
-        return active.shell.isEmpty ? nil : active.shell
-    }
-
-    /// "5 live · 1 starting · 1 failed", skipping empty groups; nil when
-    /// nothing is listed at all.
-    var runningSummary: String? {
+    /// "5 live · 1 starting · 1 detached", skipping empty groups; nil when
+    /// there is nothing at all.
+    var summaryLine: String? {
         var parts: [String] = []
         if liveCount > 0 {
             parts.append(String(localized: "\(liveCount) live", comment: "Sessions with a running shell"))
@@ -157,16 +165,6 @@ extension TerminalSessionAttributes.ContentState {
         }
         if failedCount > 0 {
             parts.append(String(localized: "\(failedCount) failed", comment: "Sessions whose transport gave up"))
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
-
-    /// The one-line rendition for the island: the running summary with the
-    /// detached count folded in, since there's no room for label pairs.
-    var summaryLine: String? {
-        var parts: [String] = []
-        if let runningSummary {
-            parts.append(runningSummary)
         }
         if detachedCount > 0 {
             parts.append(String(
@@ -195,6 +193,7 @@ extension TerminalSessionAttributes.ContentState {
                     title: "make deb",
                     directory: "~/Documents/GitHub/iGhostVT",
                     shell: "zsh",
+                    process: "make",
                     number: 1,
                     status: .live,
                     isActive: true,
@@ -204,6 +203,7 @@ extension TerminalSessionAttributes.ContentState {
                     title: "",
                     directory: "~",
                     shell: "fish",
+                    process: "fish",
                     number: 2,
                     status: .live,
                     isActive: false,
@@ -215,8 +215,8 @@ extension TerminalSessionAttributes.ContentState {
 
         /// `typical`, a moment later — the same two sessions, a third one
         /// opening and one failed, more of them past the row cap. The overlap
-        /// lets the canvas demonstrate the transition: the number rolls, the
-        /// bar reapportions, the detached pair fades in.
+        /// lets the canvas demonstrate the transition: the counts roll and
+        /// the rows reorder.
         static let crowded = TerminalSessionAttributes.ContentState(
             sessions: [
                 .init(
@@ -224,6 +224,7 @@ extension TerminalSessionAttributes.ContentState {
                     title: "make deb",
                     directory: "~/Documents/GitHub/iGhostVT",
                     shell: "zsh",
+                    process: "make",
                     number: 1,
                     status: .live,
                     isActive: false,
@@ -233,6 +234,7 @@ extension TerminalSessionAttributes.ContentState {
                     title: "",
                     directory: "~",
                     shell: "fish",
+                    process: "fish",
                     number: 2,
                     status: .failed,
                     isActive: false,
@@ -242,6 +244,7 @@ extension TerminalSessionAttributes.ContentState {
                     title: "ssh build-host",
                     directory: "",
                     shell: "zsh",
+                    process: "ssh",
                     number: 3,
                     status: .starting,
                     isActive: true,

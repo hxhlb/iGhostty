@@ -9,7 +9,7 @@ import WidgetKit
 
 /// Dynamic Island + Lock Screen presentation of the running terminal
 /// sessions. Expanded, the island shows a trimmed rendition of the lock
-/// screen's summary card; closed, it wears the bare ghost with the count
+/// screen's card; closed, it wears the bare ghost with the count
 /// in the status ring — the ghost alone when minimal.
 struct TerminalSessionActivityWidget: Widget {
     var body: some WidgetConfiguration {
@@ -59,38 +59,22 @@ struct TerminalSessionActivityWidget: Widget {
     }
 }
 
-/// The summary card cut down to what the expanded island's height and
-/// corner radii leave room for: the big count with the frontmost shell
-/// beside it, the status bar, and the counts folded into one dim line.
-/// The name and the ghost stay off — the island's closed states already
-/// carry both.
+/// The lock screen card cut down to what the expanded island's height and
+/// corner radii leave room for: the counts phrase and the first two
+/// sessions. The name and the ghost sit in the regions above.
 private struct IslandSummary: View {
     let state: TerminalSessionAttributes.ContentState
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.line) {
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.line) {
-                Text("\(state.totalCount)")
-                    .font(.system(size: 36, weight: .bold, design: .rounded).monospacedDigit())
-                    .contentTransition(.numericText())
-                Text("total")
-                    .font(.subheadline)
-                    .opacity(0.5)
-                Spacer(minLength: Spacing.line)
-                if let shell = state.activeShell {
-                    Text(shell)
-                        .font(.subheadline)
-                        .opacity(0.5)
-                }
-            }
-            .accessibilityElement(children: .combine)
-            StatusBar(state: state)
             if let summary = state.summaryLine {
                 Text(summary)
                     .font(.subheadline)
-                    .opacity(0.5)
+                    .opacity(0.6)
                     .lineLimit(1)
+                    .contentTransition(.numericText())
             }
+            SessionRows(state: state, limit: 2)
         }
         .padding(Spacing.line)
         .fontDesign(.rounded)

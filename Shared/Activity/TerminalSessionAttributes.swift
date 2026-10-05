@@ -43,6 +43,10 @@ struct TerminalSessionAttributes {
         /// Basename of the configured shell, when the app picked one. Empty
         /// when the daemon chose, because then the app doesn't know.
         var shell: String
+        /// The foreground program's name as the daemon reports it (event
+        /// 102) — "zsh", "vim" — short and stable however the program
+        /// retitles. Optional so a payload from a build without it decodes.
+        var process: String?
         /// The daemon's session number, the last resort for naming a row.
         var number: UInt64?
         var status: Status
