@@ -59,6 +59,7 @@ VERSION_APPLIER     := $(ROOT_DIR)/Scripts/apply-version.sh
 LICENSE_COLLECTOR   := $(ROOT_DIR)/Scripts/collect-licenses.py
 ACCESSIBILITY_CHECK := $(ROOT_DIR)/Scripts/check-accessibility.py
 STALE_STRINGS_CHECK := $(ROOT_DIR)/Scripts/check-stale-strings.py
+FORMAT_STRINGS_CHECK := $(ROOT_DIR)/Scripts/check-format-strings.py
 FLOOR_AUDIT         := $(ROOT_DIR)/Scripts/audit-ios-floor.sh
 # The oldest iOS the package claims: the lowest IPHONEOS_DEPLOYMENT_TARGET in
 # the project, which is the app's and the daemon's (the widget's is higher and
@@ -225,6 +226,10 @@ check:
 	@# what it cannot account for and needs every target's sources.
 	@test -x "$(STALE_STRINGS_CHECK)" || { echo "error: check-stale-strings.py is not executable" >&2; exit 66; }
 	@"$(STALE_STRINGS_CHECK)" "$(ROOT_DIR)/iGhostVT" "$(ROOT_DIR)/iGhostVTWidgets"
+	@# A translation that reorders a key's arguments without positions reads a
+	@# number as an object and crashes, in that language only.
+	@test -x "$(FORMAT_STRINGS_CHECK)" || { echo "error: check-format-strings.py is not executable" >&2; exit 66; }
+	@"$(FORMAT_STRINGS_CHECK)" "$(ROOT_DIR)/iGhostVT" "$(ROOT_DIR)/iGhostVTWidgets"
 
 # The app has no unit tests since the TCP transport left; the harness and
 # the CLI renderer tests are the whole suite until it grows some again.

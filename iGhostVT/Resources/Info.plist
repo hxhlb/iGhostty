@@ -33,13 +33,19 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_ighostvt._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>iGhostVT finds and connects to your other devices with remote access turned on, so you can open terminals on them.</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
 	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
+	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSUserActivityTypes</key>
 	<array>

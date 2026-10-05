@@ -22,12 +22,22 @@ struct ObservedTabTitle: View {
     var font: DS.Font = .labelEmphasis
 
     var body: some View {
-        Text(tab.displayTitle)
-            .font(font)
-            .lineLimit(1)
-            .truncationMode(.middle)
-            .retitleTransition()
-            .animation(tab.animatesRetitle ? DS.Motion.smooth : nil, value: tab.displayTitle)
+        HStack(spacing: 4) {
+            // A shell on another device wears the network glyph before its
+            // title, in every presentation of the tab.
+            if tab.isRemote {
+                Image(systemName: "network")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.accentColor)
+                    .accessibilityLabel(tab.remoteHostName ?? String(localized: "Remote"))
+            }
+            Text(tab.displayTitle)
+                .font(font)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .retitleTransition()
+                .animation(tab.animatesRetitle ? DS.Motion.smooth : nil, value: tab.displayTitle)
+        }
     }
 }
 

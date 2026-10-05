@@ -19,6 +19,7 @@ struct SettingsSheet: View {
                 TextSizeSettingsSection()
                 ShellSettingsSection()
                 SessionsSettingsSection()
+                RemoteAccessSettingsSection()
                 RecentDirectoriesSettingsSection()
                 KeyboardSettingsSection()
                 AboutSettingsSection()

@@ -34,6 +34,13 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         if UserDefaults.standard.bool(forKey: DetailedTerminalLog.key) {
             TerminalDebugLog.enable(.standard)
         }
+        // Browsing asks for the local-network permission, so only a launch
+        // with a paired device to look for starts it here.
+        RemoteDeviceIdentity.noteSystemName()
+        RemoteHostDirectory.shared.startIfPaired()
+        RemoteSessionCatalog.shared.start()
+        RemoteAccessActivity.start()
+        HostSessionWatcher.shared.start()
         return true
     }
 

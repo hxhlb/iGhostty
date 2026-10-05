@@ -47,6 +47,9 @@ enum DS {
     enum Font {
         /// Section and card titles.
         case title
+        /// The title of a page laid out the way iOS's setup is — one large
+        /// line over the symbol it explains.
+        case heroTitle
         /// Bar buttons and standalone control glyphs.
         case control
         /// The emphasized control: confirmations, filled buttons.
@@ -84,12 +87,13 @@ enum DS {
             case .caption, .captionEmphasis: .caption1
             case .codeCaption: .caption2
             case .symbol: .title3
-            case .heroSymbol, .heroPrompt: .largeTitle
+            case .heroSymbol, .heroPrompt, .heroTitle: .largeTitle
             }
         }
 
         var weight: SwiftUI.Font.Weight {
             switch self {
+            case .heroTitle: .bold
             case .title, .controlEmphasis, .labelEmphasis, .captionEmphasis: .semibold
             case .control: .medium
             case .heroSymbol: .light

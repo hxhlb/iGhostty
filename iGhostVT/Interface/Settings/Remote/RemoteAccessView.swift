@@ -1,0 +1,218 @@
+import SwiftUI
+
+/// Settings ▸ Remote Access: this device as a host (the switch, the devices
+/// that may connect, pairing a new one) and this device as a client (one
+/// list: the devices it is paired with, then the ones nearby to pair with —
+/// only a device found on this network can be paired).
+/// Pushed from the settings sheet on iPhone and iPad; a pane on the Mac.
+struct RemoteAccessView: View {
+    @StateObject private var model = RemoteAccessModel()
+    @ObservedObject private var directory = RemoteHostDirectory.shared
+
+    @State private var isShowingPairingCode = false
+    @State private var pairingHost: DiscoveredRemoteHost?
+    @State private var name = RemoteDeviceIdentity.chosenName ?? ""
+
+    var body: some View {
+        Form {
+            nameSection
+            thisDeviceSection
+            if model.isEnabled {
+                allowedDevicesSection
+            }
+            yourDevicesSection
+        }
+        .navigationTitle("Remote Access")
+        .onAppear {
+            model.appear()
+            directory.start()
+        }
+        .onDisappear {
+            saveName()
+            model.disappear()
+        }
+        .sheet(isPresented: $isShowingPairingCode) {
+            RemotePairingCodeView(model: model)
+        }
+        .sheet(item: $pairingHost) { host in
+            RemotePairDeviceView(host: host)
+        }
+    }
+
+    // MARK: - This device
+
+    /// What the other devices call this one, in their lists and on their
+    /// tabs. Empty is the name set on the device.
+    private var nameSection: some View {
+        Section {
+            TextField(RemoteDeviceIdentity.systemName, text: $name)
+                .disableAutocorrection(true)
+                .onSubmit(saveName)
+        } header: {
+            Text("Name")
+                .font(DS.Font.caption)
+        } footer: {
+            Text("Your other devices see this device by this name. Leave it empty to use the name set on the device.")
+                .font(DS.Font.detail)
+        }
+    }
+
+    private func saveName() {
+        guard name != (RemoteDeviceIdentity.chosenName ?? "") else { return }
+        model.setName(name)
+    }
+
+    private var thisDeviceSection: some View {
+        Section {
+            Toggle("Allow Remote Access", isOn: Binding(
+                get: { model.isEnabled },
+                set: { model.setEnabled($0) },
+            ))
+            .disabled(!model.hasLoaded || model.status.isUnavailable)
+            // Said only when something is wrong; the switch says the rest.
+            if let problem {
+                SettingsValueText(title: "Status", value: problem, isWarning: true)
+            }
+        } footer: {
+            Text("Paired devices on this network can open terminals here.")
+                .font(DS.Font.detail)
+        }
+    }
+
+    private var problem: String? {
+        if model.status.isUnavailable {
+            return String(localized: "Terminal helper is not running")
+        }
+        guard model.isEnabled, model.status.state == .failed else { return nil }
+        return model.status.failureMessage ?? String(localized: "Unable to start")
+    }
+
+    private var allowedDevicesSection: some View {
+        Section {
+            ForEach(model.status.devices) { device in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(device.name)
+                    Text(lastSeenText(device))
+                        .font(DS.Font.detail)
+                        .foregroundColor(.secondary)
+                }
+                .contextMenu {
+                    Button(role: .destructive) {
+                        model.revoke(device)
+                    } label: {
+                        Label("Remove", systemImage: "trash")
+                    }
+                }
+            }
+            .onDelete { offsets in
+                for index in offsets {
+                    model.revoke(model.status.devices[index])
+                }
+            }
+            Button("Pair New Device…") {
+                Task {
+                    await model.beginPairing()
+                    isShowingPairingCode = true
+                }
+            }
+            .disabled(model.status.state != .listening)
+        } header: {
+            Text("Allowed Devices")
+                .font(DS.Font.caption)
+        } footer: {
+            if !model.status.devices.isEmpty {
+                Text("A removed device loses access at once and has to pair again.")
+                    .font(DS.Font.detail)
+            }
+        }
+    }
+
+    private func lastSeenText(_ device: RemoteAccessStatus.Device) -> String {
+        guard let lastSeen = device.lastSeen else {
+            return String(localized: "Not connected yet")
+        }
+        let relative = RelativeDateTimeFormatter().localizedString(for: lastSeen, relativeTo: Date())
+        return String.localizedStringWithFormat(
+            NSLocalizedString("Connected %@", comment: "%@ is a relative time, such as “5 minutes ago”"),
+            relative,
+        )
+    }
+
+    // MARK: - Other devices
+
+    /// The devices this one is paired with, then the ones nearby it could
+    /// pair with — one list, since a device only ever moves down it once.
+    private var yourDevicesSection: some View {
+        Section {
+            ForEach(directory.paired) { host in
+                NavigationLink {
+                    RemoteHostDetailView(hostID: host.id)
+                } label: {
+                    HStack {
+                        DeviceNameText(name: host.displayName, address: directory.address(of: host))
+                        Spacer()
+                        Text(directory.isDiscovered(host.id) ? "Nearby" : "")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            ForEach(unpairedNearby) { host in
+                Button {
+                    pairingHost = host
+                } label: {
+                    HStack {
+                        DeviceNameText(name: host.name, address: host.address)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Text("Pair")
+                    }
+                }
+            }
+            if directory.paired.isEmpty, unpairedNearby.isEmpty {
+                Text("Devices on this network with remote access on appear here.")
+                    .foregroundColor(.secondary)
+            }
+        } header: {
+            Text("Your Devices")
+                .font(DS.Font.caption)
+        }
+    }
+
+    private var unpairedNearby: [DiscoveredRemoteHost] {
+        let paired = Set(directory.paired.map(\.id))
+        return directory.hosts.filter { !paired.contains($0.id) }
+    }
+}
+
+/// A device as a list names it: `iPad @192.168.1.20`, the address in the
+/// secondary colour — two devices may well share a name.
+struct DeviceNameText: View {
+    let name: String
+    let address: String?
+
+    var body: some View {
+        if let address {
+            Text(name) + Text(verbatim: " @\(address)").foregroundColor(.secondary)
+        } else {
+            Text(name)
+        }
+    }
+}
+
+/// A label and its value on one row, the value trailing in the secondary
+/// colour.
+struct SettingsValueText: View {
+    let title: LocalizedStringKey
+    let value: String
+    var isWarning = false
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer(minLength: 12)
+            Text(value)
+                .foregroundColor(isWarning ? .red : .secondary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+}

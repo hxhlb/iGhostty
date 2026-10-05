@@ -119,6 +119,88 @@
           }
         }
       }
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعثر iGhostVT على أجهزتك الأخرى التي فُعّل فيها الوصول عن بُعد ويتصل بها، لتتمكن من فتح طرفيات عليها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT findet deine anderen Geräte mit aktiviertem Fernzugriff und verbindet sich mit ihnen, damit du dort Terminals öffnen kannst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT finds and connects to your other devices with remote access turned on, so you can open terminals on them."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT encuentra tus otros dispositivos con el acceso remoto activado y se conecta a ellos para que puedas abrir terminales en ellos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT trouve vos autres appareils dont l’accès à distance est activé et s’y connecte, pour que vous puissiez y ouvrir des terminaux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT trova i tuoi altri dispositivi con l’accesso remoto attivo e si connette a essi, così puoi aprirvi dei terminali."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVTは、リモートアクセスがオンになっているほかのデバイスを見つけて接続し、そのデバイスでターミナルを開けるようにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT는 원격 접근이 켜진 다른 기기를 찾아 연결하여 해당 기기에서 터미널을 열 수 있게 합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O iGhostVT encontra seus outros dispositivos com o acesso remoto ativado e se conecta a eles, para que você possa abrir terminais neles."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT находит другие ваши устройства с включенным удаленным доступом и подключается к ним, чтобы вы могли открывать на них терминалы."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT tìm và kết nối với các thiết bị khác của bạn đã bật truy cập từ xa để bạn có thể mở terminal trên đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT 会查找并连接你已打开远程访问的其他设备，以便你在它们上面打开终端。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iGhostVT 會尋找並連線你已開啟遠端存取的其他裝置，讓你可以在上面開啟終端機。"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

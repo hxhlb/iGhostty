@@ -1,0 +1,99 @@
+import Combine
+import UIKit
+
+/// The terminals each paired device has open, for the new-tab menu: pick
+/// one and it opens here (`TabManager.openRemoteTab`).
+///
+/// A SwiftUI menu is built from what is known when it opens, so the lists
+/// are asked for ahead of time — as the app comes forward, and every half
+/// minute while it stays there with a device to ask. Each ask is a fresh
+/// connection to the device, so not more often than that. A device that does
+/// not answer keeps its last list until it does.
+@MainActor
+final class RemoteSessionCatalog: ObservableObject {
+    static let shared = RemoteSessionCatalog()
+
+    @Published private(set) var sessions: [String: [XPCDaemonTransport.SessionSummary]] = [:]
+
+    private var poll: Task<Void, Never>?
+    private var observers: [NSObjectProtocol] = []
+    private static let interval: UInt64 = 30_000_000_000
+
+    private init() {}
+
+    func start() {
+        guard observers.isEmpty else { return }
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main,
+        ) { _ in
+            MainActor.assumeIsolated { RemoteSessionCatalog.shared.resume() }
+        })
+        observers.append(center.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main,
+        ) { _ in
+            MainActor.assumeIsolated { RemoteSessionCatalog.shared.pause() }
+        })
+        resume()
+    }
+
+    private func resume() {
+        guard poll == nil else { return }
+        poll = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refresh()
+                try? await Task.sleep(nanoseconds: Self.interval)
+            }
+        }
+    }
+
+    private func pause() {
+        poll?.cancel()
+        poll = nil
+    }
+
+    /// Asks every paired device worth offering, all at once.
+    func refresh() async {
+        let hosts = RemoteHostDirectory.shared.reachablePaired
+        guard !hosts.isEmpty else {
+            sessions = [:]
+            return
+        }
+        await withTaskGroup(of: (String, [XPCDaemonTransport.SessionSummary]?).self) { group in
+            for host in hosts {
+                group.addTask {
+                    await (host.id, Self.list(hostID: host.id))
+                }
+            }
+            for await (hostID, rows) in group {
+                if let rows, sessions[hostID] != rows {
+                    sessions[hostID] = rows
+                }
+            }
+        }
+        // A device no longer offered takes its list with it.
+        let offered = Set(hosts.map(\.id))
+        for hostID in sessions.keys where !offered.contains(hostID) {
+            sessions.removeValue(forKey: hostID)
+        }
+    }
+
+    private nonisolated static func list(hostID: String) async -> [XPCDaemonTransport.SessionSummary]? {
+        await withCheckedContinuation { continuation in
+            XPCDaemonTransport.listSessions(at: .remote(hostID: hostID)) { rows in
+                continuation.resume(returning: rows)
+            }
+        }
+    }
+}
+
+extension XPCDaemonTransport.SessionSummary: Identifiable {
+    /// How a menu names the terminal: what is running in it, and where.
+    var label: String {
+        [processName, directory?.label].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+}

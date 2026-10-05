@@ -177,6 +177,7 @@ struct RootView: View {
                     attributes: tab.attributes,
                     isActive: tab.id == tabManager.activeTabID,
                     focusedTabID: $focusedTabID,
+                    isAwaitingClose: tabManager.closeRequest === tab,
                     onCloseTab: { tabManager.requestClose(tab, from: .statusCard) },
                     onLockChange: refocus,
                     onStatusChange: refocusForStatus,
@@ -281,6 +282,8 @@ private struct TerminalPane: View {
     @ObservedObject var attributes: TabAttributes
     let isActive: Bool
     let focusedTabID: FocusState<UUID?>.Binding
+    /// The close alert for this tab is up; its status card steps aside.
+    let isAwaitingClose: Bool
     let onCloseTab: () -> Void
     let onLockChange: () -> Void
     let onStatusChange: (TerminalSessionStore.Status) -> Void
@@ -297,6 +300,7 @@ private struct TerminalPane: View {
                 SessionStatusOverlay(
                     store: tab.store,
                     isActive: isActive,
+                    isAwaitingClose: isAwaitingClose,
                     onCloseTab: onCloseTab,
                 )
             }

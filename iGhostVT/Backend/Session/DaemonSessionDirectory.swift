@@ -30,8 +30,9 @@ final class DaemonSessionDirectory {
 
     private init() {}
 
-    /// The daemon sessions no peer is attached to, for the first window of a
-    /// cold launch to adopt. One caller holds the claim at a time; every
+    /// The daemon sessions no peer is attached to, and the ones a paired
+    /// device has open (shown here as held there), for the first window of
+    /// a cold launch to adopt. One caller holds the claim at a time; every
     /// later window starts fresh, mirroring the old ledger's claim semantics
     /// without the ledger — until the holder's tabs detach
     /// (`releaseResumableClaim`), when its shells are unattached again and
@@ -53,7 +54,7 @@ final class DaemonSessionDirectory {
                 }
                 let rows = rows ?? []
                 self.sessions = rows
-                completion(rows.filter { !$0.isAttached }.map(\.id))
+                completion(rows.filter { !$0.isAttached || $0.holder != nil }.map(\.id))
             }
         }
     }

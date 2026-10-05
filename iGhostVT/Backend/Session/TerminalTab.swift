@@ -76,11 +76,28 @@ final class TerminalTab: ObservableObject, Identifiable {
     /// session's, which is older.
     private var isLockUnsent = false
 
-    /// The daemon session this tab is attached to, once it has one. Another
-    /// tab opened from this one names it so its shell starts in this shell's
-    /// current directory.
+    /// The paired device this tab's shell runs on (remote access), `nil`
+    /// for this device's own daemon.
+    let remoteHostID: String?
+
+    var isRemote: Bool {
+        remoteHostID != nil
+    }
+
+    /// This device's daemon session this tab is attached to, once it has
+    /// one. Another tab opened from this one names it so its shell starts in
+    /// this shell's current directory. `nil` for a remote tab: its session
+    /// is another daemon's, and nothing that keys on this — the resume
+    /// claim, the new-tab menu, a window move, the quit — may mistake it for
+    /// one of this device's.
     var daemonSessionID: UInt64? {
-        daemonSession.id
+        isRemote ? nil : daemonSession.id
+    }
+
+    /// The session on the remote host: which of its terminals this tab is,
+    /// for the new-tab menu's list of them.
+    var remoteSessionID: UInt64? {
+        isRemote ? daemonSession.id : nil
     }
 
     /// Where this tab's shell is, as the daemon last reported it. `nil`
@@ -105,9 +122,12 @@ final class TerminalTab: ObservableObject, Identifiable {
         resumeDaemonSessionID: UInt64? = nil,
         inheritDirectoryFrom: UInt64? = nil,
         startDirectory: String? = nil,
+        remoteHostID: String? = nil,
     ) {
         let daemonSession = DaemonSessionBox(id: resumeDaemonSessionID)
         self.daemonSession = daemonSession
+        self.remoteHostID = remoteHostID
+        let endpoint: DaemonEndpoint = remoteHostID.map { .remote(hostID: $0) } ?? .local
         let customConfiguration = GhosttyAppConfiguration.customConfiguration
         self.customConfiguration = customConfiguration
         terminal = TerminalViewState(
@@ -120,6 +140,7 @@ final class TerminalTab: ObservableObject, Identifiable {
         let exitRelay = ProcessExitRelay()
         store = TerminalSessionStore(makeTransport: {
             let transport = XPCDaemonTransport(
+                endpoint: endpoint,
                 shellPath: UserDefaults.standard.string(forKey: "Shell.path"),
                 resumeSessionID: daemonSession.id,
                 inheritDirectoryFrom: inheritDirectoryFrom,
@@ -134,12 +155,21 @@ final class TerminalTab: ObservableObject, Identifiable {
                 AppLog.info(.tabs, "session \(id) ended on its own, status \(status); its tab closes")
                 daemonSession.clear(ifMatches: id)
                 exitRelay.fire(status)
-                Task { @MainActor in
-                    DaemonSessionDirectory.shared.refresh()
+                if !endpoint.isRemote {
+                    Task { @MainActor in
+                        DaemonSessionDirectory.shared.refresh()
+                    }
                 }
             }
             return transport
         })
+        store.recordsRecentDirectories = remoteHostID == nil
+        store.reconnectsPatiently = remoteHostID != nil
+        if remoteHostID == nil {
+            store.onHeldElsewhere = {
+                HostSessionWatcher.shared.reconcile()
+            }
+        }
         exitRelay.handler = { [weak self] status in
             Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -346,7 +376,17 @@ final class TerminalTab: ObservableObject, Identifiable {
     /// still reads as what it is doing rather than as "zsh" twice.
     var secondaryTitle: String {
         let process = store.processName
-        return process.isEmpty || process == displayTitle ? pageFallbackLine : process
+        let line = process.isEmpty || process == displayTitle ? pageFallbackLine : process
+        // A shell on another device says which one, wherever the tab shows.
+        if let remoteHostName {
+            return line.isEmpty ? remoteHostName : "\(line) · \(remoteHostName)"
+        }
+        return line
+    }
+
+    /// The paired device's name, for a remote tab.
+    var remoteHostName: String? {
+        remoteHostID.flatMap { PairedRemoteHostStore.host(id: $0)?.displayName }
     }
 
     /// The last non-empty row of the viewport, and the endpoint only while
@@ -412,7 +452,7 @@ final class TerminalTab: ObservableObject, Identifiable {
         if case .failed = store.status {
             return true
         }
-        return false
+        return store.isHeldElsewhere
     }
 
     /// The surface as last seen — the tab-switcher card's picture. Taken
@@ -457,10 +497,15 @@ final class TerminalTab: ObservableObject, Identifiable {
     /// itself. The box is for a tab that never connected at all.
     func close() {
         let transport = store.activeTransport as? XPCDaemonTransport
+        let endpoint: DaemonEndpoint = remoteHostID.map { .remote(hostID: $0) } ?? .local
         if let transport {
             transport.closeSession()
         } else if let id = daemonSession.id {
-            XPCDaemonTransport.killSession(id)
+            XPCDaemonTransport.killSession(id, at: endpoint)
+        }
+        if remoteHostID != nil {
+            store.disconnect()
+            return
         }
         if let id = transport?.currentSessionID ?? daemonSession.id {
             DaemonSessionDirectory.shared.evict(id)
@@ -469,8 +514,9 @@ final class TerminalTab: ObservableObject, Identifiable {
         DaemonSessionDirectory.shared.refresh()
     }
 
-    /// The window is going away but the shell should live on in the daemon;
-    /// the ledger already holds the session ID for the next launch.
+    /// The shell lives on in its daemon: the window is going away, or —
+    /// for a remote tab — the user let go of it here, and the host's own
+    /// window takes it back.
     func detach() {
         store.disconnect()
     }
@@ -481,6 +527,11 @@ final class TerminalTab: ObservableObject, Identifiable {
             let id = transport.currentSessionID
         else { return }
         daemonSession.id = id
+        // Not `attributes.sessionID` for a remote tab: that is what offers
+        // Move to New Window, which hands a local session over by its id.
+        if remoteHostID != nil {
+            return
+        }
         attributes.sessionID = id
         DaemonSessionDirectory.shared.refresh()
     }

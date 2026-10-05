@@ -84,14 +84,18 @@ final class TabManager: ObservableObject {
         resumeLeftovers(openingFreshTab: true)
     }
 
-    /// Adopts the sessions no peer is attached to, if this window wins the
-    /// claim. `populate` asks as the window connects; the scene asks again
+    /// Adopts the sessions no peer is attached to — and the ones a paired
+    /// device has open, which show here as held there — if this window
+    /// wins the claim. `populate` asks as the window connects; the scene asks again
     /// when the Mac's helper comes up, because a claim the daemon could not
     /// answer is left open and the shells it holds are reachable only now.
     func resumeLeftovers(openingFreshTab: Bool = false) {
         DaemonSessionDirectory.shared.claimResumable { [weak self] resumable in
             guard let self else { return }
-            let held = Set(tabs.compactMap(\.daemonSessionID))
+            // Every window's tabs, not this one's: a session a device holds
+            // can already be a tab in another window.
+            let held = Set(ShortcutBridge.tabManagers().flatMap(\.tabs).compactMap(\.daemonSessionID))
+                .union(tabs.compactMap(\.daemonSessionID))
             let resumable = resumable.filter { !held.contains($0) }
             guard !resumable.isEmpty else {
                 if openingFreshTab, tabs.isEmpty {
@@ -134,6 +138,72 @@ final class TabManager: ObservableObject {
     @discardableResult
     func openTab(attachingTo sessionID: UInt64) -> TerminalTab {
         adopt(makeTab(resume: sessionID))
+    }
+
+    /// A paired device's terminal, picked from the new-tab menu's list of
+    /// them: attached here, taken from wherever it is open — the host's own
+    /// window gets it back when this tab lets go. One already open here is
+    /// brought to the front instead.
+    @discardableResult
+    func openRemoteTab(attachingTo sessionID: UInt64, hostID: String) -> TerminalTab {
+        for manager in ShortcutBridge.tabManagers() {
+            guard let tab = manager.tabs.first(where: { $0.remoteHostID == hostID && $0.remoteSessionID == sessionID })
+            else { continue }
+            manager.activate(tab)
+            if manager !== self, let scene = manager.windowScene {
+                UIApplication.shared.requestSceneSessionActivation(scene.session, userActivity: nil, options: nil, errorHandler: nil)
+            }
+            if tab.store.isHeldElsewhere {
+                tab.store.takeOver()
+            }
+            return tab
+        }
+        let tab = makeTab(resume: sessionID, remoteHostID: hostID)
+        tab.store.takesOverOnFirstConnect = true
+        return adopt(tab, afterActiveTab: true)
+    }
+
+    /// A terminal a paired device opened on this one (`HostSessionWatcher`):
+    /// a tab for it, held there, put at the end without taking the front —
+    /// the person here was doing something else.
+    func adoptHeldSession(_ sessionID: UInt64) {
+        let tab = makeTab(resume: sessionID)
+        withAnimation(Self.tabTransition) {
+            tabs.append(tab)
+            activeTabID = activeTabID ?? tab.id
+        }
+        if isSceneActive {
+            tab.store.noteSceneActive()
+        }
+        SessionActivityController.shared.refresh()
+    }
+
+    /// The device holding `sessionID` let go of it: the tab showing it as
+    /// held there takes it back.
+    func reattachReleased(_ sessionID: UInt64) {
+        for tab in tabs where tab.daemonSessionID == sessionID && tab.store.isHeldElsewhere {
+            tab.store.connect()
+        }
+    }
+
+    /// `sessionID` ended while no tab here was attached to hear it — a
+    /// device held it, or its tab has not connected yet: that tab goes the
+    /// way an ended session's does, rather than reaching a gone session and
+    /// opening a fresh shell in its place.
+    func closeEnded(_ sessionID: UInt64) {
+        for tab in tabs where tab.daemonSessionID == sessionID && tab.store.status != .connected {
+            close(tab, from: .sessionEnded)
+        }
+    }
+
+    /// A remote tab let go of here, its shell left running on its host —
+    /// whose own window takes it back. The other half of a remote tab's
+    /// close; the confirmation offers both.
+    func detach(_ tab: TerminalTab) {
+        guard let index = tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+        AppLog.info(.tabs, "detaching tab \(tab.id), session \(Self.describeSession(of: tab))")
+        tab.detach()
+        remove(at: index)
     }
 
     /// Only the active tab's surface draws. The panes keep every tab mounted
@@ -192,8 +262,14 @@ final class TabManager: ObservableObject {
     /// clears, these tabs deserve the attempt they would have got had the
     /// helper been there at launch.
     func retryFailedTabs() {
-        for tab in tabs where tab.store.hasFailed {
-            tab.store.connect()
+        for tab in tabs {
+            if tab.store.hasFailed {
+                tab.store.connect()
+            } else {
+                // A remote tab backing off after its link died while the
+                // app was away: now is the moment to try.
+                tab.store.reconnectNowIfWaiting()
+            }
         }
     }
 
@@ -203,11 +279,13 @@ final class TabManager: ObservableObject {
         resume daemonSessionID: UInt64? = nil,
         inheritDirectoryFrom sourceSessionID: UInt64? = nil,
         startDirectory: String? = nil,
+        remoteHostID: String? = nil,
     ) -> TerminalTab {
         let tab = TerminalTab(
             resumeDaemonSessionID: daemonSessionID,
             inheritDirectoryFrom: sourceSessionID,
             startDirectory: startDirectory,
+            remoteHostID: remoteHostID,
         )
         tab.terminal.onClipboardConfirmationRequest = { [weak self] request in
             self?.clipboardRequests.append(request)
@@ -270,6 +348,9 @@ final class TabManager: ObservableObject {
         /// The recent list is made of these, and they outlive the session
         /// that visited them.
         case directory(TerminalDirectory)
+        /// A paired device's daemon (remote access): a fresh shell there,
+        /// in its user's home.
+        case remote(hostID: String)
     }
 
     /// Opens where `origin` says. For a live session the new one names it
@@ -280,13 +361,20 @@ final class TabManager: ObservableObject {
     func newTab(_ origin: Origin = .activeTab) -> TerminalTab {
         let tab = switch origin {
         case .activeTab:
-            makeTab(inheritDirectoryFrom: activeTab?.daemonSessionID)
+            // From a remote tab, ⌘T opens another shell on that device.
+            if let hostID = activeTab?.remoteHostID {
+                makeTab(remoteHostID: hostID)
+            } else {
+                makeTab(inheritDirectoryFrom: activeTab?.daemonSessionID)
+            }
         case .home:
             makeTab()
         case let .session(sessionID):
             makeTab(inheritDirectoryFrom: sessionID)
         case let .directory(directory):
             makeTab(startDirectory: directory.path)
+        case let .remote(hostID):
+            makeTab(remoteHostID: hostID)
         }
         return adopt(tab, afterActiveTab: true)
     }
@@ -335,7 +423,9 @@ final class TabManager: ObservableObject {
     /// would die with the tab, close straight away when there is nothing to
     /// lose — no session, or a shell idling at its prompt.
     func requestClose(_ tab: TerminalTab, from origin: TabCloseOrigin) {
-        if tab.hasRunningProgram {
+        // A remote tab always asks: leave the shell running on its host,
+        // or end it.
+        if tab.hasRunningProgram || tab.isRemote {
             AppLog.info(.tabs, "close of tab \(tab.id) (\(origin.rawValue)) awaits confirmation, session \(Self.describeSession(of: tab))")
             closeRequest = tab
         } else {
@@ -347,15 +437,18 @@ final class TabManager: ObservableObject {
     /// tabs closed by themselves" report can be matched against the
     /// daemon's own log with.
     private static func describeSession(of tab: TerminalTab) -> String {
-        tab.daemonSessionID.map(String.init) ?? "none"
+        if let remoteHostID = tab.remoteHostID {
+            return "remote \(remoteHostID)#\(tab.remoteSessionID.map(String.init) ?? "none")"
+        }
+        return tab.daemonSessionID.map(String.init) ?? "none"
     }
 
     /// Scene teardown: the window is gone, but its shells belong to the
     /// daemon — detach so they survive for the next launch. Named apart from
     /// `closeAll()` because the difference is the whole point: this one keeps
-    /// the shells running, that one kills them. The resume claim goes back
-    /// with them: the process may live on with no window, and the next one
-    /// to open must find these shells, not start fresh beside them.
+    /// the shells running, that one kills them. Its remote tabs let go of
+    /// their ledger entries as they detach, so the next window to open
+    /// reopens them.
     func detachAllTabs() {
         AppLog.info(.tabs, "scene gone, detaching \(tabs.count) tab(s), sessions \(tabs.map(Self.describeSession(of:)))")
         for tab in tabs {
@@ -368,11 +461,17 @@ final class TabManager: ObservableObject {
     }
 
     /// The user emptied the window from the tab switcher: every shell dies,
-    /// exactly as it would from its own ×. Confirmed by the caller.
+    /// exactly as it would from its own ×. Confirmed by the caller. A
+    /// remote tab is only let go of — its shell is its host's, and ending
+    /// one is asked one tab at a time.
     func closeAll() {
         AppLog.info(.tabs, "closing all \(tabs.count) tab(s), sessions \(tabs.map(Self.describeSession(of:)))")
         for tab in tabs {
-            tab.close()
+            if tab.isRemote {
+                tab.detach()
+            } else {
+                tab.close()
+            }
         }
         withAnimation(Self.tabTransition) {
             tabs.removeAll()
@@ -383,9 +482,9 @@ final class TabManager: ObservableObject {
 
     /// Whether closing everything would interrupt a running program — the
     /// case worth a confirmation, mirroring `requestClose(_:from:)` for a single
-    /// tab.
+    /// tab. A remote tab interrupts nothing: `closeAll` only lets go of it.
     var hasRunningPrograms: Bool {
-        tabs.contains { $0.hasRunningProgram }
+        tabs.contains { !$0.isRemote && $0.hasRunningProgram }
     }
 
     /// A drag in the sidebar or the strip carried `tab` over `destination`:

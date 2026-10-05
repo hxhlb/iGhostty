@@ -90,12 +90,15 @@ struct AlertCardView: View {
                     .lineLimit(6)
             }
 
-            HStack(spacing: DS.Padding.s) {
-                ForEach(actions) { action in
-                    Button(action: action.handler) {
-                        Text(action.title)
-                    }
-                    .buttonStyle(AlertButtonStyle(kind: action.kind))
+            // Side by side for two; stacked past that, as the system's
+            // alert does, since three do not fit the card's width.
+            if actions.count > 2 {
+                VStack(spacing: DS.Padding.s) {
+                    buttons
+                }
+            } else {
+                HStack(spacing: DS.Padding.s) {
+                    buttons
                 }
             }
         }
@@ -115,6 +118,17 @@ struct AlertCardView: View {
                     actions.defaultAction?.handler()
                 }
             }
+        }
+    }
+}
+
+extension AlertCardView {
+    private var buttons: some View {
+        ForEach(actions) { action in
+            Button(action: action.handler) {
+                Text(action.title)
+            }
+            .buttonStyle(AlertButtonStyle(kind: action.kind))
         }
     }
 }

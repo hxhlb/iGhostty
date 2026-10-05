@@ -30,6 +30,9 @@ struct SessionStatusOverlay: View {
     /// Background tabs keep their overlay mounted; only the front tab's
     /// card may steal first responder.
     var isActive: Bool
+    /// The tab's close alert is up: the failure card is taken down while it
+    /// is, since alerts never stack, and comes back if the close is cancelled.
+    var isAwaitingClose = false
 
     /// Closes the tab this session belongs to; provided by the pane's owner.
     var onCloseTab: () -> Void
@@ -40,6 +43,7 @@ struct SessionStatusOverlay: View {
             .animation(DS.Motion.smooth, value: store.isAwaitingFirstOutput)
             .animation(DS.Motion.smooth, value: store.isPasteTruncated)
             .animation(DS.Motion.smooth, value: agent.status)
+            .animation(DS.Motion.smooth, value: isAwaitingClose)
     }
 
     @ViewBuilder
@@ -152,10 +156,21 @@ struct SessionStatusOverlay: View {
             pill("Connecting…")
 
         case let .failed(reason):
-            if store.processExitStatus == nil {
+            if store.processExitStatus == nil, !isAwaitingClose {
                 ZStack {
                     dim
                     alertCard(reason: reason)
+                        .padding(DS.Padding.l)
+                }
+                .ignoresSafeArea(.container)
+                .transition(.opacity)
+            }
+
+        case let .elsewhere(holder):
+            if !isAwaitingClose {
+                ZStack {
+                    dim
+                    elsewhereCard(holder: holder)
                         .padding(DS.Padding.l)
                 }
                 .ignoresSafeArea(.container)
@@ -210,6 +225,32 @@ struct SessionStatusOverlay: View {
     private var dim: some View {
         Color.black.opacity(0.25)
             .ignoresSafeArea(.all)
+    }
+
+    /// The session is open somewhere else — a device took it, or this tab
+    /// came back to find one holding it. Nothing failed: Use Here takes it
+    /// back, and the other side is told.
+    private func elsewhereCard(holder: String?) -> some View {
+        AlertCardView(
+            title: holder.map {
+                String.localizedStringWithFormat(
+                    NSLocalizedString("In Use on “%@”", comment: "A terminal in use on another device; %@ is that device"),
+                    $0,
+                )
+            } ?? String(localized: "In Use in Another Window"),
+            message: holder == nil
+                ? String(localized: "Use Here moves it to this window.")
+                : String(localized: "Use Here moves it to this device."),
+            actions: [
+                AlertAction("Close Tab") {
+                    onCloseTab()
+                },
+                AlertAction("Use Here", kind: .accent) {
+                    store.takeOver()
+                },
+            ],
+            claimsFirstResponder: isActive,
+        )
     }
 
     private func alertCard(reason: String) -> some View {

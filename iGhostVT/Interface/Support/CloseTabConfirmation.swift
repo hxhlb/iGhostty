@@ -5,14 +5,52 @@ import SwiftUI
 /// later, and the ledger entry goes with it, so there is no undo and no
 /// reattach. A stray tap on an × must not destroy running work silently —
 /// a shell idling at its prompt closes without the question (see
-/// `TerminalTab.hasRunningProgram`).
+/// `TerminalTab.hasRunningProgram`). A remote tab always asks, and offers
+/// to leave its shell running on its host instead.
 extension View {
     func closeTabConfirmation(_ tabManager: TabManager) -> some View {
         modifier(WindowAlertPresenter(
             requests: tabManager.$closeRequest,
             onFinish: { tabManager.closeRequest = nil },
             makeAlert: { tab, finish in
-                AlertViewController(
+                // A remote tab's shell is its host's: let go of it here and
+                // the host's own window takes it back, or end it.
+                if let hostName = tab.remoteHostName {
+                    return AlertViewController(
+                        title: "Close “\(tab.displayTitle)”?",
+                        message: "The terminal can keep running on “\(hostName)”.",
+                        actions: [
+                            AlertAction("Cancel") {
+                                finish()
+                            },
+                            AlertAction("Keep Running") {
+                                tabManager.detach(tab)
+                                finish()
+                            },
+                            AlertAction("End Session", kind: .destructive) {
+                                tabManager.close(tab, from: .confirmation)
+                                finish()
+                            },
+                        ],
+                    )
+                }
+                // A device is using it: closing ends it there as well.
+                if !tab.isRemote, let holder = tab.store.heldBy {
+                    return AlertViewController(
+                        title: "Close “\(tab.displayTitle)”?",
+                        message: "This also ends it on “\(holder)”.",
+                        actions: [
+                            AlertAction("Cancel") {
+                                finish()
+                            },
+                            AlertAction("Close Tab", kind: .destructive) {
+                                tabManager.close(tab, from: .confirmation)
+                                finish()
+                            },
+                        ],
+                    )
+                }
+                return AlertViewController(
                     title: "Close “\(tab.displayTitle)”?",
                     message: "This closes the tab and stops everything running in it.",
                     actions: [

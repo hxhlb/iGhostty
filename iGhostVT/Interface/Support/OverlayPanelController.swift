@@ -55,7 +55,8 @@ class OverlayPanelController: UIViewController {
     /// has gone — or stayed: UIKit defers a presentation made under a
     /// dismissing sheet, but drops it without a word when the user cancels
     /// that dismissal (the sheet dragged, then let snap back), and the
-    /// front-most context is then the sheet itself.
+    /// front-most context is then the sheet itself. An alert already up is
+    /// dismissed before another is shown, never covered by it.
     func present(in window: UIWindow?) {
         guard var presenter = window?.rootViewController else { return }
         while let presented = presenter.presentedViewController {
@@ -67,6 +68,14 @@ class OverlayPanelController: UIViewController {
                     return
                 }
                 break
+            }
+            // Alerts never stack: the one up is taken down first — as
+            // unanswered, so its plain action runs — and this one follows.
+            if self is AlertViewController, presented is AlertViewController {
+                presented.dismiss(animated: true) { [weak self] in
+                    self?.present(in: window)
+                }
+                return
             }
             presenter = presented
         }

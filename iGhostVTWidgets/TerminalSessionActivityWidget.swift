@@ -44,11 +44,20 @@ struct TerminalSessionActivityWidget: Widget {
                     .frame(width: 24, alignment: .leading)
                     .accessibilityLabel("iGhostVT")
             } compactTrailing: {
-                Text("\(context.state.totalCount)")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .contentTransition(.numericText())
-                    .frame(width: 24, alignment: .trailing)
+                // Up for remote access alone: the network glyph, not a 0.
+                if context.state.totalCount == 0, context.state.remoteAccess != nil {
+                    Image(systemName: "network")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Palette.accent)
+                        .frame(width: 24, alignment: .trailing)
+                        .accessibilityLabel("Remote access on")
+                } else {
+                    Text("\(context.state.totalCount)")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                        .frame(width: 24, alignment: .trailing)
+                }
             } minimal: {
                 Image("GhostGlyph")
                     .resizable()
@@ -74,7 +83,10 @@ private struct IslandSummary: View {
                     .lineLimit(1)
                     .contentTransition(.numericText())
             }
-            SessionRows(state: state, limit: 2)
+            if let remote = state.remoteAccess {
+                RemoteAccessLine(remote: remote)
+            }
+            SessionRows(state: state, limit: state.remoteAccess == nil ? 2 : 1)
         }
         .padding(Spacing.line)
         .fontDesign(.rounded)

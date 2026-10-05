@@ -137,5 +137,15 @@
 	<true/>
 	<key>com.apple.private.security.storage.AppDataContainers</key>
 	<true/>
+	<!-- Remote access: the name the owner gave this device, which it
+	     introduces itself by when it pairs. Without it UIDevice.name is
+	     only the model ("iPad"), and every device looks the same. -->
+	<key>com.apple.developer.device-information.user-assigned-device-name</key>
+	<true/>
+	<key>com.apple.private.MobileGestalt.AllowedProtectedKeys</key>
+	<array>
+		<string>UserAssignedDeviceName</string>
+		<string>marketing-name</string>
+	</array>
 </dict>
 </plist>

@@ -20,6 +20,9 @@ struct LockScreenView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.line) {
             SummaryHeader(state: state, glyphSize: 22)
+            if let remote = state.remoteAccess {
+                RemoteAccessLine(remote: remote)
+            }
             SessionRows(state: state, limit: Self.rowLimit)
         }
         .padding(Spacing.card)
@@ -57,6 +60,48 @@ struct SummaryHeader: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Remote access is on: what this device is called to the others, and who
+/// is connected — the reason the activity is up with no session at all.
+struct RemoteAccessLine: View {
+    let remote: TerminalSessionAttributes.RemoteAccess
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.line) {
+            Image(systemName: remote.isPairing ? "qrcode" : "network")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Palette.accent)
+                .frame(width: 8 + Spacing.line - 4, alignment: .leading)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+            Spacer(minLength: Spacing.line)
+            Text(detail)
+                .font(.footnote)
+                .opacity(0.6)
+                .lineLimit(1)
+                .contentTransition(.numericText())
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var title: String {
+        remote.isPairing
+            ? String(localized: "Pairing a device", comment: "Live Activity: a pairing window is open")
+            : String(localized: "Remote access on", comment: "Live Activity: other devices can open terminals here")
+    }
+
+    private var detail: String {
+        if remote.connectedCount > 0 {
+            return String(
+                localized: "\(remote.connectedCount) connected",
+                comment: "Live Activity: paired devices connected right now",
+            )
+        }
+        return remote.hostName
     }
 }
 

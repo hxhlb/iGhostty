@@ -19,7 +19,7 @@ enum ShortcutBridge {
     private static let sceneWait: UInt64 = 3_000_000_000
 
     /// Every connected window's tabs, frontmost first.
-    private static func tabManagers() -> [TabManager] {
+    static func tabManagers() -> [TabManager] {
         let scenes = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .sorted { rank($0) < rank($1) }
@@ -104,6 +104,21 @@ enum ShortcutBridge {
     static func openNewTab() async throws -> TerminalTab {
         let manager = try await frontTabManager()
         return manager.newTab()
+    }
+
+    /// Opens a tab on a paired device in the frontmost window (remote
+    /// access): a fresh shell there.
+    @discardableResult
+    static func openRemoteTab(hostID: String) async throws -> TerminalTab {
+        let manager = try await frontTabManager()
+        return manager.newTab(.remote(hostID: hostID))
+    }
+
+    /// The same, for a terminal the device already has open.
+    @discardableResult
+    static func openRemoteTab(hostID: String, attachingTo sessionID: UInt64) async throws -> TerminalTab {
+        let manager = try await frontTabManager()
+        return manager.openRemoteTab(attachingTo: sessionID, hostID: hostID)
     }
 
     // MARK: - URLs

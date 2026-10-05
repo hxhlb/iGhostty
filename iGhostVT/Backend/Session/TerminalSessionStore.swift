@@ -21,6 +21,25 @@ final class TerminalSessionStore: ObservableObject {
         case connecting
         case connected
         case failed(String)
+        /// The session is open on another device (`holder`), or in
+        /// another window of this app (nil); the tab offers to take it.
+        case elsewhere(String?)
+    }
+
+    /// The device using the session, while one is (`Status.elsewhere`).
+    var heldBy: String? {
+        if case let .elsewhere(holder) = status {
+            return holder
+        }
+        return nil
+    }
+
+    /// Whether another peer has the session (`Status.elsewhere`).
+    var isHeldElsewhere: Bool {
+        if case .elsewhere = status {
+            return true
+        }
+        return false
     }
 
     @Published private(set) var status: Status = .idle
@@ -114,6 +133,15 @@ final class TerminalSessionStore: ObservableObject {
     private var hasAutoConnected = false
     private var isSceneActive = false
     private let makeTransport: () -> TerminalTransport
+    /// False for a session on another device (remote access).
+    var recordsRecentDirectories = true
+    /// A session on another device: its link drops with the network, not
+    /// only with a daemon restart, so it is tried for a minute, backing off
+    /// (`patientReconnectDelay`), before the tab says it failed — and again
+    /// whenever the app comes forward.
+    var reconnectsPatiently = false
+    private var reconnectStartedAt: Date?
+    private static let patientReconnectWindow: TimeInterval = 60
 
     /// Reconnect-after-interruption state. The daemon may still hold the
     /// session when the link drops (its KeepAlive restart, mostly), so a few
@@ -229,7 +257,31 @@ final class TerminalSessionStore: ObservableObject {
         processExitStatus = status
     }
 
-    func connect() {
+    /// The first connect takes the session from wherever it is open: a
+    /// terminal the user picked from another device's list. Every later
+    /// connect — a reconnect above all — leaves a holder alone.
+    var takesOverOnFirstConnect = false
+
+    /// The device holding it changed (one device took it from another).
+    func noteHolder(_ holder: String) {
+        if isHeldElsewhere {
+            status = .elsewhere(holder)
+        }
+    }
+
+    /// The tab went `.elsewhere`. Its own link and the watcher's are two
+    /// connections, so the release that would bring it back can arrive
+    /// first; the tab installs a check here.
+    var onHeldElsewhere: (() -> Void)?
+
+    /// Takes the session from wherever it is open — the tab's Use Here.
+    func takeOver() {
+        connect(takingOver: true)
+    }
+
+    func connect(takingOver: Bool = false) {
+        let takingOver = takingOver || takesOverOnFirstConnect
+        takesOverOnFirstConnect = false
         reconnectGeneration &+= 1
         // A new connection means a new (or resumed) process; the old exit
         // verdict no longer describes this session.
@@ -293,7 +345,7 @@ final class TerminalSessionStore: ObservableObject {
         // so the open starts at the size the surface has rather than the
         // 80×24 protocol default.
         relay.transport = transport
-        transport.connect()
+        transport.connect(takingOver: takingOver)
     }
 
     func disconnect() {
@@ -330,8 +382,12 @@ final class TerminalSessionStore: ObservableObject {
             isShellInForeground = isShell
         case let .currentDirectory(directory):
             currentDirectory = directory
-            // The transport only reports changes, so this is one visit.
-            RecentDirectoryStore.shared.record(directory)
+            // The transport only reports changes, so this is one visit —
+            // of this device's file system; another device's directories
+            // name nothing here.
+            if recordsRecentDirectories {
+                RecentDirectoryStore.shared.record(directory)
+            }
         case let .sessionAttributes(attributes, isResumed):
             onSessionAttributes?(attributes, isResumed)
         case .inputRefused:
@@ -356,12 +412,19 @@ final class TerminalSessionStore: ObservableObject {
             AppLog.info(.session, "connected to \(endpointDescription)")
             status = .connected
             reconnectAttempt = 0
+            reconnectStartedAt = nil
             awaitFirstOutput()
         case let .interrupted(reason):
             clearFirstOutputWait()
             AppLog.error(.session, "link lost: \(reason ?? "no reason")")
             printStatusLine(String(localized: "Connection lost. Reconnecting…"))
             scheduleReconnect(lastReason: reason)
+        case let .heldElsewhere(holder):
+            clearFirstOutputWait()
+            reconnectAttempt = 0
+            AppLog.info(.session, "session held elsewhere\(holder.map { " by \($0)" } ?? "")")
+            status = .elsewhere(holder)
+            onHeldElsewhere?()
         case let .disconnected(reason):
             clearFirstOutputWait()
             AppLog.error(.session, "disconnected: \(reason ?? "no reason")")
@@ -380,8 +443,14 @@ final class TerminalSessionStore: ObservableObject {
     /// the attempts are spent. Runs only after `interrupted` — a final
     /// `disconnected` never starts a cycle.
     private func scheduleReconnect(lastReason: String?) {
-        guard reconnectAttempt < Self.reconnectAttemptLimit else {
+        let startedAt = reconnectStartedAt ?? Date()
+        reconnectStartedAt = startedAt
+        let isSpent = reconnectsPatiently
+            ? Date().timeIntervalSince(startedAt) > Self.patientReconnectWindow
+            : reconnectAttempt >= Self.reconnectAttemptLimit
+        guard !isSpent else {
             reconnectAttempt = 0
+            reconnectStartedAt = nil
             let reason = lastReason ?? String(
                 localized: "Unable to reconnect to the terminal. Try again or close the tab.",
             )
@@ -394,11 +463,26 @@ final class TerminalSessionStore: ObservableObject {
         reconnectGeneration &+= 1
         let generation = reconnectGeneration
         AppLog.info(.session, "reconnect attempt \(reconnectAttempt) scheduled")
+        let delay = reconnectsPatiently ? Self.patientReconnectDelay(attempt: reconnectAttempt) : Self.reconnectDelay
         Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: Self.reconnectDelay)
+            try? await Task.sleep(nanoseconds: delay)
             guard let self, reconnectGeneration == generation else { return }
             connect()
         }
+    }
+
+    /// 1, 2, 4, 8, then 15 s, each ±20 % so tabs that lost the same link
+    /// do not all knock at once.
+    private static func patientReconnectDelay(attempt: Int) -> UInt64 {
+        let base = min(15, pow(2, Double(max(0, attempt - 1))))
+        return UInt64(base * Double.random(in: 0.8 ... 1.2) * 1_000_000_000)
+    }
+
+    /// Cuts a back-off wait short — the app came forward, which is when a
+    /// link that died in the background is worth trying at once.
+    func reconnectNowIfWaiting() {
+        guard reconnectAttempt > 0, status == .connecting else { return }
+        connect()
     }
 
     /// Starts the wait for the session's first byte. The grace period is

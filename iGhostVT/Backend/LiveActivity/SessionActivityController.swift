@@ -37,6 +37,17 @@ final class SessionActivityController {
     /// One weak entry per window, pruned as scenes go away.
     private var windows: [ObjectIdentifier: () -> WindowSnapshot?] = [:]
 
+    /// This device's remote access as last asked (`RemoteAccessActivity`),
+    /// nil while it is off. While it is on the activity stays up — pinned —
+    /// with or without a session.
+    var remoteAccess: RemoteAccessStatus? {
+        didSet {
+            if remoteAccess != oldValue {
+                refresh()
+            }
+        }
+    }
+
     private init() {}
 
     func register(_ key: AnyObject, snapshot: @escaping () -> WindowSnapshot?) {
@@ -61,6 +72,12 @@ final class SessionActivityController {
                 continue
             }
             for tab in window.tabs {
+                // Another device's session: its number means nothing to
+                // this daemon's detached count.
+                if tab.isRemote {
+                    sessions.append(session(for: tab, number: nil, activeTabID: window.activeTabID))
+                    continue
+                }
                 // The tab's own record first: a resuming or reconnecting
                 // tab knows its session long before its transport does (the
                 // transport learns it from the attach reply, and a resumed
@@ -72,18 +89,7 @@ final class SessionActivityController {
                 if let number {
                     attachedIDs.insert(number)
                 }
-                sessions.append(
-                    TerminalSessionAttributes.Session(
-                        id: tab.id.uuidString,
-                        title: tab.reportedTitle,
-                        directory: Self.displayPath(of: tab),
-                        shell: Self.configuredShellName,
-                        process: tab.store.processName.isEmpty ? nil : tab.store.processName,
-                        number: number,
-                        status: Self.status(for: tab.store.status),
-                        isActive: tab.id == window.activeTabID,
-                    ),
-                )
+                sessions.append(session(for: tab, number: number, activeTabID: window.activeTabID))
             }
         }
 
@@ -97,6 +103,31 @@ final class SessionActivityController {
             sessions: Array(sessions.prefix(Self.listLimit)),
             overflowCount: max(0, sessions.count - Self.listLimit),
             detachedCount: detached,
+            remoteAccess: remoteAccess.map {
+                TerminalSessionAttributes.RemoteAccess(
+                    hostName: $0.hostName ?? "",
+                    connectedCount: $0.connectedCount,
+                    isPairing: $0.pairingCode != nil,
+                )
+            },
+        )
+    }
+
+    @available(iOS 16.2, *)
+    private func session(
+        for tab: TerminalTab,
+        number: UInt64?,
+        activeTabID: UUID?,
+    ) -> TerminalSessionAttributes.Session {
+        TerminalSessionAttributes.Session(
+            id: tab.id.uuidString,
+            title: tab.reportedTitle,
+            directory: Self.displayPath(of: tab),
+            shell: tab.isRemote ? "" : Self.configuredShellName,
+            process: tab.store.processName.isEmpty ? nil : tab.store.processName,
+            number: number,
+            status: Self.status(for: tab.store.status),
+            isActive: tab.id == activeTabID,
         )
     }
 
@@ -113,7 +144,8 @@ final class SessionActivityController {
     ) -> TerminalSessionAttributes.Session.Status {
         switch status {
         case .idle, .connecting: .starting
-        case .connected: .live
+        // Running on another device is still running.
+        case .connected, .elsewhere: .live
         case .failed: .failed
         }
     }
@@ -130,7 +162,7 @@ final class SessionActivityController {
         private static func apply(_ state: TerminalSessionAttributes.ContentState) async {
             let existing = Activity<TerminalSessionAttributes>.activities
 
-            guard state.totalCount > 0 else {
+            guard state.totalCount > 0 || state.remoteAccess != nil else {
                 for activity in existing {
                     await activity.end(nil, dismissalPolicy: .immediate)
                 }

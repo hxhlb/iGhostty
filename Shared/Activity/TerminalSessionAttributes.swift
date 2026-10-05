@@ -54,6 +54,18 @@ struct TerminalSessionAttributes {
         var isActive: Bool
     }
 
+    /// This device's remote access while it is on — the reason the
+    /// activity stays up with no session at all: a device that others can
+    /// reach says so where its owner looks.
+    struct RemoteAccess: Codable, Hashable {
+        /// What other devices see this one as.
+        var hostName: String
+        /// Paired devices connected right now.
+        var connectedCount: Int
+        /// A pairing window is open.
+        var isPairing: Bool
+    }
+
     struct ContentState: Codable, Hashable {
         /// The listed sessions, capped so the payload stays small.
         var sessions: [Session]
@@ -61,6 +73,9 @@ struct TerminalSessionAttributes {
         var overflowCount: Int
         /// Daemon sessions no window is showing — detached, still running.
         var detachedCount: Int
+        /// Remote access, when it is on. Optional so a payload from a build
+        /// without it decodes.
+        var remoteAccess: RemoteAccess? = nil
 
         var totalCount: Int {
             sessions.count + overflowCount + detachedCount

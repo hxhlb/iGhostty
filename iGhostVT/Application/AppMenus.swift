@@ -79,6 +79,7 @@ enum AppMenus {
             children: [
                 command(#selector(AppCommandResponder.newTab(_:))),
                 hidden(#selector(AppCommandResponder.newTab(_:))),
+                remoteTabMenu(),
                 command(#selector(AppCommandResponder.newWindow(_:))),
             ].compactMap(\.self),
         )
@@ -102,6 +103,76 @@ enum AppMenus {
         builder.insertChild(newGroup, atStartOfMenu: .file)
         builder.insertSibling(closeGroup, afterMenu: newGroup.identifier)
         builder.insertSibling(exportGroup, afterMenu: closeGroup.identifier)
+    }
+
+    /// New Tab on ▸ the paired devices on the network (remote access) ▸ a
+    /// fresh shell, or one of the terminals the device has open. Worked out
+    /// each time the menu opens: devices come and go, and a
+    /// menu built at launch would offer ones that left. With none nearby it
+    /// says so and points at the settings that pair one.
+    private static func remoteTabMenu() -> UIMenu {
+        let devices = UIDeferredMenuElement.uncached { completion in
+            Task { @MainActor in
+                let directory = RemoteHostDirectory.shared
+                directory.start()
+                let hosts = directory.reachablePaired
+                guard !hosts.isEmpty else {
+                    completion([
+                        UIAction(
+                            title: String(localized: "No Paired Devices Nearby"),
+                            attributes: .disabled,
+                        ) { _ in },
+                        UIAction(
+                            title: String(localized: "Remote Access Settings…"),
+                            image: UIImage(systemName: "gearshape"),
+                        ) { _ in
+                            UIApplication.shared.sendAction(
+                                #selector(AppCommandResponder.showSettings(_:)),
+                                to: nil,
+                                from: nil,
+                                for: nil,
+                            )
+                        },
+                    ])
+                    return
+                }
+                await RemoteSessionCatalog.shared.refresh()
+                let sessions = RemoteSessionCatalog.shared.sessions
+                completion(hosts.map { host in
+                    let fresh = UIAction(
+                        title: String(localized: "New Terminal", comment: "Menu item: a fresh shell on another device"),
+                        image: UIImage(systemName: "plus"),
+                    ) { _ in
+                        Task { @MainActor in
+                            _ = try? await ShortcutBridge.openRemoteTab(hostID: host.id)
+                        }
+                    }
+                    let open = (sessions[host.id] ?? []).map { session in
+                        UIAction(
+                            title: session.label.isEmpty ? String(localized: "Terminal") : session.label,
+                            image: UIImage(systemName: "terminal"),
+                        ) { _ in
+                            Task { @MainActor in
+                                _ = try? await ShortcutBridge.openRemoteTab(hostID: host.id, attachingTo: session.id)
+                            }
+                        }
+                    }
+                    return UIMenu(
+                        title: host.displayName,
+                        image: UIImage(systemName: "network"),
+                        children: [fresh] + (open.isEmpty ? [] : [
+                            UIMenu(title: String(localized: "Open Terminals"), options: .displayInline, children: open),
+                        ]),
+                    )
+                })
+            }
+        }
+        return UIMenu(
+            title: String(localized: "New Tab on Device"),
+            image: UIImage(systemName: "network"),
+            identifier: UIMenu.Identifier("wiki.qaq.iGhostVT.file.newRemote"),
+            children: [devices],
+        )
     }
 
     // MARK: - Settings

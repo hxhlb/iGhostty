@@ -18,7 +18,9 @@ protocol TerminalTransport: AnyObject {
 
     var endpointDescription: String { get }
 
-    func connect()
+    /// `takingOver`: a session another peer holds is taken from it rather
+    /// than reported held elsewhere — the user asked to use it here.
+    func connect(takingOver: Bool)
 
     /// Bytes typed into (or pasted into) the terminal.
     func send(_ data: Data)
@@ -45,6 +47,12 @@ protocol TerminalTransport: AnyObject {
     func setSessionAttributes(_ attributes: [String: String])
 
     func disconnect()
+}
+
+extension TerminalTransport {
+    func connect() {
+        connect(takingOver: false)
+    }
 }
 
 enum TerminalTransportEvent: Sendable {
@@ -78,4 +86,8 @@ enum TerminalTransportState: Sendable, Equatable {
     /// connection was refused, and only the user can ask for another.
     case interrupted(reason: String?)
     case disconnected(reason: String?)
+    /// The session lives, but another peer has it: an attach found it
+    /// held, or another took it from this one. `holder` names the device
+    /// when there is one. Not a failure — the tab offers to take it back.
+    case heldElsewhere(holder: String?)
 }

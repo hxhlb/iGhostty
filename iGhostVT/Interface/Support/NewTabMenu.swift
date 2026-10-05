@@ -22,11 +22,18 @@ struct NewTabMenu<Label: View>: View {
     @ViewBuilder var label: () -> Label
 
     @ObservedObject private var recents = RecentDirectoryStore.shared
+    @ObservedObject private var remoteHosts = RemoteHostDirectory.shared
+    @ObservedObject private var remoteSessions = RemoteSessionCatalog.shared
 
     var body: some View {
         // Read once: the same answer decides the shape of this control and
         // fills the menu, and the two must not disagree.
-        let choices = NewTabDirectoryChoices(tabManager: tabManager, recents: recents)
+        let choices = NewTabDirectoryChoices(
+            tabManager: tabManager,
+            recents: recents,
+            remoteHosts: remoteHosts,
+            remoteSessions: remoteSessions,
+        )
         if choices.isEmpty {
             Button {
                 tabManager.newTab()
@@ -92,6 +99,51 @@ struct NewTabMenuContent: View {
                 Text("Recent")
             }
         }
+        if !choices.remoteHosts.isEmpty {
+            Section {
+                ForEach(choices.remoteHosts) { host in
+                    remoteHostMenu(host)
+                }
+            } header: {
+                Text("Other Devices")
+            }
+        }
+    }
+
+    /// A paired device: a fresh shell there, or one of the terminals it
+    /// has open — which then opens here, and is taken from where it was.
+    private func remoteHostMenu(_ host: PairedRemoteHost) -> some View {
+        Menu {
+            row(
+                String(localized: "New Terminal", comment: "Menu item: a fresh shell on another device"),
+                systemImage: "plus",
+                origin: .remote(hostID: host.id),
+            )
+            let sessions = choices.remoteSessions[host.id] ?? []
+            if !sessions.isEmpty {
+                Section {
+                    ForEach(sessions) { session in
+                        Button {
+                            tabManager.openRemoteTab(attachingTo: session.id, hostID: host.id)
+                            onOpen()
+                        } label: {
+                            SwiftUI.Label(
+                                session.label.isEmpty ? String(localized: "Terminal") : session.label,
+                                systemImage: isOpenHere(session, on: host) ? "checkmark" : "terminal",
+                            )
+                        }
+                    }
+                } header: {
+                    Text("Open Terminals")
+                }
+            }
+        } label: {
+            SwiftUI.Label(host.displayName, systemImage: "network")
+        }
+    }
+
+    private func isOpenHere(_ session: XPCDaemonTransport.SessionSummary, on host: PairedRemoteHost) -> Bool {
+        tabManager.tabs.contains { $0.remoteHostID == host.id && $0.remoteSessionID == session.id }
     }
 
     /// A path is not copy: `title` is a string the daemon reported, so it
@@ -128,15 +180,27 @@ struct NewTabDirectoryChoices {
 
     var openTabs: [OpenTab]
     var recents: [TerminalDirectory]
+    /// Paired devices on the network right now (remote access): a fresh
+    /// shell there, in its user's home, or a terminal it has open.
+    var remoteHosts: [PairedRemoteHost]
+    /// The terminals each of those has open, as last asked.
+    var remoteSessions: [String: [XPCDaemonTransport.SessionSummary]]
 
     /// Home is not counted: it is always offered, and a menu that holds
     /// nothing else is not worth opening.
     var isEmpty: Bool {
-        openTabs.isEmpty && recents.isEmpty
+        openTabs.isEmpty && recents.isEmpty && remoteHosts.isEmpty
     }
 
     @MainActor
-    init(tabManager: TabManager, recents store: RecentDirectoryStore) {
+    init(
+        tabManager: TabManager,
+        recents store: RecentDirectoryStore,
+        remoteHosts: RemoteHostDirectory,
+        remoteSessions: RemoteSessionCatalog,
+    ) {
+        self.remoteHosts = remoteHosts.reachablePaired
+        self.remoteSessions = remoteSessions.sessions
         var rows: [OpenTab] = []
         var listed: Set<String> = []
         // The active tab first: when two tabs share a directory, the row

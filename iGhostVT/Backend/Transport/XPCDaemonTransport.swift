@@ -10,7 +10,8 @@ private func ighostvtCreateMachServiceConnection(
     _ flags: UInt64,
 ) -> xpc_connection_t?
 
-/// Terminal I/O carried by `ighostvtd`.
+/// Terminal I/O carried by `ighostvtd` — this device's, over XPC, or a
+/// paired device's, over remote access (`DaemonEndpoint`, `DaemonLink`).
 ///
 /// The app cannot spawn anything: it asks the daemon to open a session and
 /// then only pushes keystrokes and grid sizes. Because the daemon owns the
@@ -24,7 +25,9 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         autoreleaseFrequency: .workItem,
     )
     private let lock = NSLock()
-    private var connection: xpc_connection_t?
+    /// Where the daemon is. Fixed for the transport's life.
+    let endpoint: DaemonEndpoint
+    private var connection: DaemonLink?
     private var sessionID: UInt64?
     /// The grid the host reported most recently, so an open spawns the shell
     /// at the size the surface has rather than the protocol default. Confined
@@ -45,6 +48,9 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
 
     /// Session to reattach to, if this transport is resuming a known one.
     private var resumeSessionID: UInt64?
+    /// The attach of this connect takes the session from whoever holds
+    /// it (`connect(takingOver:)`). Confined to `queue`.
+    private var takesOver = false
 
     /// An end the host asked for while the connection was still negotiating
     /// — between `establish` and the open or attach reply. The request is
@@ -111,9 +117,24 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     /// sidebar's subtitle — so it says "Session 7", not "ighostvtd session 7".
     /// The daemon-side id is what makes two untitled tabs tell apart.
     var endpointDescription: String {
-        lock.locked {
+        let hostName: String? = if case let .remote(hostID) = endpoint {
+            PairedRemoteHostStore.host(id: hostID)?.displayName
+        } else {
+            nil
+        }
+        return lock.locked {
             guard let sessionID else {
-                return String(localized: "Terminal")
+                return hostName ?? String(localized: "Terminal")
+            }
+            if let hostName {
+                return String.localizedStringWithFormat(
+                    NSLocalizedString(
+                        "Session %lld on %@",
+                        comment: "Tab title for a remote shell that has not set one; %@ is the other device",
+                    ),
+                    Int(clamping: sessionID),
+                    hostName,
+                )
             }
             return String.localizedStringWithFormat(
                 NSLocalizedString("Session %lld", comment: "Tab title for a shell that has not set one"),
@@ -128,12 +149,16 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     }
 
     init(
+        endpoint: DaemonEndpoint = .local,
         shellPath: String? = nil,
         resumeSessionID: UInt64? = nil,
         inheritDirectoryFrom: UInt64? = nil,
         startDirectory: String? = nil,
     ) {
-        let trimmed = shellPath?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.endpoint = endpoint
+        // The Settings shell is a path on this device; another device runs
+        // its own default.
+        let trimmed = endpoint.isRemote ? nil : shellPath?.trimmingCharacters(in: .whitespacesAndNewlines)
         self.shellPath = (trimmed?.isEmpty ?? true) ? nil : trimmed
         self.resumeSessionID = resumeSessionID
         self.inheritDirectoryFrom = inheritDirectoryFrom
@@ -145,7 +170,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         // reference goes away. Normal teardown already did this; the deinit
         // covers an owner that dropped the transport without disconnecting.
         if let connection = lock.locked({ self.connection }) {
-            xpc_connection_cancel(connection)
+            connection.cancel()
         }
     }
 
@@ -158,9 +183,10 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     // strong capture keeps the transport alive exactly until its queued work
     // — ending in `teardown`, which cancels the connection — has run.
 
-    func connect() {
+    func connect(takingOver: Bool) {
         emit(.state(.connecting))
         queue.async {
+            self.takesOver = takingOver
             self.establish()
         }
     }
@@ -202,10 +228,10 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                     }
                 }
                 if paste == 0 {
-                    xpc_connection_send_message(link.connection, message)
+                    link.connection.send(message)
                 } else {
                     xpc_dictionary_set_uint64(message, iGhostVTWireKey.paste, paste)
-                    xpc_connection_send_message_with_reply(link.connection, message, self.queue) { [weak self] reply in
+                    link.connection.send(message) { [weak self] reply in
                         guard let self, Self.replyCode(of: reply) == .inputBacklog,
                               reportedRefusedPaste != paste else { return }
                         reportedRefusedPaste = paste
@@ -245,7 +271,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     private func sendResize(
         columns: Int,
         rows: Int,
-        over link: (connection: xpc_connection_t, sessionID: UInt64),
+        over link: (connection: DaemonLink, sessionID: UInt64),
     ) {
         if let applied = appliedViewport, applied.columns == columns, applied.rows == rows {
             return
@@ -254,7 +280,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         let message = Self.makeMessage(.resize, sessionID: link.sessionID)
         xpc_dictionary_set_uint64(message, iGhostVTWireKey.columns, UInt64(columns))
         xpc_dictionary_set_uint64(message, iGhostVTWireKey.rows, UInt64(rows))
-        xpc_connection_send_message(link.connection, message)
+        link.connection.send(message)
     }
 
     /// One `setSessionAttributes` over the link, answered on `queue`. The
@@ -274,7 +300,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                 xpc_dictionary_set_string(dictionary, key, value)
             }
             xpc_dictionary_set_value(message, iGhostVTWireKey.attributes, dictionary)
-            xpc_connection_send_message_with_reply(link.connection, message, self.queue) { [weak self] reply in
+            link.connection.send(message) { [weak self] reply in
                 switch Self.replyCode(of: reply) {
                 case .success:
                     break
@@ -299,7 +325,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             }
             if let link = self.attachedLink() {
                 let message = Self.makeMessage(.detachSession, sessionID: link.sessionID)
-                xpc_connection_send_message(link.connection, message)
+                link.connection.send(message)
             }
             self.teardown(reason: nil)
         }
@@ -323,9 +349,9 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             }
             if let link = self.attachedLink() {
                 let message = Self.makeMessage(.closeSession, sessionID: link.sessionID)
-                xpc_connection_send_message(link.connection, message)
+                link.connection.send(message)
             } else if let sessionID {
-                Self.killSession(sessionID)
+                Self.killSession(sessionID, at: self.endpoint)
             }
         }
     }
@@ -352,7 +378,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         guard let end = deferredEnd else { return false }
         if let sessionID, let connection = lock.locked({ self.connection }) {
             let operation: iGhostVTOperation = end == .close ? .closeSession : .detachSession
-            xpc_connection_send_message(connection, Self.makeMessage(operation, sessionID: sessionID))
+            connection.send(Self.makeMessage(operation, sessionID: sessionID))
         }
         if end == .close {
             lock.locked { resumeSessionID = nil }
@@ -366,6 +392,11 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     struct SessionSummary: Equatable, Sendable {
         let id: UInt64
         let isAttached: Bool
+        /// The device the session is held for, when it is held for one.
+        var holder: String?
+        /// What is in front of the shell now ("zsh", "vim").
+        var processName: String?
+        var directory: TerminalDirectory?
     }
 
     /// Ask the daemon what it is holding, over a one-shot connection of its
@@ -385,6 +416,43 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         completion: @escaping @Sendable ([String]?) -> Void,
     ) {
         oneShotRequest(.listShells, timeout: timeout, decode: shells(in:), completion: completion)
+    }
+
+    /// `listSessions` on `endpoint` — another device's daemon, for the
+    /// new-tab menu's list of its terminals. Nil when it does not answer.
+    static func listSessions(
+        at endpoint: DaemonEndpoint,
+        timeout: TimeInterval = 6,
+        completion: @escaping @Sendable ([SessionSummary]?) -> Void,
+    ) {
+        let queue = DispatchQueue(label: "wiki.qaq.ighostvt.client.list", qos: .userInitiated)
+        let finished = FinishOnce<[SessionSummary]?>(completion)
+        guard let connection = endpoint.makeLink(queue: queue) else {
+            finished.finish(nil)
+            return
+        }
+        connection.activate { event in
+            if case .lost = event, finished.finish(nil) {
+                connection.cancel()
+            }
+        }
+        queue.asyncAfter(deadline: .now() + timeout) {
+            if finished.finish(nil) {
+                connection.cancel()
+            }
+        }
+        connection.send(makeMessage(.hello)) { reply in
+            guard replyCode(of: reply) == .success else {
+                if finished.finish(nil) {
+                    connection.cancel()
+                }
+                return
+            }
+            connection.send(makeMessage(.listSessions)) { reply in
+                connection.cancel()
+                finished.finish(sessions(in: reply))
+            }
+        }
     }
 
     private static func oneShotRequest<Value: Sendable>(
@@ -442,6 +510,11 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             rows.append(SessionSummary(
                 id: xpc_dictionary_get_uint64(entry, iGhostVTWireKey.sessionID),
                 isAttached: xpc_dictionary_get_bool(entry, iGhostVTWireKey.isAttached),
+                holder: string(iGhostVTWireKey.holder, in: entry),
+                processName: string(iGhostVTWireKey.processName, in: entry),
+                directory: string(iGhostVTWireKey.currentDirectory, in: entry).map {
+                    TerminalDirectory(path: $0, display: string(iGhostVTWireKey.displayDirectory, in: entry))
+                },
             ))
         }
         return rows
@@ -473,19 +546,14 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     /// Without this the kill silently goes nowhere, the shell outlives its
     /// tab forever, and each one counts against the daemon's session
     /// ceiling. `closeSession` is valid on any session the daemon knows,
-    /// attached or not; an `unknownSession` reply means it is already gone,
-    /// so no reply needs handling.
-    static func killSession(_ id: UInt64) {
+    /// attached or not; an `unknownSession` reply means it is already gone.
+    static func killSession(_ id: UInt64, at endpoint: DaemonEndpoint = .local) {
         let queue = DispatchQueue(label: "wiki.qaq.ighostvt.client.kill", qos: .utility)
-        guard let connection = iGhostVTProtocol.serviceName.withCString({
-            ighostvtCreateMachServiceConnection($0, queue, 0)
-        }) else { return }
-        xpc_connection_set_event_handler(connection) { _ in }
-        xpc_connection_activate(connection)
-        xpc_connection_send_message_with_reply(connection, makeMessage(.hello), queue) { _ in
-            let message = Self.makeMessage(.closeSession, sessionID: id)
-            xpc_connection_send_message_with_reply(connection, message, queue) { _ in
-                xpc_connection_cancel(connection)
+        guard let connection = endpoint.makeLink(queue: queue) else { return }
+        connection.activate { _ in }
+        connection.send(makeMessage(.hello)) { _ in
+            connection.send(Self.makeMessage(.closeSession, sessionID: id)) { _ in
+                connection.cancel()
             }
         }
     }
@@ -541,7 +609,10 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             guard Self.replyCode(of: reply) == .success else { return finish() }
             list { rows in
                 guard let rows else { return finish() }
-                let held = Set(rows.map(\.id))
+                // A terminal another device is using is that device's to
+                // end, Keep Alive or not — even one a tab here still held a
+                // moment ago, before the device took it.
+                let held = Set(rows.filter { $0.holder == nil }.map(\.id))
                 let targets = ids.map { held.intersection($0) } ?? held
                 let kills = DispatchGroup()
                 for id in targets {
@@ -564,34 +635,27 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     // MARK: - Connection lifecycle
 
     private func establish() {
-        guard let connection = iGhostVTProtocol.serviceName.withCString({
-            ighostvtCreateMachServiceConnection($0, queue, 0)
-        }) else {
+        guard let connection = endpoint.makeLink(queue: queue) else {
             emit(.state(.disconnected(
-                reason: String(localized: "The terminal helper is not running. Restart iGhostVT and try again."),
+                reason: endpoint.isRemote
+                    ? String(localized: "This device is no longer paired. Pair it again in Settings.")
+                    : String(localized: "The terminal helper is not running. Restart iGhostVT and try again."),
             )))
             return
         }
 
         lock.locked { self.connection = connection }
-        xpc_connection_set_event_handler(connection) { [weak self] event in
-            autoreleasepool {
-                self?.handle(event)
-            }
+        connection.activate { [weak self] event in
+            self?.handle(event)
         }
-        xpc_connection_activate(connection)
 
         let hello = Self.makeMessage(.hello)
         isAwaitingHello = true
-        xpc_connection_send_message_with_reply(connection, hello, queue) { [weak self] reply in
+        connection.send(hello) { [weak self] reply in
             guard let self else { return }
             isAwaitingHello = false
             guard Self.replyCode(of: reply) == .success else {
-                teardown(
-                    reason: String(
-                        localized: "Unable to connect to the terminal helper. Restart iGhostVT and try again.",
-                    ),
-                )
+                teardown(reason: connectFailureReason(reply))
                 return
             }
             openOrAttachSession()
@@ -605,12 +669,22 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                   lock.locked({ self.connection === connection }) else { return }
             isAwaitingHello = false
             AppLog.error(.transport, "no hello reply after \(Int(Self.helloTimeout)) s")
-            teardown(
-                reason: String(
-                    localized: "Unable to connect to the terminal helper. Restart iGhostVT and try again.",
-                ),
-            )
+            teardown(reason: connectFailureReason(nil))
         }
+    }
+
+    /// Why the hello failed, for the tab. A remote host says why itself
+    /// when it can (an unpaired device, a helper that is not running).
+    private func connectFailureReason(_ reply: xpc_object_t?) -> String {
+        guard endpoint.isRemote else {
+            return String(localized: "Unable to connect to the terminal helper. Restart iGhostVT and try again.")
+        }
+        if let reply, xpc_get_type(reply) == iGhostVTXPC.typeDictionary,
+           let message = xpc_dictionary_get_string(reply, iGhostVTWireKey.errorMessage)
+        {
+            return String(cString: message)
+        }
+        return String(localized: "Unable to reach the other device. Check that it is on the same network and that remote access is on.")
     }
 
     /// Generous on purpose: the minute after a userspace reboot runs at a
@@ -634,9 +708,30 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         if let resumeSessionID = lock.locked({ self.resumeSessionID }) {
             let message = Self.makeMessage(.attachSession)
             xpc_dictionary_set_uint64(message, iGhostVTWireKey.sessionID, resumeSessionID)
-            xpc_connection_send_message_with_reply(connection, message, queue) { [weak self] reply in
+            if takesOver {
+                xpc_dictionary_set_bool(message, iGhostVTWireKey.takeover, true)
+            }
+            connection.send(message) { [weak self] reply in
                 guard let self else { return }
                 let code = Self.replyCode(of: reply)
+                // A device has it: it stays there, and the tab says so —
+                // no retry, since a device does not let go in two seconds.
+                if code == .sessionBusy, let holder = Self.string(iGhostVTWireKey.holder, in: reply) {
+                    if settleDeferredEnd(sessionID: nil) {
+                        return
+                    }
+                    noteHeldElsewhere(holder: holder)
+                    return
+                }
+                // Another device's terminal is never a window of this app
+                // letting go: waiting cannot help.
+                if code == .sessionBusy, endpoint.isRemote {
+                    if settleDeferredEnd(sessionID: nil) {
+                        return
+                    }
+                    noteHeldElsewhere(holder: nil)
+                    return
+                }
                 if code == .sessionBusy, busyRetries < Self.busyAttachRetryLimit {
                     queue.asyncAfter(deadline: .now() + Self.busyAttachRetryInterval) { [weak self] in
                         guard let self, lock.locked({ self.connection === connection }) else { return }
@@ -670,12 +765,31 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                         payload.append(replay)
                         emit(.received(payload))
                     }
+                } else if code == .sessionBusy {
+                    // Another window of this app still has it after the
+                    // retries: it is open there, not gone.
+                    if settleDeferredEnd(sessionID: nil) {
+                        return
+                    }
+                    noteHeldElsewhere(holder: nil)
+                } else if endpoint.isRemote {
+                    // A terminal on another device that is gone ended
+                    // there; opening a fresh one would put a tab nobody
+                    // asked for in the host's window. The tab closes.
+                    if settleDeferredEnd(sessionID: nil) {
+                        return
+                    }
+                    if code == .unknownSession {
+                        lock.locked { self.resumeSessionID = nil }
+                        onSessionExit?(resumeSessionID, 0)
+                    }
+                    teardown(reason: Self.failureReason(reply, code: code))
                 } else {
-                    // The session is gone, or another peer holds it: forget
-                    // the id and open a fresh shell in this same tab. Not
-                    // reported as an exit — the host closes a tab on one,
-                    // which would discard the shell about to be opened; it
-                    // learns the new id from `.connected` instead.
+                    // The session is gone: forget the id and open a fresh
+                    // shell in this same tab. Not reported as an exit — the
+                    // host closes a tab on one, which would discard the
+                    // shell about to be opened; it learns the new id from
+                    // `.connected` instead.
                     lock.locked { self.resumeSessionID = nil }
                     if settleDeferredEnd(sessionID: nil) {
                         return
@@ -710,7 +824,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         if let startDirectory {
             xpc_dictionary_set_string(message, iGhostVTWireKey.startDirectory, startDirectory)
         }
-        xpc_connection_send_message_with_reply(connection, message, queue) { [weak self] reply in
+        connection.send(message) { [weak self] reply in
             guard let self else { return }
             let code = Self.replyCode(of: reply)
             guard code == .success else {
@@ -732,9 +846,8 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         }
     }
 
-    private func handle(_ event: xpc_object_t) {
-        let type = xpc_get_type(event)
-        if type == iGhostVTXPC.typeError {
+    private func handle(_ linkEvent: DaemonLinkEvent) {
+        guard case let .message(event) = linkEvent else {
             // The link died out from under us — daemon restart, not a
             // session end. The resume ID survives, so a reconnect can
             // reattach to the still-running shell. A cancel this transport
@@ -754,7 +867,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             )))
             return
         }
-        guard type == iGhostVTXPC.typeDictionary,
+        guard xpc_get_type(event) == iGhostVTXPC.typeDictionary,
               xpc_dictionary_get_uint64(event, iGhostVTWireKey.version) == iGhostVTProtocol.version,
               let pushed = iGhostVTEvent(
                   rawValue: xpc_dictionary_get_uint64(event, iGhostVTWireKey.event),
@@ -775,6 +888,12 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             }
         case .processName:
             emitSessionState(in: event)
+        case .sessionTaken:
+            // Detached already; the resume id stays, to take it back with.
+            noteHeldElsewhere(holder: Self.string(iGhostVTWireKey.holder, in: event))
+        case .sessionOpened, .sessionReleased:
+            // The watcher's (`HostSessionWatcher`); a tab's link gets none.
+            break
         case .sessionExit:
             let exitCode = Int32(
                 truncatingIfNeeded: xpc_dictionary_get_int64(event, iGhostVTWireKey.exitCode),
@@ -796,6 +915,19 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         }
     }
 
+    /// Runs on `queue`. The session is another peer's: the connection
+    /// goes, the resume id stays. A device is named; with none named, the
+    /// other side of a remote tab is the host itself.
+    private func noteHeldElsewhere(holder: String?) {
+        guard dropConnection() else { return }
+        let hostName: String? = if case let .remote(hostID) = endpoint {
+            PairedRemoteHostStore.host(id: hostID)?.displayName
+        } else {
+            nil
+        }
+        emit(.state(.heldElsewhere(holder: holder ?? hostName)))
+    }
+
     private func teardown(reason: String?) {
         guard dropConnection() else { return }
         emit(.state(.disconnected(reason: reason)))
@@ -805,7 +937,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     /// false when there was nothing to drop.
     @discardableResult
     private func dropConnection() -> Bool {
-        let connection: xpc_connection_t? = lock.locked {
+        let connection: DaemonLink? = lock.locked {
             let current = self.connection
             self.connection = nil
             self.sessionID = nil
@@ -818,13 +950,13 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         deferredEnd = nil
         retainedForDeferredEnd = nil
         guard let connection else { return false }
-        xpc_connection_cancel(connection)
+        connection.cancel()
         return true
     }
 
     /// The connection and its session id read together, so a teardown between
     /// two reads cannot pair a stale connection with a fresh id.
-    private func attachedLink() -> (connection: xpc_connection_t, sessionID: UInt64)? {
+    private func attachedLink() -> (connection: DaemonLink, sessionID: UInt64)? {
         lock.locked {
             guard let connection = self.connection,
                   let sessionID = self.sessionID else { return nil }

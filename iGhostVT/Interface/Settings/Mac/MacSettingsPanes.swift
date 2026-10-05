@@ -15,6 +15,7 @@ import SwiftUI
         case general
         case appearance
         case keyboard
+        case remote
         case configuration
         case advanced
         case about
@@ -24,6 +25,7 @@ import SwiftUI
             case .general: String(localized: "General")
             case .appearance: String(localized: "Appearance")
             case .keyboard: String(localized: "Keyboard")
+            case .remote: String(localized: "Remote Access")
             case .configuration: String(localized: "Configuration")
             case .advanced: String(localized: "Advanced")
             case .about: String(localized: "About")
@@ -35,6 +37,7 @@ import SwiftUI
             case .general: "gearshape"
             case .appearance: "paintpalette"
             case .keyboard: "keyboard"
+            case .remote: "network"
             case .configuration: "doc.text"
             case .advanced: "gearshape.2"
             case .about: "info.circle"
@@ -46,7 +49,7 @@ import SwiftUI
         var fixedHeight: CGFloat? {
             switch self {
             case .general, .appearance, .advanced: nil
-            case .keyboard, .configuration, .about: 560
+            case .keyboard, .remote, .configuration, .about: 560
             }
         }
 
@@ -56,6 +59,7 @@ import SwiftUI
             case .general: MacGeneralPane()
             case .appearance: MacAppearancePane()
             case .keyboard: MacShortcutsPane()
+            case .remote: RemoteAccessView()
             case .configuration: MacConfigurationPane()
             case .advanced: MacAdvancedPane()
             case .about: MacAboutPane()
