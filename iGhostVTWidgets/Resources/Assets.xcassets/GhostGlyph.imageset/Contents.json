@@ -3,6 +3,16 @@
     {
       "filename" : "ghost-glyph.png",
       "idiom" : "universal"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "ghost-glyph-dark.png",
+      "idiom" : "universal"
     }
   ],
   "info" : {

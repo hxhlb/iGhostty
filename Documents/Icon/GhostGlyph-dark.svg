@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="228.5 237.5 607 607">
+<defs>  <path id="g" d="M 312 458 C 312 348 402 258 512 258 C 622 258 712 348 712 458 C 712 548 760 598 760 688 C 760 740 728 772 678 772 C 638 772 622 732 595 732 C 568 732 552 772 512 772 C 472 772 456 732 429 732 C 402 732 386 772 346 772 C 296 772 264 740 264 688 C 264 598 312 548 312 458 Z"/>
+  <clipPath id="gc"><use href="#g"/></clipPath>
+  <path id="gout" fill-rule="evenodd" d="M-300 -300H1324V1324H-300Z M 312 458 C 312 348 402 258 512 258 C 622 258 712 348 712 458 C 712 548 760 598 760 688 C 760 740 728 772 678 772 C 638 772 622 732 595 732 C 568 732 552 772 512 772 C 472 772 456 732 429 732 C 402 732 386 772 346 772 C 296 772 264 740 264 688 C 264 598 312 548 312 458 Z"/>
+
+  <radialGradient id="body" gradientUnits="userSpaceOnUse" cx="430" cy="318" r="560">
+    <stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#eef1f8"/><stop offset="1" stop-color="#b3bddf"/>
+  </radialGradient>
+  <linearGradient id="eyeFill" gradientUnits="userSpaceOnUse" x1="420" y1="0" x2="604" y2="0">
+    <stop offset="0" stop-color="#7b5cff"/>
+    <stop offset="1" stop-color="#2f9bff"/>
+  </linearGradient>
+  <linearGradient id="eyeGloss" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.35"/>
+    <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="spec" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="b3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  <filter id="b6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="b8" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+  <filter id="b14" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+  <filter id="b22" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+</defs>
+  <g transform="rotate(-6 512 509)">
+    <!-- contact + cast shadow on the tile -->
+    
+    <use href="#g" fill="#000" opacity="0.22" filter="url(#b14)" transform="translate(0 18)"/>
+
+    <!-- body -->
+    <use href="#g" fill="url(#body)"/>
+    <g clip-path="url(#gc)">
+      <use href="#gout" fill="#5d6aa3" opacity="0.6" filter="url(#b22)" transform="translate(-30 -20)"/>
+      <use href="#gout" fill="#fff" filter="url(#b8)" transform="translate(8 12)"/>
+      <use href="#gout" fill="#fff" opacity="0.9" filter="url(#b3)" transform="translate(-2 -5)"/>
+      <ellipse cx="420" cy="338" rx="78" ry="44" fill="url(#spec)" opacity="0.95" transform="rotate(-38 420 338)"/>
+    </g>
+    <use href="#g" fill="none" stroke="#fff" stroke-opacity="0.55" stroke-width="2"/>
+
+    <rect x="412" y="446" width="56" height="96" rx="28.0" fill="url(#eyeFill)" opacity="0.18" filter="url(#b6)"/><rect x="556" y="446" width="56" height="96" rx="28.0" fill="url(#eyeFill)" opacity="0.18" filter="url(#b6)"/><rect x="414" y="448" width="52" height="92" rx="26.0" fill="url(#eyeFill)"/><rect x="414" y="448" width="52" height="92" rx="26.0" fill="url(#eyeGloss)"/><rect x="425" y="460" width="13" height="28" rx="6.5" fill="#fff" opacity="0.8"/><rect x="558" y="448" width="52" height="92" rx="26.0" fill="url(#eyeFill)"/><rect x="558" y="448" width="52" height="92" rx="26.0" fill="url(#eyeGloss)"/><rect x="569" y="460" width="13" height="28" rx="6.5" fill="#fff" opacity="0.8"/>
+</g>
+</svg>
