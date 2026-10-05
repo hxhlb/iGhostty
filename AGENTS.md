@@ -431,7 +431,7 @@ stay well under the proxy's 10 s congestion grace or the peer is cut.
 `iGhostVT/Backend/Zmodem/`** (no lrzsz — it is GPL). It adds no protocol op and
 keeps no session state, so it is off by default (`ZmodemSetting`, Settings ▸
 Advanced), built per connection, and leaves an older daemon, the CLI, or
-another client untouched (three-端-safe). `ZmodemEngine` interposes at the one
+another client untouched. `ZmodemEngine` interposes at the one
 received-output choke point (`TerminalSessionStore`'s `.received` branch) on
 its own serial queue: it detects the handshake iTerm2-style, passes other
 output through, swallows a transfer, and replies via `transport.send` (the same

@@ -301,7 +301,7 @@ import SwiftUI
                 MacSettingsRow("File Transfer") {
                     MacCheckbox(String(localized: "ZMODEM File Transfer"), isOn: $zmodemEnabled)
                 } details: {
-                    MacSettingsNote("Support for ZMODEM (`rz`/`sz`) file transfers.")
+                    MacSettingsNote("Send and receive files with `rz` and `sz`.")
                 }
                 Divider()
                 MacSettingsRow("Debugging") {

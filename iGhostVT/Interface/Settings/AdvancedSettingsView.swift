@@ -30,7 +30,7 @@ struct AdvancedSettingsView: View {
             Text("File Transfer")
                 .font(DS.Font.caption)
         } footer: {
-            Text("Support for ZMODEM (`rz`/`sz`) file transfers.")
+            Text("Send and receive files with `rz` and `sz`.")
                 .font(DS.Font.detail)
         }
     }
