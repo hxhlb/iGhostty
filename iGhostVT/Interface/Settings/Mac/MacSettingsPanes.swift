@@ -275,9 +275,16 @@ import SwiftUI
     /// anything a settings window could hold.
     private struct MacAdvancedPane: View {
         @AppStorage(DetailedTerminalLog.key) private var verboseTerminalLog = false
+        @AppStorage(ZmodemSetting.key) private var zmodemEnabled = ZmodemSetting.defaultValue
 
         var body: some View {
             MacSettingsForm {
+                MacSettingsRow("File Transfer") {
+                    MacCheckbox(String(localized: "ZMODEM File Transfer"), isOn: $zmodemEnabled)
+                } details: {
+                    MacSettingsNote("Support for ZMODEM (`rz`/`sz`) file transfers.")
+                }
+                Divider()
                 MacSettingsRow("Debugging") {
                     MacCheckbox(String(localized: "Detailed Terminal Log"), isOn: $verboseTerminalLog)
                         .onChange(of: verboseTerminalLog, perform: DetailedTerminalLog.apply)

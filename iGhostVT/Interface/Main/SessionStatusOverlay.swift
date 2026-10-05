@@ -39,6 +39,7 @@ struct SessionStatusOverlay: View {
             .animation(DS.Motion.smooth, value: store.status)
             .animation(DS.Motion.smooth, value: store.isAwaitingFirstOutput)
             .animation(DS.Motion.smooth, value: store.isPasteTruncated)
+            .animation(DS.Motion.smooth, value: store.zmodemTransfer)
             .animation(DS.Motion.smooth, value: agent.status)
     }
 
@@ -163,11 +164,15 @@ struct SessionStatusOverlay: View {
             }
 
         case .connected:
-            // The session is open but the shell has yet to print a byte —
-            // the first shell after a reboot can take half a minute over
-            // its rc files. Without this the pane is an empty terminal
-            // that looks exactly like a broken one.
-            if store.isAwaitingFirstOutput {
+            if let transfer = store.zmodemTransfer {
+                ZmodemTransferPill(info: transfer) { store.cancelZmodemTransfer() }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(DS.Padding.l)
+            } else if store.isAwaitingFirstOutput {
+                // The session is open but the shell has yet to print a byte —
+                // the first shell after a reboot can take half a minute over
+                // its rc files. Without this the pane is an empty terminal
+                // that looks exactly like a broken one.
                 pill("Starting Shell…")
             } else if store.isPasteTruncated {
                 notice("Paste truncated: the program is not reading its input.")

@@ -680,7 +680,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                     if let replay = Self.data(iGhostVTWireKey.data, in: reply), !replay.isEmpty {
                         var payload = Data("\u{1B}[H\u{1B}[2J".utf8)
                         payload.append(replay)
-                        emit(.received(payload))
+                        emit(.received(payload, replay: true))
                     }
                 } else {
                     // The session is gone, or another peer holds it: forget
@@ -783,7 +783,7 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                     hasLoggedFirstOutput = true
                     AppLog.info(.transport, "first output event bytes=\(data.count) session=\(eventSessionID)")
                 }
-                emit(.received(data))
+                emit(.received(data, replay: false))
             }
         case .processName:
             emitSessionState(in: event)

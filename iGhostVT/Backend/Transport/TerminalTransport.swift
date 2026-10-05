@@ -49,7 +49,11 @@ protocol TerminalTransport: AnyObject {
 
 enum TerminalTransportEvent: Sendable {
     case state(TerminalTransportState)
-    case received(Data)
+    /// Bytes from the endpoint. `replay` marks the one-shot scrollback a
+    /// reattach repaints (historical output, not live protocol) — a ZMODEM
+    /// endpoint must render it without scanning it for a transfer trigger, or
+    /// an old `rz`/`sz` frame still in the buffer starts a bogus transfer.
+    case received(Data, replay: Bool)
     /// The endpoint reports which process is in the foreground on the
     /// terminal ("zsh", "vim"), and whether that process is the session's
     /// own shell — nothing running in front of it. A backend that cannot

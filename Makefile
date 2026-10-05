@@ -273,7 +273,15 @@ harness:
 		"$(ROOT_DIR)/Shared/Screen/KeyNames.swift" \
 		$$(find "$(ROOT_DIR)/Tests/CLIRenderer" -name '*.swift' | sort) \
 		-o "$$harness_dir/cli-renderer" && \
-	"$$harness_dir/cli-renderer"
+	"$$harness_dir/cli-renderer" && \
+	xcrun --sdk macosx swiftc -swift-version 5 \
+		"$(ROOT_DIR)/iGhostVT/Backend/Zmodem/ZmodemCRC.swift" \
+		"$(ROOT_DIR)/iGhostVT/Backend/Zmodem/ZmodemFrame.swift" \
+		"$(ROOT_DIR)/iGhostVT/Backend/Zmodem/ZmodemTransfer.swift" \
+		"$(ROOT_DIR)/iGhostVT/Backend/Zmodem/ZmodemEngine.swift" \
+		$$(find "$(ROOT_DIR)/Tests/Zmodem" -name '*.swift' | sort) \
+		-o "$$harness_dir/zmodem" && \
+	"$$harness_dir/zmodem"
 
 build: check test bump-build
 	XCBUILD_LABEL=build-$(PLATFORM) $(DEVICE_XCODEBUILD) \

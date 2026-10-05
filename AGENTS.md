@@ -415,6 +415,21 @@ grows — so the app does not pause XPC delivery; if it ever has to, the
 hook is the session's `setOutputBacklogHandler`, and a suspension must
 stay well under the proxy's 10 s congestion grace or the peer is cut.
 
+**ZMODEM (`rz`/`sz`) is a clean-room client-side endpoint in
+`iGhostVT/Backend/Zmodem/`** (no lrzsz — it is GPL). It adds no protocol op and
+keeps no session state, so it is off by default (`ZmodemSetting`, Settings ▸
+Advanced), built per connection, and leaves an older daemon, the CLI, or
+another client untouched (three-端-safe). `ZmodemEngine` interposes at the one
+received-output choke point (`TerminalSessionStore`'s `.received` branch) on
+its own serial queue: it detects the handshake iTerm2-style, passes other
+output through, swallows a transfer, and replies via `transport.send` (the same
+op as keystrokes). Files cross through `ZmodemFileBridge`, the only UIKit part —
+temp files and the document pickers. The non-obvious bits are flagged in the
+code: escape *all* control bytes or a PTY mangles a binary upload, window the
+upload under the daemon's input cap, and throttle progress off the main thread.
+The pure core is tested in `Tests/Zmodem` (`make test`), sender and receiver
+driven against each other.
+
 Every presentation of a tab — strip chip, title capsule, sidebar row, switcher
 card — carries the same `TabContextMenu` (copy the page as text or image,
 export it, lock, close). Close asks first only when it would interrupt
