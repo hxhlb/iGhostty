@@ -15,10 +15,14 @@ struct RemoteStore {
 
     private struct File: Codable {
         var hostID: String
+        var hostName: String?
         var devices: [Device]
     }
 
     private(set) var hostID: String
+    /// The name the owner chose for this host in the app; nil is the
+    /// device's own.
+    private(set) var hostName: String?
     private(set) var devices: [Device]
 
     private static var directory: String {
@@ -36,9 +40,9 @@ struct RemoteStore {
         if let data = FileManager.default.contents(atPath: path),
            let file = try? JSONDecoder().decode(File.self, from: data)
         {
-            return RemoteStore(hostID: file.hostID, devices: file.devices)
+            return RemoteStore(hostID: file.hostID, hostName: file.hostName, devices: file.devices)
         }
-        let store = RemoteStore(hostID: UUID().uuidString, devices: [])
+        let store = RemoteStore(hostID: UUID().uuidString, hostName: nil, devices: [])
         store.save()
         return store
     }
@@ -59,9 +63,18 @@ struct RemoteStore {
         return true
     }
 
-    mutating func markSeen(deviceID: String) {
+    /// A device connected: when, and under the name it goes by now.
+    mutating func markSeen(deviceID: String, name: String?) {
         guard let index = devices.firstIndex(where: { $0.id == deviceID }) else { return }
         devices[index].lastSeen = Date()
+        if let name, !name.isEmpty {
+            devices[index].name = name
+        }
+        save()
+    }
+
+    mutating func setHostName(_ name: String?) {
+        hostName = name
         save()
     }
 
@@ -77,7 +90,7 @@ struct RemoteStore {
             mkdir(current, 0o700)
         }
         chmod(directory, 0o700)
-        guard let data = try? JSONEncoder().encode(File(hostID: hostID, devices: devices)) else { return }
+        guard let data = try? JSONEncoder().encode(File(hostID: hostID, hostName: hostName, devices: devices)) else { return }
         let temporary = Self.path + ".tmp"
         let descriptor = open(temporary, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0o600)
         guard descriptor >= 0 else {

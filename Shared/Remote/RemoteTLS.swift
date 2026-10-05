@@ -35,8 +35,15 @@ enum RemoteTLS {
         }
         let tcp = NWProtocolTCP.Options()
         tcp.noDelay = true
+        // A link that died without a word (Wi-Fi gone, a device asleep) is
+        // noticed in about 25 s whether it was idle — keepalive probes —
+        // or had data in flight, which turns keepalive off and leaves it to
+        // the drop time. The system's defaults take minutes either way.
         tcp.enableKeepalive = true
-        tcp.keepaliveIdle = 30
+        tcp.keepaliveIdle = 10
+        tcp.keepaliveInterval = 5
+        tcp.keepaliveCount = 3
+        tcp.connectionDropTime = 15
         tcp.connectionTimeout = 10
         let parameters = NWParameters(tls: tls, tcp: tcp)
         parameters.includePeerToPeer = false

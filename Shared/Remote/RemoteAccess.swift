@@ -31,6 +31,8 @@ enum RemoteAccess {
         static let hostID = "id"
         static let hostName = "name"
         static let version = "v"
+        /// The host's address on the local network, for a list to show.
+        static let address = "ip"
     }
 
     static let protocolVersion = "1"
@@ -53,6 +55,12 @@ enum RemoteAccess {
     static let handshakeTimeoutSeconds: TimeInterval = 10
     /// Connections not yet past their first frame, at once.
     static let maximumUnauthenticatedConnections = 4
+    /// How long a device connection that ended without letting go of its
+    /// terminals keeps holding them — long enough for a phone that locked
+    /// or lost Wi-Fi for a moment to reconnect and pick them up again
+    /// without the host noticing, short enough that a device that left
+    /// hands them back soon.
+    static let reconnectGraceSeconds: TimeInterval = 30
     static let maximumDeviceCount = 32
     static let maximumNameByteCount = 64
 

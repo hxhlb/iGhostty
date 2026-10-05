@@ -12,6 +12,12 @@ final class SessionRegistry {
     private let queue: DispatchQueue
     private var sessions: [UInt64: PTYSession] = [:]
     private var attachments: [UInt64: PeerSession] = [:]
+    /// The device each attachment is for, where it is one (`holder`, set
+    /// by the remote helper). Kept beside `attachments` and dropped with
+    /// it: a device letting go is what the watchers are told about.
+    private var holders: [UInt64: String] = [:]
+    /// Peers that asked for the session events (`watchSessions`).
+    private var watchers: [ObjectIdentifier: PeerSession] = [:]
     private var sessionIDs = SessionIDReservation()
     private var childExitSignal: DispatchSourceSignal?
     private var isOutputPaused = false
@@ -48,6 +54,8 @@ final class SessionRegistry {
         var columns: UInt16
         var rows: UInt16
         var isAttached: Bool
+        /// The device the session is held by, when it is held for one.
+        var holder: String?
         var processName: String
         var isForegroundShell: Bool
         /// The shell's current directory as the kernel spells it, `nil`
@@ -72,6 +80,7 @@ final class SessionRegistry {
                     columns: $0.columns,
                     rows: $0.rows,
                     isAttached: attachments[$0.id] != nil,
+                    holder: holders[$0.id],
                     processName: $0.foregroundProcessName,
                     isForegroundShell: $0.isForegroundShell,
                     currentDirectory: $0.currentDirectory,
@@ -168,27 +177,73 @@ final class SessionRegistry {
         }
     }
 
-    func attach(_ id: UInt64, to peer: PeerSession) throws -> PTYSession {
+    /// Attaches `peer`, for the device `holder` names when it is one. A
+    /// session another peer holds is `sessionBusy` unless `takeover`, which
+    /// detaches that peer and tells it so (`sessionTaken`) — how a device
+    /// picks up a tab another device, or this one, has open.
+    func attach(
+        _ id: UInt64,
+        to peer: PeerSession,
+        holder: String? = nil,
+        takeover: Bool = false,
+    ) throws -> PTYSession {
         guard let session = sessions[id] else {
             throw iGhostVTReplyCode.unknownSession
         }
         if let existing = attachments[id], existing !== peer {
-            throw iGhostVTReplyCode.sessionBusy
+            guard takeover else { throw iGhostVTReplyCode.sessionBusy }
+            existing.deliverTaken(sessionID: id, holder: holder)
+            DaemonFileLog.log("session \(id) taken from peer \(existing.peerID) by peer \(peer.peerID)")
         }
         attachments[id] = peer
+        holders[id] = holder
+        // Held for a device now: the host's windows show it, and name the
+        // device — a device taking it from another included.
+        if let holder {
+            for watcher in watchers.values {
+                watcher.deliverSessionEvent(.sessionOpened, sessionID: id, holder: holder)
+            }
+        }
         return session
+    }
+
+    /// Who holds `id`, when it is held for a device.
+    func holder(of id: UInt64) -> String? {
+        holders[id]
     }
 
     func detach(_ id: UInt64, from peer: PeerSession) {
         guard attachments[id] === peer else { return }
         attachments.removeValue(forKey: id)
+        release(id)
     }
 
     func detachAll(for peer: PeerSession) {
         for (id, attached) in attachments where attached === peer {
             attachments.removeValue(forKey: id)
+            release(id)
         }
     }
+
+    /// An attachment ended with the session alive. When it was a device's,
+    /// the watchers hear the session is free again.
+    private func release(_ id: UInt64) {
+        guard let holder = holders.removeValue(forKey: id) else { return }
+        for watcher in watchers.values {
+            watcher.deliverSessionEvent(.sessionReleased, sessionID: id, holder: holder)
+        }
+    }
+
+    // MARK: - Watchers
+
+    func addWatcher(_ peer: PeerSession) {
+        watchers[ObjectIdentifier(peer)] = peer
+    }
+
+    func removeWatcher(_ peer: PeerSession) {
+        watchers.removeValue(forKey: ObjectIdentifier(peer))
+    }
+
 
     /// How long a closed shell gets to exit on its own before it is killed.
     /// Long enough for a shell to run its exit hooks, short enough that the
@@ -208,6 +263,9 @@ final class SessionRegistry {
             throw iGhostVTReplyCode.unknownSession
         }
         DaemonLog.sessions.info("session \(id) close requested, SIGHUP sent")
+        // Ending it is not letting go: the detach that follows a close must
+        // not hand a dying session to the watchers.
+        holders.removeValue(forKey: id)
         session.terminate()
         queue.asyncAfter(deadline: .now() + Self.closeGracePeriod) { [weak self] in
             guard let self, sessions[id] === session else { return }
@@ -226,7 +284,13 @@ final class SessionRegistry {
         DaemonFileLog.log(
             "session \(sessionID) exited with status \(exitCode), \(sessions.count - 1) remain",
         )
-        attachments[sessionID]?.deliverExit(sessionID: sessionID, exitCode: exitCode)
+        let attached = attachments[sessionID]
+        attached?.deliverExit(sessionID: sessionID, exitCode: exitCode)
+        // A window showing the session as held elsewhere is attached to
+        // nothing, and closes its tab on this.
+        for watcher in watchers.values where watcher !== attached {
+            watcher.deliverExit(sessionID: sessionID, exitCode: exitCode)
+        }
         discard(sessionID)
     }
 
@@ -236,6 +300,7 @@ final class SessionRegistry {
     /// buffer with it.
     private func discard(_ id: UInt64) {
         attachments.removeValue(forKey: id)
+        holders.removeValue(forKey: id)
         sessions.removeValue(forKey: id)?.invalidate()
     }
 

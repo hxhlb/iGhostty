@@ -28,6 +28,13 @@ final class RemoteClient {
     private var daemon: xpc_connection_t?
     private var isDaemonSuspended = false
     private var isClosed = false
+    /// The sessions this connection's daemon peer holds, as far as the
+    /// replies and events said: what a reconnect of the same device picks
+    /// up, and whether an ended connection has anything to linger for.
+    private var heldSessions: Set<UInt64> = []
+    /// Ended without letting go of `heldSessions`; the daemon peer is kept
+    /// for `RemoteAccess.reconnectGraceSeconds` (`linger`).
+    private var isLingering = false
 
     /// The device output toward which may be held in the daemon instead of
     /// here: past this much not yet taken by the network, the daemon
@@ -81,24 +88,74 @@ final class RemoteClient {
         }
     }
 
+    /// Ends the connection once what was already sent has left — a reply
+    /// written just before (a pairing's outcome, a refusal) would otherwise
+    /// be dropped with it.
     func close(reason: String) {
-        frames.close(reason: reason)
+        RemoteLog.log("closing \(address): \(reason)")
+        frames.closeWhenFlushed()
     }
 
     private func closed(reason: String) {
         guard !isClosed else { return }
         isClosed = true
-        if let daemon {
-            if isDaemonSuspended {
-                xpc_connection_resume(daemon)
-            }
-            xpc_connection_cancel(daemon)
-            self.daemon = nil
-        }
         if case let .session(deviceID) = mode {
             RemoteLog.log("device \(deviceID) at \(address) disconnected: \(reason)")
         }
+        if let daemon, isDaemonSuspended {
+            isDaemonSuspended = false
+            xpc_connection_resume(daemon)
+        }
+        // A device that let go of everything (a tab closed or detached
+        // sends that first) is simply gone. One that did not — Wi-Fi
+        // dropped, the phone locked — may be back in a moment.
+        if daemon != nil, !heldSessions.isEmpty {
+            linger()
+            return
+        }
+        cancelDaemon()
         service.clientClosed(self)
+    }
+
+    /// Keeps the daemon peer, and with it every terminal this connection
+    /// held, for a grace period: a reconnect of the same device attaches
+    /// them again (`stamped` takes them from this connection) and the host
+    /// never notices. Output meanwhile is dropped — the reattach replays
+    /// the screen — so the proxy sees a peer that keeps up. When the grace
+    /// ends the peer goes, and the host takes back what is left.
+    private func linger() {
+        isLingering = true
+        RemoteLog.log("keeping \(heldSessions.count) terminal(s) of \(address) for \(Int(RemoteAccess.reconnectGraceSeconds)) s")
+        service.clientLingering(self)
+        service.queue.asyncAfter(deadline: .now() + RemoteAccess.reconnectGraceSeconds) { [weak self] in
+            self?.endLinger()
+        }
+    }
+
+    func endLinger() {
+        guard isLingering else { return }
+        isLingering = false
+        cancelDaemon()
+        service.lingerEnded(self)
+    }
+
+    private func cancelDaemon() {
+        guard let daemon else { return }
+        xpc_connection_cancel(daemon)
+        self.daemon = nil
+    }
+
+    func holds(_ sessionID: UInt64) -> Bool {
+        heldSessions.contains(sessionID)
+    }
+
+    /// A reconnect of the same device took `sessionID` from this
+    /// connection. A lingering one with nothing left goes now.
+    func yield(_ sessionID: UInt64) {
+        heldSessions.remove(sessionID)
+        if isLingering, heldSessions.isEmpty {
+            endLinger()
+        }
     }
 
     // MARK: - Frames
@@ -138,7 +195,7 @@ final class RemoteClient {
                 reply(.invalidRequest, tag: header.tag)
                 return
             }
-            forward(object, tag: header.tag)
+            forward(stamped(object, operation: operation), tag: header.tag, operation: operation)
         }
     }
 
@@ -166,7 +223,10 @@ final class RemoteClient {
         }
         mode = .session(deviceID: deviceID)
         self.daemon = daemon
-        service.noteSeen(deviceID: deviceID)
+        service.noteSeen(
+            deviceID: deviceID,
+            name: xpc_dictionary_get_string(hello, iGhostVTWireKey.deviceName).map { String(cString: $0) },
+        )
         RemoteLog.log("device \(device.name) (\(deviceID)) connected from \(address)")
         xpc_connection_set_event_handler(daemon) { [weak self] event in
             self?.daemonEvent(event)
@@ -179,14 +239,69 @@ final class RemoteClient {
         forward(message, tag: tag)
     }
 
-    private func forward(_ message: xpc_object_t, tag: UInt64) {
+    /// What the daemon is told about the device on its behalf, never taken
+    /// from the device: the name a session is opened or held for — the tab
+    /// the host shows for it says where it is. `takeover` stays the
+    /// device's to ask (the user picked the terminal, or chose Use Here);
+    /// a reconnect does not, so a device coming back cannot take a
+    /// terminal the host picked up meanwhile. The session events are the
+    /// host app's, not a device's to ask for.
+    private func stamped(_ message: xpc_object_t, operation: iGhostVTOperation) -> xpc_object_t {
+        let copy = xpc_copy(message) ?? message
+        xpc_dictionary_set_value(copy, iGhostVTWireKey.holder, nil)
+        xpc_dictionary_set_value(copy, iGhostVTWireKey.watchSessions, nil)
+        if operation == .openSession || operation == .attachSession,
+           let deviceID, let device = service.device(id: deviceID)
+        {
+            xpc_dictionary_set_string(copy, iGhostVTWireKey.holder, device.name)
+        }
+        // This device's own earlier connection still has it — the link
+        // dropped and the tab reconnected: it is the same holder, so it is
+        // taken over quietly; nobody else was using it.
+        if operation == .attachSession, let deviceID,
+           service.holder(of: xpc_dictionary_get_uint64(copy, iGhostVTWireKey.sessionID), deviceID: deviceID, other: self) != nil
+        {
+            xpc_dictionary_set_bool(copy, iGhostVTWireKey.takeover, true)
+        }
+        return copy
+    }
+
+    /// Keeps `heldSessions` in step with what this peer asked for and was
+    /// granted.
+    private func noteGranted(_ operation: iGhostVTOperation, request: xpc_object_t, reply: xpc_object_t) {
+        guard xpc_get_type(reply) == iGhostVTXPC.typeDictionary,
+              xpc_dictionary_get_int64(reply, iGhostVTWireKey.code) == iGhostVTReplyCode.success.rawValue
+        else { return }
+        switch operation {
+        case .openSession:
+            heldSessions.insert(xpc_dictionary_get_uint64(reply, iGhostVTWireKey.sessionID))
+        case .attachSession:
+            let sessionID = xpc_dictionary_get_uint64(request, iGhostVTWireKey.sessionID)
+            heldSessions.insert(sessionID)
+            if let deviceID, let previous = service.holder(of: sessionID, deviceID: deviceID, other: self) {
+                previous.yield(sessionID)
+            }
+        default:
+            break
+        }
+    }
+
+    private func forward(_ message: xpc_object_t, tag: UInt64, operation: iGhostVTOperation? = nil) {
         guard let daemon else { return }
+        // Letting go is known the moment it is sent.
+        if operation == .detachSession || operation == .closeSession {
+            heldSessions.remove(xpc_dictionary_get_uint64(message, iGhostVTWireKey.sessionID))
+        }
         guard tag != 0 else {
             xpc_connection_send_message(daemon, message)
             return
         }
         xpc_connection_send_message_with_reply(daemon, message, service.queue) { [weak self] reply in
-            guard let self, !isClosed else { return }
+            guard let self else { return }
+            if let operation {
+                noteGranted(operation, request: message, reply: reply)
+            }
+            guard !isClosed else { return }
             if xpc_get_type(reply) != iGhostVTXPC.typeDictionary || !frames.send(.reply, tag: tag, object: reply) {
                 self.reply(.operationFailed, tag: tag, message: "The terminal helper on the host did not answer.")
             }
@@ -194,13 +309,26 @@ final class RemoteClient {
     }
 
     private func daemonEvent(_ event: xpc_object_t) {
-        guard !isClosed else { return }
         if xpc_get_type(event) == iGhostVTXPC.typeError {
             // The daemon cut this peer or restarted; the device reconnects
             // and reattaches, as the app does locally.
-            close(reason: "daemon connection ended")
+            heldSessions.removeAll()
+            if isLingering {
+                endLinger()
+            } else if !isClosed {
+                close(reason: "daemon connection ended")
+            }
             return
         }
+        // A session this peer no longer holds: taken by another, or ended.
+        let kind = xpc_dictionary_get_uint64(event, iGhostVTWireKey.event)
+        if kind == iGhostVTEvent.sessionTaken.rawValue || kind == iGhostVTEvent.sessionExit.rawValue {
+            heldSessions.remove(xpc_dictionary_get_uint64(event, iGhostVTWireKey.sessionID))
+            if isLingering, heldSessions.isEmpty {
+                endLinger()
+            }
+        }
+        guard !isClosed else { return }
         frames.send(.event, tag: 0, object: event)
     }
 

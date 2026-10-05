@@ -65,7 +65,11 @@ final class RemoteSupervisor {
     func handle(_ message: xpc_object_t, completion: @escaping (xpc_object_t) -> Void) {
         let operation = iGhostVTOperation(rawValue: xpc_dictionary_get_uint64(message, iGhostVTWireKey.operation))
         if operation == .setRemoteAccess {
-            setEnabled(xpc_dictionary_get_bool(message, iGhostVTWireKey.enabled))
+            let enabled = xpc_dictionary_get_bool(message, iGhostVTWireKey.enabled)
+            setEnabled(enabled)
+            // Off is answered here: the helper is on its way out, and it
+            // would still say it is on.
+            guard enabled else { return completion(Self.offlineStatus(enabled: false)) }
             // What the switch now says, from the helper when it is up.
             let status = xpc_dictionary_create(nil, nil, 0)
             xpc_dictionary_set_uint64(status, iGhostVTWireKey.version, iGhostVTProtocol.version)

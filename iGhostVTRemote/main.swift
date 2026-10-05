@@ -14,6 +14,14 @@ import Foundation
 // process drops to mobile before it opens a socket.
 
 signal(SIGPIPE, SIG_IGN)
+// `dispatchMain()` ends the main thread, and a dispatch worker thread
+// blocks every asynchronous signal, so a plain SIGTERM — how the daemon
+// stops this process when the switch goes off — would wait forever with no
+// thread to take it. A signal source takes it instead.
+signal(SIGTERM, SIG_IGN)
+let terminationSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+terminationSource.setEventHandler { exit(EXIT_SUCCESS) }
+terminationSource.activate()
 
 guard RemotePrivileges.dropToSessionUser() else {
     FileHandle.standardError.write(Data("ighostvtd-remote: could not drop privileges\n".utf8))

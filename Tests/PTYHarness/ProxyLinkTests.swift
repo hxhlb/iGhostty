@@ -113,6 +113,19 @@ final class HarnessPeer: IOPeer {
         return total
     }
 
+    /// The events of `kind` for `sessionID` so far, with the holder each
+    /// named ("" for none).
+    func holders(of kind: iGhostVTEvent, sessionID: UInt64) -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return events
+            .filter {
+                xpc_dictionary_get_uint64($0, iGhostVTWireKey.event) == kind.rawValue
+                    && xpc_dictionary_get_uint64($0, iGhostVTWireKey.sessionID) == sessionID
+            }
+            .map { xpc_dictionary_get_string($0, iGhostVTWireKey.holder).map { String(cString: $0) } ?? "" }
+    }
+
     func exitCode(of sessionID: UInt64) -> Int32? {
         lock.lock()
         defer { lock.unlock() }
@@ -544,6 +557,85 @@ func runProxyLinkTests() {
             xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, sessionID)
         }) == .sessionBusy,
         "a session attached elsewhere is busy",
+    )
+
+    // A device picks up a tab another peer has open: the holder is told,
+    // the watchers hear when the device lets go, and the first peer gets
+    // it back.
+    print("proxy takeover and watchers")
+    let watcher = HarnessPeer(peerID: 3)
+    watcher.supervisor = supervisor
+    harnessQueue.sync { supervisor.register(watcher) }
+    check(
+        replyCode(request(supervisor, from: watcher, .hello) {
+            xpc_dictionary_set_bool($0, iGhostVTWireKey.watchSessions, true)
+        }) == .success,
+        "a watcher says hello",
+    )
+    check(
+        replyCode(request(supervisor, from: second, .attachSession) {
+            xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, sessionID)
+            xpc_dictionary_set_string($0, iGhostVTWireKey.holder, "Phone")
+            xpc_dictionary_set_bool($0, iGhostVTWireKey.takeover, true)
+        }) == .success,
+        "a takeover attaches a session another peer holds",
+    )
+    check(
+        waitUntil { peer.holders(of: .sessionTaken, sessionID: sessionID) == ["Phone"] },
+        "the peer that held it hears who took it",
+    )
+    check(
+        listedString(supervisor, from: watcher, sessionID: sessionID, iGhostVTWireKey.holder) == "Phone",
+        "the session is listed as held for that device",
+    )
+    let busyReply = request(supervisor, from: peer, .attachSession) {
+        xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, sessionID)
+    }
+    check(
+        replyCode(busyReply) == .sessionBusy
+            && busyReply.flatMap { xpc_dictionary_get_string($0, iGhostVTWireKey.holder) }.map { String(cString: $0) } == "Phone",
+        "an attach without takeover is busy and names the holder",
+    )
+    check(
+        replyCode(request(supervisor, from: second, .detachSession) {
+            xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, sessionID)
+        }) == .success,
+        "the device lets go",
+    )
+    check(
+        waitUntil { watcher.holders(of: .sessionReleased, sessionID: sessionID) == ["Phone"] },
+        "the watcher hears the session is free",
+    )
+    check(
+        replyCode(request(supervisor, from: peer, .attachSession) {
+            xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, sessionID)
+        }) == .success,
+        "and the first peer attaches it again",
+    )
+    let deviceOpened = request(supervisor, from: second, .openSession) {
+        xpc_dictionary_set_string($0, iGhostVTWireKey.holder, "Phone")
+        xpc_dictionary_set_uint64($0, iGhostVTWireKey.columns, 80)
+        xpc_dictionary_set_uint64($0, iGhostVTWireKey.rows, 24)
+    }
+    let deviceSessionID = deviceOpened.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.sessionID) } ?? 0
+    check(replyCode(deviceOpened) == .success && deviceSessionID > 0, "a session opens for a device")
+    check(
+        waitUntil { watcher.holders(of: .sessionOpened, sessionID: deviceSessionID) == ["Phone"] },
+        "the watcher hears of it",
+    )
+    check(
+        replyCode(request(supervisor, from: second, .closeSession) {
+            xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, deviceSessionID)
+        }) == .success,
+        "the device ends it",
+    )
+    check(
+        waitUntil { watcher.exitCode(of: deviceSessionID) != nil },
+        "the watcher hears it ended, holding nothing",
+    )
+    check(
+        watcher.holders(of: .sessionReleased, sessionID: deviceSessionID).isEmpty,
+        "an ended session is not released",
     )
 
     // The CLI's requests hold nothing: a snapshot reads the replay and

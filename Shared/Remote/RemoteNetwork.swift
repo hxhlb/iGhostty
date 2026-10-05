@@ -1,12 +1,20 @@
+import Darwin
 import Network
 
 /// Who a remote-access connection comes from.
 enum RemoteNetwork {
     static func addressDescription(_ endpoint: NWEndpoint) -> String {
         guard case let .hostPort(host, _) = endpoint else { return "\(endpoint)" }
+        return hostDescription(host)
+    }
+
+    /// A host as an address string `NWEndpoint.Host` takes back. An IPv6
+    /// address keeps no interface scope: a remembered link-local address
+    /// would not name the same interface next time.
+    static func hostDescription(_ host: NWEndpoint.Host) -> String {
         switch host {
         case let .ipv4(address): return "\(address)"
-        case let .ipv6(address): return "\(address)"
+        case let .ipv6(address): return "\(address)".split(separator: "%").first.map(String.init) ?? "\(address)"
         case let .name(name, _): return name
         @unknown default: return "\(host)"
         }
@@ -32,6 +40,31 @@ enum RemoteNetwork {
         default:
             return false
         }
+    }
+
+    /// This device's address on the local network, as the others reach it:
+    /// the first private IPv4 of an interface that is up — Wi-Fi first.
+    /// Advertised beside the host id, so a list can say which device a
+    /// name is before anyone connects.
+    static func localIPv4() -> String? {
+        var head: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&head) == 0, let head else { return nil }
+        defer { freeifaddrs(head) }
+        var found: [(name: String, address: String)] = []
+        var cursor: UnsafeMutablePointer<ifaddrs>? = head
+        while let entry = cursor?.pointee {
+            defer { cursor = entry.ifa_next }
+            let flags = Int32(entry.ifa_flags)
+            guard flags & IFF_UP != 0, flags & IFF_RUNNING != 0, flags & IFF_LOOPBACK == 0,
+                  let address = entry.ifa_addr, address.pointee.sa_family == UInt8(AF_INET)
+            else { continue }
+            let bytes = address.withMemoryRebound(to: sockaddr_in.self, capacity: 1) {
+                withUnsafeBytes(of: $0.pointee.sin_addr) { [UInt8]($0) }
+            }
+            guard isLocal(ipv4: bytes), bytes[0] != 127, !(bytes[0] == 169 && bytes[1] == 254) else { continue }
+            found.append((String(cString: entry.ifa_name), bytes.map(String.init).joined(separator: ".")))
+        }
+        return (found.first { $0.name == "en0" } ?? found.first)?.address
     }
 
     private static func isLocal(ipv4 bytes: [UInt8]) -> Bool {

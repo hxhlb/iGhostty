@@ -9,20 +9,19 @@ enum RemoteHostName {
             if let name = Host.current().localizedName, !name.isEmpty {
                 return RemoteAccess.sanitizedName(name)
             }
-        #else
-            if let name = mobileGestaltDeviceName(), !name.isEmpty {
+            var buffer = [CChar](repeating: 0, count: 256)
+            if gethostname(&buffer, buffer.count) == 0 {
+                var name = String(cString: buffer)
+                if name.hasSuffix(".local") {
+                    name.removeLast(6)
+                }
                 return RemoteAccess.sanitizedName(name)
             }
+            return "iGhostVT"
+        #else
+            // The owner's name for it, or one that still tells it apart.
+            return RemoteAccess.sanitizedName(DeviceNaming.meaningful(mobileGestaltDeviceName()))
         #endif
-        var buffer = [CChar](repeating: 0, count: 256)
-        if gethostname(&buffer, buffer.count) == 0 {
-            var name = String(cString: buffer)
-            if name.hasSuffix(".local") {
-                name.removeLast(6)
-            }
-            return RemoteAccess.sanitizedName(name)
-        }
-        return "iGhostVT"
     }
 
     #if !os(macOS)

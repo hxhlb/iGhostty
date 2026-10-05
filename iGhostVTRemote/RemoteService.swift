@@ -16,13 +16,22 @@ final class RemoteService {
     )
     private let management: IOChannel
     private(set) var store = RemoteStore.load()
-    let hostName = RemoteHostName.current()
+    private let deviceName = RemoteHostName.current()
+
+    /// What this host is called: the name chosen in the app, or the one
+    /// the owner gave the device.
+    var hostName: String {
+        store.hostName ?? deviceName
+    }
 
     private var listener: NWListener?
     private var listenerGeneration = 0
     private var state: RemoteAccessState = .starting
     private var failureMessage: String?
     private var clients: [ObjectIdentifier: RemoteClient] = [:]
+    /// Device connections that ended still holding terminals, kept for
+    /// `RemoteAccess.reconnectGraceSeconds` (`RemoteClient.linger`).
+    private var lingering: [ObjectIdentifier: RemoteClient] = [:]
     private var anchor: xpc_connection_t?
 
     /// An open pairing window: one code, a few attempts, and the failed
@@ -61,7 +70,22 @@ final class RemoteService {
             RemoteLog.log("starting as uid \(getuid()), host \(store.hostID), \(store.devices.count) paired device(s)")
             connectAnchor()
             startListener()
+            watchAddress()
         }
+    }
+
+    /// The advertised address follows the network: a new one (another
+    /// Wi-Fi, a renewed lease) is advertised again.
+    private var advertisedAddress: String?
+    private let pathMonitor = NWPathMonitor()
+
+    private func watchAddress() {
+        pathMonitor.pathUpdateHandler = { [weak self] _ in
+            guard let self, RemoteNetwork.localIPv4() != advertisedAddress, listener != nil else { return }
+            RemoteLog.log("address changed, advertising again")
+            restartListener()
+        }
+        pathMonitor.start(queue: queue)
     }
 
     // MARK: - The daemon
@@ -97,7 +121,24 @@ final class RemoteService {
 
     // MARK: - Listener
 
-    private func startListener() {
+    /// A new listener for a changed set of keys. The port is still the old
+    /// one's until its cancel completes, so the new one is made then.
+    private func restartListener() {
+        guard let old = listener else {
+            startListener()
+            return
+        }
+        listener = nil
+        listenerGeneration += 1
+        old.stateUpdateHandler = { [weak self] state in
+            if case .cancelled = state {
+                self?.startListener()
+            }
+        }
+        old.cancel()
+    }
+
+    private func startListener(bindAttempt: Int = 0) {
         listener?.cancel()
         listener = nil
         listenerGeneration += 1
@@ -116,6 +157,7 @@ final class RemoteService {
             fail("could not create the listener: \(error)", message: Self.describe(error))
             return
         }
+        advertisedAddress = RemoteNetwork.localIPv4()
         listener.service = NWListener.Service(
             name: hostName,
             type: RemoteAccess.serviceType,
@@ -124,6 +166,7 @@ final class RemoteService {
                 (RemoteAccess.TXTKey.hostID, store.hostID),
                 (RemoteAccess.TXTKey.hostName, hostName),
                 (RemoteAccess.TXTKey.version, RemoteAccess.protocolVersion),
+                (RemoteAccess.TXTKey.address, advertisedAddress ?? ""),
             ]),
         )
         listener.stateUpdateHandler = { [weak self] state in
@@ -134,6 +177,17 @@ final class RemoteService {
                 failureMessage = nil
                 RemoteLog.log("listening on port \(RemoteAccess.port) as \(hostName)")
             case let .failed(error), let .waiting(error):
+                // The port a moment after a restart, or after the helper
+                // was replaced, can still be held by what released it:
+                // asked again shortly, a few times, before it counts.
+                if case let NWError.posix(code) = error, code == .EADDRINUSE, bindAttempt < 20 {
+                    listener.cancel()
+                    queue.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                        guard let self, generation == listenerGeneration else { return }
+                        startListener(bindAttempt: bindAttempt + 1)
+                    }
+                    return
+                }
                 fail("listener: \(error)", message: Self.describe(error))
             default:
                 break
@@ -187,6 +241,23 @@ final class RemoteService {
         client.start()
     }
 
+    /// The connection of `deviceID`, other than `client`, that holds
+    /// `sessionID` — a live one, or one ended moments ago and lingering.
+    func holder(of sessionID: UInt64, deviceID: String, other client: RemoteClient) -> RemoteClient? {
+        (Array(clients.values) + Array(lingering.values)).first {
+            $0 !== client && $0.deviceID == deviceID && $0.holds(sessionID)
+        }
+    }
+
+    func clientLingering(_ client: RemoteClient) {
+        clients.removeValue(forKey: ObjectIdentifier(client))
+        lingering[ObjectIdentifier(client)] = client
+    }
+
+    func lingerEnded(_ client: RemoteClient) {
+        lingering.removeValue(forKey: ObjectIdentifier(client))
+    }
+
     func clientClosed(_ client: RemoteClient) {
         clients.removeValue(forKey: ObjectIdentifier(client))
         if pairing?.activeClient == ObjectIdentifier(client) {
@@ -201,8 +272,8 @@ final class RemoteService {
         store.device(id: id)
     }
 
-    func noteSeen(deviceID: String) {
-        store.markSeen(deviceID: deviceID)
+    func noteSeen(deviceID: String, name: String?) {
+        store.markSeen(deviceID: deviceID, name: name.map(RemoteAccess.sanitizedName))
     }
 
     // MARK: - Pairing
@@ -263,7 +334,7 @@ final class RemoteService {
         RemoteLog.log("paired \(deviceName) (\(deviceID)) from \(client.address)")
         // The listener takes its keys when it is made; the new one has to be
         // among them before the device's first real connection.
-        startListener()
+        restartListener()
         return true
     }
 
@@ -319,10 +390,20 @@ final class RemoteService {
                 for client in clients.values where client.deviceID == deviceID {
                     client.close(reason: "device revoked")
                 }
-                startListener()
+                for client in lingering.values where client.deviceID == deviceID {
+                    client.endLinger()
+                }
+                restartListener()
             } else {
                 code = .invalidRequest
             }
+        case .setHostName:
+            let requested = xpc_dictionary_get_string(message, iGhostVTWireKey.hostName)
+                .map { String(cString: $0).trimmingCharacters(in: .whitespacesAndNewlines) } ?? ""
+            store.setHostName(requested.isEmpty ? nil : RemoteAccess.sanitizedName(requested))
+            RemoteLog.log("host name is now \(hostName)")
+            // The advertisement carries the name.
+            restartListener()
         default:
             code = .invalidRequest
         }
@@ -344,6 +425,11 @@ final class RemoteService {
         xpc_dictionary_set_string(reply, iGhostVTWireKey.hostID, store.hostID)
         xpc_dictionary_set_string(reply, iGhostVTWireKey.hostName, hostName)
         xpc_dictionary_set_uint64(reply, iGhostVTWireKey.port, UInt64(RemoteAccess.port))
+        xpc_dictionary_set_uint64(
+            reply,
+            iGhostVTWireKey.connectedCount,
+            UInt64(clients.values.filter { $0.deviceID != nil }.count),
+        )
         let devices = xpc_array_create(nil, 0)
         for device in store.devices {
             let entry = xpc_dictionary_create(nil, nil, 0)

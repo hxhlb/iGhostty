@@ -11,6 +11,10 @@
 	owns no container and spawns nothing, so it needs none of the app's or
 	the daemon's other keys — and must not have them: it is the one process
 	in this project the network can talk to.
+
+	The one key beyond those: MobileGestalt's protected device name, which
+	the helper advertises and pairs under. Without it the answer is the
+	model ("iPad"), and two devices on one network cannot be told apart.
 -->
 <plist version="1.0">
 <dict>
@@ -19,6 +23,11 @@
 	<key>com.apple.security.exception.mach-lookup.global-name</key>
 	<array>
 		<string>wiki.qaq.ighostvt.service</string>
+	</array>
+	<key>com.apple.private.MobileGestalt.AllowedProtectedKeys</key>
+	<array>
+		<string>UserAssignedDeviceName</string>
+		<string>marketing-name</string>
 	</array>
 </dict>
 </plist>

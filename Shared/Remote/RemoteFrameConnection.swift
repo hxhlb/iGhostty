@@ -27,6 +27,11 @@ final class RemoteFrameConnection: @unchecked Sendable {
     private var buffer: [UInt8] = []
     private var isClosed = false
     private var isReady = false
+    /// `closeWhenFlushed` is waiting for the last sends to leave.
+    private var isDraining = false
+    /// Held while draining: the owner has usually let go by then, and the
+    /// send completions only hold this weakly.
+    private var retainedWhileDraining: RemoteFrameConnection?
 
     init(connection: NWConnection, queue: DispatchQueue) {
         self.connection = connection
@@ -113,7 +118,7 @@ final class RemoteFrameConnection: @unchecked Sendable {
     /// False when the object could not be encoded or the link is gone.
     @discardableResult
     func send(_ kind: IOWire.Kind, tag: UInt64, object: xpc_object_t) -> Bool {
-        guard !isClosed else { return false }
+        guard !isClosed, !isDraining else { return false }
         var payload: [UInt8] = []
         guard IOCodec.encode(object, into: &payload), payload.count <= IOWire.maximumPayloadByteCount else {
             return false
@@ -134,14 +139,35 @@ final class RemoteFrameConnection: @unchecked Sendable {
             onPendingChange?(pendingByteCount)
             if let error {
                 close(reason: "send: \(error)")
+            } else if isDraining, pendingByteCount == 0 {
+                close(reason: "flushed")
             }
         })
         return true
     }
 
+    /// Closes once everything sent so far has left — a cancel would drop
+    /// it, and the last frame is often the one that matters (a close, a
+    /// detach) — or after `timeout`, whichever is first. Nothing more may
+    /// be sent meanwhile, and nothing more is delivered.
+    func closeWhenFlushed(timeout: TimeInterval = 2) {
+        guard !isClosed, !isDraining else { return }
+        guard isReady, pendingByteCount > 0 else {
+            close(reason: "closed")
+            return
+        }
+        isDraining = true
+        retainedWhileDraining = self
+        onFrame = nil
+        queue.asyncAfter(deadline: .now() + timeout) { [weak self] in
+            self?.close(reason: "flush timed out")
+        }
+    }
+
     func close(reason: String) {
         guard !isClosed else { return }
         isClosed = true
+        retainedWhileDraining = nil
         connection.stateUpdateHandler = nil
         connection.cancel()
         let onClosed = onClosed

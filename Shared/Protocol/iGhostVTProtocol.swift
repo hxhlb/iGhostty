@@ -117,9 +117,19 @@ enum iGhostVTProtocol {
 
 /// Client-initiated requests. Each one gets exactly one reply.
 enum iGhostVTOperation: UInt64, Sendable {
+    /// `watchSessions` asks for the session events every watcher gets
+    /// (`sessionOpened`, `sessionReleased`) for as long as the connection
+    /// lasts: the app's one connection that keeps its windows in step with
+    /// what other devices do.
     case hello = 1
     case listSessions = 2
+    /// `holder` names the device the session is opened for (the remote
+    /// helper sets it), and every watcher hears of the session.
     case openSession = 3
+    /// Exclusive: a session held by another peer is `sessionBusy`, with the
+    /// holder's name in `holder` when it has one. `takeover` takes it
+    /// instead — the peer that held it is sent `sessionTaken` and detached.
+    /// `holder` as on `openSession`.
     case attachSession = 4
     case detachSession = 5
     /// `data` typed (or pasted) into the attached session's PTY, in full: the
@@ -189,6 +199,10 @@ enum iGhostVTOperation: UInt64, Sendable {
     case endPairing = 23
     /// `deviceID`: forgets a paired device; its key stops working at once.
     case revokeRemoteDevice = 24
+    /// `hostName`: what this device is called on the others' screens —
+    /// advertised, and named in their lists. Empty goes back to the name
+    /// the owner gave the device in Settings.
+    case setHostName = 25
 
     // Remote access: spoken by the app to `ighostvtd-remote` over the
     // pairing link only (see `RemoteAccess`), never to the daemon.
@@ -223,6 +237,17 @@ enum iGhostVTEvent: UInt64, Sendable {
     /// spellings differ). Also stated once in every open/attach reply, so a
     /// client knows the current state without waiting for a change.
     case processName = 102
+    /// To the peer that held the session: another took it (`takeover`).
+    /// `holder` names who, when it was a device; absent for this device's
+    /// own app. The peer is detached already.
+    case sessionTaken = 103
+    /// To watchers: a session is now held for a device (`holder`) — opened
+    /// for it, or attached by it, from whoever had it — so a window shows
+    /// it as a tab and names the device.
+    case sessionOpened = 104
+    /// To watchers: the device holding a session let go of it — detached,
+    /// or its connection went — and the session lives on, free.
+    case sessionReleased = 105
 }
 
 enum iGhostVTReplyCode: Int64, Sendable {
@@ -313,6 +338,14 @@ enum iGhostVTWireKey {
     /// strings, on that request, in open/attach/snapshot replies, and on
     /// every `listSessions` row.
     static let attributes = "attrs"
+    /// The device a session is held by or opened for: on `openSession` and
+    /// `attachSession` (set by the remote helper), on a `sessionBusy`
+    /// attach reply, on `listSessions` rows, and on the session events.
+    static let holder = "holder"
+    /// On `attachSession`: take the session from whoever holds it.
+    static let takeover = "takeover"
+    /// On `hello`: send this connection the watcher events.
+    static let watchSessions = "watch"
 
     // Remote access.
     static let enabled = "enabled"
@@ -337,6 +370,8 @@ enum iGhostVTWireKey {
     static let lastSeen = "seen"
     static let share = "share"
     static let confirmation = "confirm"
+    /// On `remoteStatus`: paired devices connected right now.
+    static let connectedCount = "connected"
 }
 
 /// The remote helper's state, as `remoteStatus` reports it.

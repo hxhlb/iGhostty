@@ -104,7 +104,7 @@ final class PeerRelay: IOPeer {
     }
 
     private static func isRemoteManagement(_ code: UInt64) -> Bool {
-        (iGhostVTOperation.remoteStatus.rawValue ... iGhostVTOperation.revokeRemoteDevice.rawValue).contains(code)
+        (iGhostVTOperation.remoteStatus.rawValue ... iGhostVTOperation.setHostName.rawValue).contains(code)
     }
 
     // MARK: - IOPeer

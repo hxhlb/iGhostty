@@ -56,6 +56,27 @@ final class PeerSession {
         attachedSessionIDs.remove(sessionID)
     }
 
+    /// Another peer took the session (`takeover`): this one no longer
+    /// holds it, and its client hears so instead of finding its writes
+    /// refused.
+    func deliverTaken(sessionID: UInt64, holder: String?) {
+        attachedSessionIDs.remove(sessionID)
+        deliverSessionEvent(.sessionTaken, sessionID: sessionID, holder: holder)
+    }
+
+    /// The events that carry a session and who holds it, nothing else.
+    func deliverSessionEvent(_ kind: iGhostVTEvent, sessionID: UInt64, holder: String?) {
+        guard isValid else { return }
+        let message = xpc_dictionary_create(nil, nil, 0)
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.version, iGhostVTProtocol.version)
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.event, kind.rawValue)
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.sessionID, sessionID)
+        if let holder {
+            xpc_dictionary_set_string(message, iGhostVTWireKey.holder, holder)
+        }
+        host.send(.event, peer: peerID, tag: 0, message: message)
+    }
+
     /// Event 102: what the session's terminal is doing now. Sent whenever
     /// the session notices a change, and worded exactly as the open and
     /// attach replies word it.
@@ -167,6 +188,9 @@ final class PeerSession {
         switch operation {
         case .hello:
             didHandshake = true
+            if xpc_dictionary_get_bool(message, iGhostVTWireKey.watchSessions) {
+                registry.addWatcher(self)
+            }
             return Outcome(.success)
         case .listSessions:
             return Outcome(listSessions(into: reply))
@@ -199,7 +223,7 @@ final class PeerSession {
             guard registry.isEmpty else { return Outcome(.sessionBusy) }
             DaemonFileLog.log("peer \(peerID) shutdown with nothing held")
             return Outcome(.success, then: .exitProcess)
-        case .remoteStatus, .setRemoteAccess, .beginPairing, .endPairing, .revokeRemoteDevice,
+        case .remoteStatus, .setRemoteAccess, .beginPairing, .endPairing, .revokeRemoteDevice, .setHostName,
              .pairStart, .pairFinish:
             // The proxy's and the remote helper's; none of them reaches
             // here from a client the proxy relays.
@@ -218,6 +242,9 @@ final class PeerSession {
             xpc_dictionary_set_uint64(entry, iGhostVTWireKey.columns, UInt64(summary.columns))
             xpc_dictionary_set_uint64(entry, iGhostVTWireKey.rows, UInt64(summary.rows))
             xpc_dictionary_set_bool(entry, iGhostVTWireKey.isAttached, summary.isAttached)
+            if let holder = summary.holder {
+                xpc_dictionary_set_string(entry, iGhostVTWireKey.holder, holder)
+            }
             Self.setForegroundProcess(
                 name: summary.processName,
                 isShell: summary.isForegroundShell,
@@ -253,6 +280,7 @@ final class PeerSession {
         let inheritDirectoryFrom = optionalUInt64(message, key: iGhostVTWireKey.inheritDirectoryFrom)
         let startDirectory = xpc_dictionary_get_string(message, iGhostVTWireKey.startDirectory)
             .map { String(cString: $0) }
+        let holder = Self.holder(in: message)
 
         DaemonFileLog.log("peer \(peerID) openSession \(columns)x\(rows)")
         do {
@@ -265,7 +293,7 @@ final class PeerSession {
                 inheritDirectoryFrom: inheritDirectoryFrom,
                 startDirectory: startDirectory,
             )
-            _ = try registry.attach(session.id, to: self)
+            _ = try registry.attach(session.id, to: self, holder: holder)
             attachedSessionIDs.insert(session.id)
             if let reply {
                 xpc_dictionary_set_uint64(reply, iGhostVTWireKey.sessionID, session.id)
@@ -302,7 +330,12 @@ final class PeerSession {
     private func attachSession(_ message: xpc_object_t, reply: xpc_object_t?) -> iGhostVTReplyCode {
         let id = xpc_dictionary_get_uint64(message, iGhostVTWireKey.sessionID)
         do {
-            let session = try registry.attach(id, to: self)
+            let session = try registry.attach(
+                id,
+                to: self,
+                holder: Self.holder(in: message),
+                takeover: xpc_dictionary_get_bool(message, iGhostVTWireKey.takeover),
+            )
             attachedSessionIDs.insert(id)
             if let reply {
                 Self.describe(session, into: reply)
@@ -315,6 +348,10 @@ final class PeerSession {
                 "attach session \(id) for peer \(self.peerID) failed: reply code \(code.rawValue)",
             )
             DaemonFileLog.log("attach session \(id) for peer \(peerID) failed: reply code \(code.rawValue)")
+            // Who has it, so the tab can say where its terminal went.
+            if code == .sessionBusy, let reply, let holder = registry.holder(of: id) {
+                xpc_dictionary_set_string(reply, iGhostVTWireKey.holder, holder)
+            }
             return code
         } catch {
             return .operationFailed
@@ -510,11 +547,20 @@ final class PeerSession {
     func invalidate() {
         guard isValid else { return }
         isValid = false
+        registry.removeWatcher(self)
         registry.detachAll(for: self)
         attachedSessionIDs.removeAll()
     }
 
     // MARK: - Wire helpers
+
+    /// The `holder` a request names, capped like a device name; empty is
+    /// none.
+    private static func holder(in message: xpc_object_t) -> String? {
+        guard let value = xpc_dictionary_get_string(message, iGhostVTWireKey.holder) else { return nil }
+        let holder = String(String(cString: value).prefix(64))
+        return holder.isEmpty ? nil : holder
+    }
 
     /// Absent and zero are different things for a session id, so this
     /// distinguishes them where `xpc_dictionary_get_uint64` would not.
