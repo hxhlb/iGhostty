@@ -90,6 +90,9 @@ struct RootView: View {
             guard phase == .active else { return }
             refocus()
         }
+        // The Mac's windows: only the key one's terminal may take the
+        // keyboard, so a window gets it as it comes to the front.
+        .onReceive(interface.didBecomeKey) { refocus() }
         .onChange(of: agent.status) { _ in refocus() }
         .onChange(of: tabManager.closeRequest != nil) { _ in refocus() }
         .onChange(of: tabManager.clipboardRequests.isEmpty) { _ in refocus() }

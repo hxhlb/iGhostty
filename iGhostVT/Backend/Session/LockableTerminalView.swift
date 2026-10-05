@@ -70,6 +70,22 @@ final class LockableTerminalView: TerminalView {
         !isInteractionLocked && super.canBecomeFirstResponder
     }
 
+    #if targetEnvironment(macCatalyst)
+        /// Only the key window's terminal takes the keyboard. Every Mac
+        /// window's scene is active at once, and each window hands its
+        /// focus out on events of its own — its scene turning active, a tab
+        /// whose shell exited, a session reconnecting, the helper's status
+        /// — so a window behind took first responder and the keys left the
+        /// window in front. Refused here, where every path ends (the host's
+        /// `requestFocus`, the focus binding, a click); the window takes it
+        /// back as it becomes key (`TerminalWindow.becomeKey`).
+        @discardableResult
+        override func becomeFirstResponder() -> Bool {
+            guard window?.isKeyWindow == true else { return false }
+            return super.becomeFirstResponder()
+        }
+    #endif
+
     override var inputView: UIView? {
         isSoftwareKeyboardLocked ? suppressedInputView : super.inputView
     }

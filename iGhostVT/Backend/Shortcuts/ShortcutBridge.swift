@@ -27,13 +27,26 @@ enum ShortcutBridge {
     }
 
     private static func rank(_ scene: UIWindowScene) -> Int {
-        switch scene.activationState {
-        case .foregroundActive: 0
-        case .foregroundInactive: 1
-        case .background: 2
-        case .unattached: 3
-        @unknown default: 4
+        if isFrontmost(scene) {
+            return 0
         }
+        switch scene.activationState {
+        case .foregroundActive: return 1
+        case .foregroundInactive: return 2
+        case .background: return 3
+        case .unattached: return 4
+        @unknown default: return 5
+        }
+    }
+
+    /// Whether `scene` is the window in front. Every window on a Mac screen
+    /// is `foregroundActive` at once; the one in front is the key window.
+    private static func isFrontmost(_ scene: UIWindowScene) -> Bool {
+        #if targetEnvironment(macCatalyst)
+            scene.keyWindow?.isKeyWindow == true
+        #else
+            scene.activationState == .foregroundActive
+        #endif
     }
 
     /// The frontmost window, waiting briefly for one to exist.
@@ -67,7 +80,7 @@ enum ShortcutBridge {
     static func showSession(_ sessionID: UInt64) async throws -> TerminalTab {
         if let (manager, tab) = tab(for: sessionID) {
             manager.activate(tab)
-            if let scene = manager.windowScene, scene.activationState != .foregroundActive {
+            if let scene = manager.windowScene, !isFrontmost(scene) {
                 UIApplication.shared.requestSceneSessionActivation(
                     scene.session,
                     userActivity: nil,

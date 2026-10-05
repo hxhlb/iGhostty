@@ -13,6 +13,9 @@ import UIKit
 final class WindowInterfaceState: ObservableObject {
     @Published var showsSwitcher = false
     @Published var showsSettingsSheet = false
+    /// The window just became key — on the Mac, came to the front — and its
+    /// terminal may take the keyboard again. Sent on the Mac only.
+    let didBecomeKey = PassthroughSubject<Void, Never>()
 }
 
 /// The sidebar's visibility, a UserDefaults value so a menu command can flip
@@ -49,6 +52,16 @@ final class TerminalWindow: UIWindow, AppCommandResponder {
     required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    #if targetEnvironment(macCatalyst)
+        /// A terminal behind the key window refuses first responder
+        /// (`LockableTerminalView`), so a window coming forward is when its
+        /// active tab gets the keyboard back.
+        override func becomeKey() {
+            super.becomeKey()
+            interface.didBecomeKey.send()
+        }
+    #endif
 
     /// Opens a new window scene (its own `TabManager`) on devices that
     /// support multiple scenes; no-op elsewhere.

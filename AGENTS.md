@@ -582,6 +582,17 @@ resigned when the user tapped it away. A tap on the new terminal still
 toggles it. Catalyst always hands focus over — there is no software
 keyboard.
 
+On the Mac only the key window takes first responder. Every window's
+scene is `foregroundActive` at once, and each window hands focus out on
+events of its own — its scene turning active, a tab whose shell exited, a
+reconnect, the helper's status, a program's clipboard request — so a
+window behind used to take the keyboard from the one being typed in (and
+Return could answer its clipboard card, whose default is Allow).
+`LockableTerminalView.becomeFirstResponder` and the alert card's claim
+refuse outside the key window; `TerminalWindow.becomeKey` hands the active
+tab its focus back as the window comes forward. "Frontmost" on the Mac is
+the key window, never `activationState` (`ShortcutBridge`).
+
 Every keyboard shortcut is a `UIKeyCommand` in the main menu — `AppMenus`,
 installed from `AppDelegate.buildMenu` — never a SwiftUI `keyboardShortcut`.
 The chords themselves are `KeyShortcuts.all`, one list read by three

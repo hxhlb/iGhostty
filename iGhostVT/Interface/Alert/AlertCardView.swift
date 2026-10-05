@@ -168,18 +168,50 @@ private struct AlertFirstResponder: UIViewRepresentable {
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
+            #if targetEnvironment(macCatalyst)
+                let center = NotificationCenter.default
+                center.removeObserver(self, name: UIWindow.didBecomeKeyNotification, object: nil)
+                if let window {
+                    center.addObserver(
+                        self,
+                        selector: #selector(windowDidBecomeKey),
+                        name: UIWindow.didBecomeKeyNotification,
+                        object: window,
+                    )
+                }
+            #endif
             if window != nil {
                 claimIfNeeded()
             }
         }
 
         func claimIfNeeded() {
-            guard wantsFirstResponder, !isFirstResponder, isInFrontmostPresentation else { return }
+            guard wantsFirstResponder, !isFirstResponder, isInFrontmostPresentation, isInKeyWindow else { return }
             DispatchQueue.main.async { [weak self] in
-                guard let self, wantsFirstResponder, isInFrontmostPresentation else { return }
+                guard let self, wantsFirstResponder, isInFrontmostPresentation, isInKeyWindow else { return }
                 _ = becomeFirstResponder()
             }
         }
+
+        /// On the Mac, whether the card's window is the key one. A card in a
+        /// window behind — a program there asking for the clipboard, a
+        /// session there failing, the helper's card in every window — must
+        /// not take the keyboard from the window being typed in, where
+        /// Return would then answer it. It claims as its window comes
+        /// forward.
+        private var isInKeyWindow: Bool {
+            #if targetEnvironment(macCatalyst)
+                window?.isKeyWindow == true
+            #else
+                true
+            #endif
+        }
+
+        #if targetEnvironment(macCatalyst)
+            @objc private func windowDidBecomeKey() {
+                claimIfNeeded()
+            }
+        #endif
 
         /// Whether nothing is presented above this card. An inline card stays
         /// mounted under a modal — the close confirmation its own button
