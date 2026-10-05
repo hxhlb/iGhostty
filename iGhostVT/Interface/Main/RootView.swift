@@ -282,6 +282,11 @@ private struct TerminalPane: View {
     let onLockChange: () -> Void
     let onStatusChange: (TerminalSessionStore.Status) -> Void
 
+    /// The lock the caption is naming right now; nil once it has faded.
+    @State private var announcedLock: TabLock?
+    /// Bumped per announcement, so only the newest one's timer clears it.
+    @State private var announcement = 0
+
     var body: some View {
         TerminalSurfaceView(context: tab.terminal)
             .terminalFocused(focusedTabID, equals: tab.id)
@@ -292,8 +297,12 @@ private struct TerminalPane: View {
                     onCloseTab: onCloseTab,
                 )
             }
+            // Said once, as the lock changes: the padlock on the tab's own
+            // label (strip chip, title capsule, sidebar row) is what stays.
+            // A caption left over the surface covered the terminal's first
+            // rows for as long as the tab was locked.
             .overlay(alignment: .topTrailing) {
-                if let lock = attributes.lock {
+                if let lock = announcedLock {
                     HStack(spacing: DS.Padding.xs) {
                         TabLockBadge(lock: lock, font: DS.Font.caption)
                         Text(lock.badgeTitle)
@@ -317,7 +326,10 @@ private struct TerminalPane: View {
             // input path closes in one place while output keeps rendering.
             .allowsHitTesting(isActive)
             .accessibilityHidden(!isActive)
-            .onChange(of: attributes.lock) { _ in onLockChange() }
+            .onChange(of: attributes.lock) { lock in
+                announce(lock)
+                onLockChange()
+            }
             // The active pane's only: a background tab's shell exiting
             // would otherwise hand the front tab's terminal first responder
             // — and the software keyboard with it — for nothing the user did.
@@ -326,6 +338,19 @@ private struct TerminalPane: View {
                     onStatusChange(status)
                 }
             }
+    }
+
+    /// Shows the caption for a newly set lock and fades it after a moment;
+    /// an unlock takes it down at once.
+    private func announce(_ lock: TabLock?) {
+        announcement += 1
+        let current = announcement
+        withAnimation(DS.Motion.smooth) { announcedLock = lock }
+        guard lock != nil else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            guard announcement == current else { return }
+            withAnimation(DS.Motion.smooth) { announcedLock = nil }
+        }
     }
 }
 

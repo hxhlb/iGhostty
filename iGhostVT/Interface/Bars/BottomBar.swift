@@ -128,6 +128,7 @@ private struct TitleCapsule: View {
 
     var body: some View {
         HStack(spacing: DS.Padding.s) {
+            ObservedTabLockBadge(attributes: tab.attributes)
             ObservedTabTitle(tab: tab)
             ObservedTabSubtitle(tab: tab)
         }
