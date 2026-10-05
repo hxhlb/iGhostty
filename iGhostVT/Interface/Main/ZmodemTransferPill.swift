@@ -50,7 +50,7 @@ struct ZmodemTransferPill: View {
                     .progressViewStyle(.linear)
             }
         case .done:
-            Text(info.direction == .download ? "Saved" : "Sent")
+            Text(info.direction == .download ? String(localized: "Saved") : String(localized: "Sent"))
                 .font(DS.Font.detail)
                 .foregroundStyle(.secondary)
         case .cancelled:

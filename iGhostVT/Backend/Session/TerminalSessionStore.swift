@@ -341,11 +341,13 @@ final class TerminalSessionStore: ObservableObject {
                 }
                 return
             }
-            if case .state(.disconnected) = event {
+            // A transfer cannot outlive the link it ran on — nor a session
+            // another device just took, whose bytes now go there.
+            switch event {
+            case .state(.disconnected), .state(.interrupted), .state(.heldElsewhere):
                 engine?.reset()
-            }
-            if case .state(.interrupted) = event {
-                engine?.reset()
+            default:
+                break
             }
             // Sized here, on the transport's own queue and before the hop
             // to the main actor: the newest grid has to reach the session
