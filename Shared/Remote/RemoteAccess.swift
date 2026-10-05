@@ -55,6 +55,12 @@ enum RemoteAccess {
     static let handshakeTimeoutSeconds: TimeInterval = 10
     /// Connections not yet past their first frame, at once.
     static let maximumUnauthenticatedConnections = 4
+    /// The largest frame a connection may send before it has proved a
+    /// device key. `hello`, `pairStart` and `pairFinish` are a few hundred
+    /// bytes; the pairing key is public, so anyone on the network gets this
+    /// far, and a full-size frame of empty containers decodes to hundreds
+    /// of thousands of XPC objects before anything looks at it.
+    static let maximumUnauthenticatedPayloadByteCount = 16 * 1024
     /// How long a device connection that ended without letting go of its
     /// terminals keeps holding them — long enough for a phone that locked
     /// or lost Wi-Fi for a moment to reconnect and pick them up again

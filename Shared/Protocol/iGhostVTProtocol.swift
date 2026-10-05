@@ -106,13 +106,6 @@ enum iGhostVTProtocol {
     static var rotatedDaemonLogPath: String {
         daemonLogPath + ".1"
     }
-
-    /// Present when remote access is on — the switch itself, read by the
-    /// proxy at launch. Beside the daemon log, like the session-id store.
-    static var remoteAccessFlagPath: String {
-        let log = daemonLogPath
-        return String(log[..<(log.lastIndex(of: "/") ?? log.startIndex)]) + "/ighostvtd.remote-access"
-    }
 }
 
 /// Client-initiated requests. Each one gets exactly one reply.
@@ -190,8 +183,8 @@ enum iGhostVTOperation: UInt64, Sendable {
     /// `enabled` and `remoteState` alone.
     case remoteStatus = 20
     /// `enabled`: turns remote access on or off. The proxy keeps the switch
-    /// as a file beside the daemon log (`remoteAccessFlagPath`) — that file
-    /// is what a launch reads — and starts or stops the helper.
+    /// as a file only it can write (`RemoteSupervisor.flagPath`) — that
+    /// file is what a launch reads — and starts or stops the helper.
     case setRemoteAccess = 21
     /// Opens the pairing window and answers with its `pairingCode` and
     /// `pairingExpiresAt`. Opening it again issues a new code.

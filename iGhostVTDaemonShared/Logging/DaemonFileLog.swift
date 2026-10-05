@@ -7,7 +7,9 @@ import Dispatch
 /// every bootstrap, and the daemon is exactly the process that needs a post-
 /// mortem trail when the app can only say "connection lost". The file lives
 /// in mobile's Logs so it is writable whether the daemon runs as root or as
-/// mobile, and readable over ssh without elevation.
+/// mobile, and readable over ssh without elevation. That directory is
+/// mobile's to change, so root opens the file through `ConfinedFile` and
+/// never by its path.
 ///
 /// Both `ighostvtd` and `ighostvtd-io` write here; each line names its
 /// process. No Foundation on purpose: the proxy lives under a 6 MB jetsam
@@ -30,7 +32,7 @@ enum DaemonFileLog {
         return iGhostVTProtocol.daemonLogPath
     }()
 
-    private static let rotatedPath = path + ".1"
+    private static let location = ConfinedFile.split(path)
     private static let rotateAtBytes = 512 * 1024
     private static let queue = DispatchQueue(
         label: "wiki.qaq.ighostvt.daemon.filelog",
@@ -38,16 +40,9 @@ enum DaemonFileLog {
     )
     private static let processName = String(cString: getprogname())
 
-    /// mobile's Library/Logs does not exist until someone makes it. `path` is
-    /// always absolute, so everything before the last slash is its directory.
-    private static let directoryReady: Void = makeDirectory(
-        String(path[..<(path.lastIndex(of: "/") ?? path.startIndex)]),
-    )
-
     static func log(_ message: String) {
-        let line = "\(timestamp()) [\(getpid()) \(processName)] \(message)\n"
+        let line = "\(timestamp()) [\(getpid()) \(processName)] \(singleLine(message))\n"
         queue.async {
-            _ = directoryReady
             let descriptor = openForAppend()
             guard descriptor >= 0 else { return }
             defer { close(descriptor) }
@@ -77,15 +72,15 @@ enum DaemonFileLog {
         return String(cString: buffer) + "." + padding + String(millis)
     }
 
-    /// `mkdir -p`: every missing component, existing ones left alone.
-    private static func makeDirectory(_ path: String) {
-        var current = ""
-        for component in path.split(separator: "/") {
-            current += "/" + component
-            if mkdir(current, 0o755) != 0, errno != EEXIST {
-                return
-            }
+    /// A message is one line whatever it quotes: a refused client's path
+    /// is the caller's to choose, and a newline in it would forge a line of
+    /// its own.
+    private static func singleLine(_ message: String) -> String {
+        var scalars = String.UnicodeScalarView()
+        for scalar in message.unicodeScalars {
+            scalars.append(scalar.value < 0x20 || scalar.value == 0x7F ? "?" : scalar)
         }
+        return String(scalars)
     }
 
     /// The log, open for appending and rotated first when it is over size.
@@ -97,21 +92,27 @@ enum DaemonFileLog {
     /// another's rename finds the path naming a fresh file and reopens it
     /// rather than renaming that fresh file over the history.
     private static func openForAppend() -> Int32 {
-        let flags = O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC
-        var descriptor = open(path, flags, 0o644)
+        guard let (directoryPath, name) = location else { return -1 }
+        let directory = ConfinedFile.openDirectory(directoryPath)
+        guard directory >= 0 else { return -1 }
+        defer { close(directory) }
+        let flags = O_WRONLY | O_APPEND | O_CREAT
+        var descriptor = ConfinedFile.open(name, in: directory, flags: flags)
         var attempts = 0
         while descriptor >= 0, attempts < 3 {
             attempts += 1
             _ = flock(descriptor, LOCK_EX)
             var held = stat()
             var named = stat()
-            guard fstat(descriptor, &held) == 0, stat(path, &named) == 0 else { break }
+            guard fstat(descriptor, &held) == 0, fstatat(directory, name, &named, AT_SYMLINK_NOFOLLOW) == 0 else {
+                break
+            }
             if held.st_ino == named.st_ino {
                 guard held.st_size > rotateAtBytes else { break }
-                _ = rename(path, rotatedPath)
+                _ = renameat(directory, name, directory, name + ".1")
             }
             close(descriptor)
-            descriptor = open(path, flags, 0o644)
+            descriptor = ConfinedFile.open(name, in: directory, flags: flags)
         }
         return descriptor
     }

@@ -31,4 +31,9 @@ if [ "${1:-}" = remove ] || [ "${1:-}" = purge ]; then
     fi
 fi
 
+# The remote-access switch, which the daemon made; dpkg does not know it.
+if [ "${1:-}" = purge ]; then
+    rm -rf "@PREFIX@/var/lib/ighostvt"
+fi
+
 exit 0

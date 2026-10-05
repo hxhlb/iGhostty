@@ -60,14 +60,8 @@ struct SessionIDReservation {
     /// Raises the stored value to at least `value` and returns what is stored
     /// afterwards; nil when the file is out of reach.
     private static func update(path: String, atLeast value: UInt64) -> UInt64? {
-        var descriptor = open(path, O_RDWR | O_CREAT | O_CLOEXEC, 0o644)
-        if descriptor < 0, errno == ENOENT {
-            // mobile's Logs does not exist until someone makes it; the log
-            // makes it the same way, and either may come first.
-            let directory = String(path[..<(path.lastIndex(of: "/") ?? path.startIndex)])
-            mkdir(directory, 0o755)
-            descriptor = open(path, O_RDWR | O_CREAT | O_CLOEXEC, 0o644)
-        }
+        // mobile's Logs: mobile's to change, and this is root writing in it.
+        let descriptor = ConfinedFile.open(path, flags: O_RDWR | O_CREAT)
         guard descriptor >= 0 else { return nil }
         defer { close(descriptor) }
         guard flock(descriptor, LOCK_EX) == 0 else { return nil }

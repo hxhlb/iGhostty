@@ -4,8 +4,7 @@ import XPC
 
 /// Owns `ighostvtd-remote`, the remote-access helper, while the switch is on.
 ///
-/// The switch is a file (`iGhostVTProtocol.remoteAccessFlagPath`): present
-/// means on. The proxy reads it at launch — `RunAtLoad` is what brings the
+/// The switch is a file (`flagPath`): present means on. The proxy reads it at launch — `RunAtLoad` is what brings the
 /// helper up after a boot or a login — and `setRemoteAccess` writes or
 /// removes it and starts or stops the helper. The helper is spawned beside
 /// this executable with a management socket on descriptor 3, the same
@@ -42,8 +41,42 @@ final class RemoteSupervisor {
         self.executablePath = executablePath
     }
 
+    /// The switch. On the device it is the bootstrap's, in a directory only
+    /// root can write: it sat beside the daemon log once, in mobile's Logs,
+    /// where any mobile process could turn a network listener on with a
+    /// `touch`. On the Mac the daemon is the user's own agent, and the
+    /// user's Logs is no less theirs than the switch.
+    static let flagPath: String = {
+        #if os(macOS)
+            let log = iGhostVTProtocol.daemonLogPath
+            return String(log[..<(log.lastIndex(of: "/") ?? log.startIndex)]) + "/ighostvtd.remote-access"
+        #else
+            return RuntimeEnvironment.resolve(RuntimeEnvironment.bootstrapPath("/var/lib/ighostvt/remote-access"))
+        #endif
+    }()
+
     var isEnabled: Bool {
-        access(iGhostVTProtocol.remoteAccessFlagPath, F_OK) == 0
+        guard let directory = Self.openFlagDirectory() else { return false }
+        defer { close(directory) }
+        var info = stat()
+        return fstatat(directory, Self.flagName, &info, AT_SYMLINK_NOFOLLOW) == 0
+    }
+
+    private static let flagName = ConfinedFile.split(flagPath)?.name ?? ""
+
+    /// The switch's directory, made if missing, and only while nobody but
+    /// this process's user can change it — a switch anyone else could have
+    /// created is no switch.
+    private static func openFlagDirectory() -> Int32? {
+        guard let (path, _) = ConfinedFile.split(flagPath) else { return nil }
+        let directory = ConfinedFile.openDirectory(path)
+        guard directory >= 0 else { return nil }
+        guard ConfinedFile.isPrivate(directory) else {
+            close(directory)
+            DaemonFileLog.log("remote access: \(path) is writable by others, so the switch reads off")
+            return nil
+        }
+        return directory
     }
 
     /// The helper's pid until it is reaped — which is also how long the
@@ -109,18 +142,23 @@ final class RemoteSupervisor {
     }
 
     private func setEnabled(_ enabled: Bool) {
-        let path = iGhostVTProtocol.remoteAccessFlagPath
+        let directory = Self.openFlagDirectory()
+        defer { directory.map { _ = close($0) } }
         if enabled {
-            let descriptor = open(path, O_WRONLY | O_CREAT | O_CLOEXEC, 0o644)
-            if descriptor >= 0 {
-                close(descriptor)
+            if let directory {
+                let descriptor = ConfinedFile.open(Self.flagName, in: directory, flags: O_WRONLY | O_CREAT)
+                if descriptor >= 0 {
+                    close(descriptor)
+                }
             }
             DaemonFileLog.log("remote access turned on")
             if channel == nil {
                 spawnOrRetry()
             }
         } else {
-            unlink(path)
+            if let directory {
+                unlinkat(directory, Self.flagName, 0)
+            }
             DaemonFileLog.log("remote access turned off")
             stop()
         }

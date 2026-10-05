@@ -23,6 +23,10 @@ final class RemoteFrameConnection: @unchecked Sendable {
     /// `pendingByteCount` changed.
     var onPendingChange: ((Int) -> Void)?
 
+    /// The largest payload a received frame may carry; a header announcing
+    /// more ends the connection before any of it is buffered or decoded.
+    /// Raise it once the other end is trusted with more.
+    var maximumPayloadByteCount = IOWire.maximumPayloadByteCount
     private(set) var pendingByteCount = 0
     private var buffer: [UInt8] = []
     private var isClosed = false
@@ -95,6 +99,10 @@ final class RemoteFrameConnection: @unchecked Sendable {
             }
             guard let header else {
                 close(reason: "unreadable frame header")
+                return false
+            }
+            guard header.payloadByteCount <= maximumPayloadByteCount else {
+                close(reason: "a \(header.payloadByteCount)-byte frame, over the \(maximumPayloadByteCount) allowed")
                 return false
             }
             let end = offset + IOWire.headerByteCount + header.payloadByteCount

@@ -76,6 +76,7 @@ final class RemoteClient {
     }
 
     func start() {
+        frames.maximumPayloadByteCount = RemoteAccess.maximumUnauthenticatedPayloadByteCount
         frames.onFrame = { [weak self] header, object in
             self?.handle(header, object)
         }
@@ -228,6 +229,7 @@ final class RemoteClient {
             return
         }
         mode = .session(deviceID: deviceID)
+        frames.maximumPayloadByteCount = IOWire.maximumPayloadByteCount
         self.daemon = daemon
         service.noteSeen(
             deviceID: deviceID,

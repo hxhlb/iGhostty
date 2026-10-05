@@ -146,7 +146,16 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
         func resolve(stagingIn directory: URL) async -> Resolved? {
             #if targetEnvironment(macCatalyst)
                 if hasFileURL || fileType != nil, let path = await inPlacePath() {
-                    return .path(path)
+                    guard TerminalDropDelegate.containsControlCharacter(path) else {
+                        return .path(path)
+                    }
+                    // A newline or an escape in a file's name is a keystroke
+                    // at the prompt, and no backslash neutralises it. Such a
+                    // file goes through a staged copy, whose name is cleaned,
+                    // and pastes nothing when it cannot be copied.
+                    AppLog.warning(.drop, "drop: a control character in the item's path, staging a copy")
+                    guard let fileType else { return nil }
+                    return await stagedCopy(of: fileType, in: directory).map(Resolved.path)
                 }
             #endif
             if let fileType {
@@ -358,7 +367,7 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
             let fallback = type.conforms(to: .image) ? "image" : type.conforms(to: .directory) ? "folder" : "file"
             let raw = (suggested?.isEmpty == false ? suggested : nil) ?? fallback
             let safe = String(
-                raw.map { $0 == "/" || $0.isNewline || $0.asciiValue.map { $0 < 0x20 } == true ? "_" : $0 },
+                raw.map { $0 == "/" || $0.isNewline || TerminalDropDelegate.containsControlCharacter(String($0)) ? "_" : $0 },
             )
             guard !type.conforms(to: .directory),
                   !extensionMatches((safe as NSString).pathExtension, type),
@@ -422,6 +431,11 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
             }
             return candidate
         }
+    }
+
+    /// A C0 or C1 control, or DEL: what the shell escape cannot make inert.
+    nonisolated static func containsControlCharacter(_ path: String) -> Bool {
+        path.unicodeScalars.contains { $0.value < 0x20 || (0x7F ... 0x9F).contains($0.value) }
     }
 
     /// Backslash-escapes what a POSIX shell would otherwise read as syntax.

@@ -934,6 +934,14 @@ Gotchas that bit us:
   guaranteed — waiting for a reply per chunk would only pace every paste at a
   round trip. The harness proves both halves (26 KB byte-for-byte through a
   raw-mode `cat`, and a chunked paste through the real proxy).
+- **Root never opens a file in mobile's directories by its path.** The log
+  and the session-id store live in `/var/mobile/Library/Logs`, which mobile
+  owns, and a plain `open(O_CREAT)` there followed whatever mobile left at
+  the name — a symlink to `sudoers` was truncated as root. Every such open
+  goes through `ConfinedFile` (no untrusted symlink on the way, `O_NOFOLLOW`,
+  a plain file this process owns with one link), and anything whose mere
+  presence is a decision — the remote-access switch — lives in a directory
+  only root can write (`<bootstrap>/var/lib/ighostvt`), never beside the log.
 - A shell inherits both the daemon's resource limits and every descriptor
   that survives `execve`. Keep an explicit launchd `NumberOfFiles` soft limit
   sized for user workloads, and mark every daemon-owned session descriptor

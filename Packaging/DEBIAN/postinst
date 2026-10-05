@@ -30,6 +30,26 @@ if killall="$(find_tool killall)"; then
     "$killall" -9 iGhostVT 2>/dev/null || true
 fi
 
+# Up to 1.3.0 the remote-access switch was a file in mobile's Logs, where any
+# mobile process could create it; the daemon now keeps it where only root can
+# write. Carried over once, from an upgrade off a version that wrote it there
+# — never again, since by then a file at the old name is nobody's switch.
+# roothide's tools see iOS's /var at /rootfs.
+remote_access_dir="@PREFIX@/var/lib/ighostvt"
+if [ "${1:-}" = configure ] && [ -n "${2:-}" ] &&
+    dpkg="$(find_tool dpkg)" && "$dpkg" --compare-versions "$2" le 1.3.0; then
+    for old_switch in /rootfs/var/mobile/Library/Logs/ighostvtd.remote-access \
+        /var/mobile/Library/Logs/ighostvtd.remote-access; do
+        if [ -f "$old_switch" ]; then
+            mkdir -p "$remote_access_dir" &&
+                chmod 0755 "$remote_access_dir" &&
+                : >"$remote_access_dir/remote-access"
+            rm -f "$old_switch"
+            break
+        fi
+    done
+fi
+
 if launchctl="$(find_tool launchctl)"; then
     # roothide's launchctl lands jbroot daemons in the per-user domain even
     # when asked for system, so an upgrade that only boots out system/ leaves
