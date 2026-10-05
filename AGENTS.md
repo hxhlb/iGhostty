@@ -300,13 +300,25 @@ launch, and with Keep Alive off everything goes. The kills travel over one
 blocking one-shot connection (`XPCDaemonTransport.closeSessionsForQuit`) —
 not the tabs' transports, whose `closeSession` is fire-and-forget on a queue
 the exit outruns — and the call polls `listSessions` until the closed
-sessions are gone, because a close reply only says the SIGHUP was sent. If
-that leaves the daemon holding nothing, the Mac build sends `shutdown` and
-the launch agent exits; the daemon's only part in this is a `registry.isEmpty`
-guard on that one request. Its plist's `KeepAlive` is `{SuccessfulExit =
-false}` for exactly this: a crash restarts, the asked-for exit stands, and
-`MachServices` demand-launches it the next time the app connects. The device
-LaunchDaemon keeps `KeepAlive = true` and is never asked.
+sessions are gone, because a close reply only says the SIGHUP was sent.
+
+The app never asks the daemon to exit. **The daemon is demand-launched on
+both platforms and leaves by itself**: `IOSupervisor` arms a timer whenever
+no peer is connected (`idleExitDelay`, 30 s) and, when it fires, sends the
+child a `shutdown` under its own reserved peer id (`supervisorPeerID`). The
+child's `registry.isEmpty` guard refuses while a session is held — the
+question is asked again a delay later, which is how the last shell exiting
+is noticed — and grants it otherwise; the child exits 0 and the proxy
+follows. A peer registering while that answer is in flight takes the exit
+back (the child goes, a fresh one is spawned, the proxy stays); the client
+is cut and reconnects as after any interruption. Both plists say
+`RunAtLoad` + `KeepAlive = {SuccessfulExit = false}` + `MachServices`: a
+crash restarts, the idle exit stands, the next lookup demand-launches, and
+`make check` holds both to it. While remote access is on,
+`ighostvtd-remote` keeps one connection open for as long as it runs, so the
+daemon is resident exactly as long as the switch is on — the daemon itself
+knows nothing about it. `shutdown` stays in the protocol for any client
+that wants the same exit sooner.
 
 The open request has two shapes and two keys. `cmd` is an argv run
 verbatim — an absolute, executable path plus arguments, up to
@@ -652,7 +664,8 @@ the catalog's generated symbols, which is why the menu's entry is keyed
   (`make harness` builds `ighostvtd-io` and
   spawns it as the proxy's child over a real socket, then drives the whole
   stack — the codec, a session's lifecycle, output routing, the flow-control
-  pause and peer-cut, an io crash → respawn, and the shutdown-follow — plus
+  pause and peer-cut, an io crash → respawn, the shutdown-follow, and the
+  idle exit — plus
   the daemon's spawn path; launchd and the mach service are the only
   device-only parts)
 - `make deb` — unsigned iphoneos build, ldid ad-hoc sign, roothide

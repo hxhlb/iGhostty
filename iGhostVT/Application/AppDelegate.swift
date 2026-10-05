@@ -90,17 +90,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     /// terminal staged for pastes and drops go with the last shell that
     /// could refer to them.
     ///
-    /// When that leaves the daemon holding nothing, the Mac asks its launch
-    /// agent to exit as well; launchd starts it again on the next launch.
-    /// The device daemon is kept alive by launchd whatever it does, so it is
-    /// never asked.
+    /// The daemon's own exit is not asked for: once nothing is connected
+    /// and nothing is held it leaves by itself, on both platforms.
     func applicationWillTerminate(_ application: UIApplication) {
         GhosttyAppConfiguration.removeTemporaryFiles()
-        #if targetEnvironment(macCatalyst)
-            let stopDaemon = true
-        #else
-            let stopDaemon = false
-        #endif
         if SessionKeepAlive.isEnabled {
             let idle = application.connectedScenes
                 .compactMap { ($0.delegate as? SceneDelegate)?.tabManager }
@@ -108,10 +101,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                 .filter { !$0.hasRunningProgram }
                 .compactMap(\.daemonSessionID)
             AppLog.info(.tabs, "quitting, killing idle sessions \(idle), keeping the rest")
-            XPCDaemonTransport.closeSessionsForQuit(idle, stopDaemonWhenEmpty: stopDaemon)
+            XPCDaemonTransport.closeSessionsForQuit(idle)
         } else {
             AppLog.info(.tabs, "quitting with Keep Alive off, killing every session")
-            XPCDaemonTransport.closeSessionsForQuit(nil, stopDaemonWhenEmpty: stopDaemon)
+            XPCDaemonTransport.closeSessionsForQuit(nil)
             TerminalFileStaging.removeAllFiles()
         }
     }

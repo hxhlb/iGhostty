@@ -22,13 +22,14 @@
 	looking for what asked to run in the background finds something they
 	recognise.
 
-	RunAtLoad mirrors the device LaunchDaemon and the harness agent:
-	sessions outlive the app on purpose, so the process that owns the PTYs
-	must not exit when the last client disconnects. KeepAlive is narrower
-	than the device's: a crash is restarted, a successful exit is not. That
-	exit is the one the app asks for as it quits with nothing left running
-	(the `shutdown` request, AppDelegate.applicationWillTerminate), so a
-	closed iGhostVT leaves no helper behind. MachServices is what brings it
+	RunAtLoad mirrors the device LaunchDaemon and the harness agent: at
+	login it starts the remote helper if remote access is on. KeepAlive is
+	the device's too: a crash is restarted, a successful exit is not. That
+	exit is the daemon's own, taken once no client has been connected for a
+	while and no session is held (IOSupervisor's idle exit), so a closed
+	iGhostVT leaves no helper behind unless sessions or remote access keep
+	it. Sessions still outlive the app: the daemon holding one never
+	leaves. MachServices is what brings it
 	back — the next launch's first message demand-launches the job — and is
 	the port the app looks the daemon up on either way.
 -->

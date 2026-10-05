@@ -48,7 +48,17 @@ protocol IOPeer: AnyObject {
 /// The child dying fails every pending reply, cuts every peer (their
 /// sessions died with the child, and a reconnect is how the app finds out),
 /// and respawns it, paced so a crash loop does not become a spin. An exit of
-/// 0 after a forwarded `shutdown` is the one exit that is ours to follow.
+/// 0 after a `shutdown` is the one exit that is ours to follow.
+///
+/// The daemon is demand-launched, and this is where it decides to leave:
+/// once no peer has been connected for `idleExitDelay`, the supervisor asks
+/// the child for that same `shutdown` itself. The child refuses while it
+/// holds a session — a shell someone is coming back for — and the question
+/// is asked again a delay later, so the last session ending is noticed
+/// without the child having to say so. A peer arriving while the answer is
+/// in flight takes the exit back: the child goes, a fresh one is spawned,
+/// and the proxy stays. While remote access is on, `ighostvtd-remote` holds
+/// a peer for as long as it runs, which is what keeps the daemon resident.
 final class IOSupervisor {
     static let pauseAboveByteCount = 1 << 20
     static let resumeBelowByteCount = 256 * 1024
@@ -58,6 +68,12 @@ final class IOSupervisor {
     /// A variable only so the harness can shorten the wait it tests.
     static var peerCongestionGrace: DispatchTimeInterval = .seconds(10)
     static let respawnDelay: DispatchTimeInterval = .seconds(2)
+    /// How long the proxy waits with no peer before asking the child to
+    /// exit. A variable only so the harness can shorten it.
+    static var idleExitDelay: DispatchTimeInterval = .seconds(30)
+    /// The peer id the supervisor's own `hello` and `shutdown` travel
+    /// under. The listener counts up from 1 and never reaches it.
+    static let supervisorPeerID = UInt64.max
     /// Apple's `POSIX_SPAWN_CLOEXEC_DEFAULT`, which the Swift overlay does
     /// not surface: every descriptor not named in the file actions is
     /// closed in the child. The socket is the only thing it inherits.
@@ -78,6 +94,7 @@ final class IOSupervisor {
     private var lastSpawn = DispatchTime(uptimeNanoseconds: 0)
     private var respawnScheduled = false
     private var shutdownRequested = false
+    private var idleTimer: DispatchSourceTimer?
 
     private var peers: [UInt64: IOPeer] = [:]
     private var pending: [UInt64: PendingReply] = [:]
@@ -120,6 +137,11 @@ final class IOSupervisor {
         if isInputPaused {
             peer.suspend()
         }
+        idleTimer?.cancel()
+        idleTimer = nil
+        // Someone came back while the child was being asked to leave: it
+        // may still go, but the proxy stays and spawns a fresh one.
+        shutdownRequested = false
     }
 
     /// The peer's connection is gone. Its sessions stay in the child — a
@@ -133,6 +155,44 @@ final class IOSupervisor {
         cancelCongestionTimer(for: peerID)
         channel?.send(.peerGone, peer: peerID, tag: 0, object: nil)
         reconsiderReading()
+        armIdleTimer()
+    }
+
+    // MARK: - Idle exit
+
+    private func armIdleTimer() {
+        guard peers.isEmpty, idleTimer == nil else { return }
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + Self.idleExitDelay)
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            idleTimer?.cancel()
+            idleTimer = nil
+            requestIdleShutdown()
+        }
+        idleTimer = timer
+        timer.activate()
+    }
+
+    /// No peer for `idleExitDelay`: ask the child to exit, under the
+    /// supervisor's own peer id. `sessionBusy` (or no child to ask) means
+    /// try again later; success means the child is about to exit 0, which
+    /// `pollExitStatus` follows unless a peer turned up meanwhile.
+    private func requestIdleShutdown() {
+        guard peers.isEmpty else { return }
+        let ownPeer = SupervisorPeer()
+        forward(from: ownPeer, message: Self.composeRequest(.hello), wantsReply: true) { _ in }
+        forward(from: ownPeer, message: Self.composeRequest(.shutdown), wantsReply: true) { [weak self] reply in
+            guard let self else { return }
+            let code = xpc_dictionary_get_int64(reply, iGhostVTWireKey.code)
+            guard code != iGhostVTReplyCode.success.rawValue else {
+                DaemonFileLog.log("idle with nothing held, io is exiting")
+                return
+            }
+            shutdownRequested = false
+            channel?.send(.peerGone, peer: Self.supervisorPeerID, tag: 0, object: nil)
+            armIdleTimer()
+        }
     }
 
     /// Forwards a client message as-is. `completion` receives the child's
@@ -242,6 +302,9 @@ final class IOSupervisor {
     // MARK: - The child
 
     private func spawn() throws {
+        // A fresh child after an exit that was not followed: the idle
+        // question starts over, since nobody may be about to connect.
+        defer { armIdleTimer() }
         // The attempt, not the success: pacing keyed on the last child that
         // came up lets a spawn that keeps failing retry without a pause.
         lastSpawn = .now()
@@ -409,6 +472,13 @@ final class IOSupervisor {
         }
     }
 
+    private static func composeRequest(_ operation: iGhostVTOperation) -> xpc_object_t {
+        let message = xpc_dictionary_create(nil, nil, 0)
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.version, iGhostVTProtocol.version)
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.operation, operation.rawValue)
+        return message
+    }
+
     private static func composeFailure(_ code: iGhostVTReplyCode, _ message: String) -> xpc_object_t {
         let reply = xpc_dictionary_create(nil, nil, 0)
         xpc_dictionary_set_uint64(reply, iGhostVTWireKey.version, iGhostVTProtocol.version)
@@ -416,6 +486,19 @@ final class IOSupervisor {
         xpc_dictionary_set_string(reply, iGhostVTWireKey.errorMessage, message)
         return reply
     }
+}
+
+/// The supervisor itself, as the sender of the idle `shutdown`. Never
+/// registered: nothing is delivered to it, and it holds nothing.
+private final class SupervisorPeer: IOPeer {
+    var peerID: UInt64 {
+        IOSupervisor.supervisorPeerID
+    }
+
+    func deliver(event _: xpc_object_t) {}
+    func suspend() {}
+    func resume() {}
+    func cutConnection(reason _: String) {}
 }
 
 private extension DispatchTimeInterval {

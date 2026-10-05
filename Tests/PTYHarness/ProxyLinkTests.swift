@@ -380,6 +380,8 @@ func runProxyLinkTests() {
         return
     }
     IOSupervisor.peerCongestionGrace = .seconds(2)
+    // The idle exit has its own test below; nothing else here may race it.
+    IOSupervisor.idleExitDelay = .seconds(3600)
     let supervisor = IOSupervisor(queue: harnessQueue, executablePath: ioBinary)
     var shutdownFollowed = false
     supervisor.onShutdownExit = { shutdownFollowed = true }
@@ -1220,6 +1222,65 @@ func runProxyLinkTests() {
     check(waitUntil { kill(lastChild, 0) != 0 || supervisor.childProcessID == 0 }, "io is gone after shutdown")
 
     runSpawnPacingTest()
+    runIdleExitTest(ioBinary: ioBinary)
+}
+
+/// The demand-launched daemon leaves on its own: with no peer for
+/// `idleExitDelay` it asks the child to exit, which the child refuses while
+/// it holds a session and grants once it holds nothing — and the proxy
+/// follows. A peer in between keeps it.
+func runIdleExitTest(ioBinary: String) {
+    print("proxy idle exit")
+    IOSupervisor.idleExitDelay = .milliseconds(300)
+    defer { IOSupervisor.idleExitDelay = .seconds(3600) }
+    let supervisor = IOSupervisor(queue: harnessQueue, executablePath: ioBinary)
+    var exited = false
+    supervisor.onShutdownExit = { exited = true }
+    var started = false
+    harnessQueue.sync {
+        started = (try? supervisor.start()) != nil
+    }
+    check(started, "an idle-test io spawns")
+    guard started else { return }
+
+    let peer = HarnessPeer(peerID: 1)
+    peer.supervisor = supervisor
+    harnessQueue.sync { supervisor.register(peer) }
+    _ = request(supervisor, from: peer, .hello)
+    Thread.sleep(forTimeInterval: 0.8)
+    check(!exited, "a connected peer keeps the daemon")
+    let held = request(supervisor, from: peer, .openSession) { message in
+        let command = xpc_array_create(nil, 0)
+        for argument in ["/bin/sh", "-c", "exec cat"] {
+            xpc_array_append_value(command, xpc_string_create(argument))
+        }
+        xpc_dictionary_set_value(message, iGhostVTWireKey.command, command)
+    }
+    let heldID = held.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.sessionID) } ?? 0
+    check(replyCode(held) == .success, "a session opens")
+    harnessQueue.sync { supervisor.peerGone(peer.peerID) }
+    Thread.sleep(forTimeInterval: 1.2)
+    let child = supervisor.childProcessID
+    check(!exited && child > 0 && kill(child, 0) == 0, "a held session keeps the daemon with no peer")
+
+    let closer = HarnessPeer(peerID: 2)
+    closer.supervisor = supervisor
+    harnessQueue.sync { supervisor.register(closer) }
+    _ = request(supervisor, from: closer, .hello)
+    check(
+        replyCode(request(supervisor, from: closer, .closeSession) {
+            xpc_dictionary_set_uint64($0, iGhostVTWireKey.sessionID, heldID)
+        }) == .success,
+        "the held session closes",
+    )
+    _ = waitUntil {
+        let listed = request(supervisor, from: closer, .listSessions)
+        return listed.flatMap { xpc_dictionary_get_value($0, iGhostVTWireKey.sessions) }
+            .map { xpc_array_get_count($0) } == 0
+    }
+    harnessQueue.sync { supervisor.peerGone(closer.peerID) }
+    check(waitUntil(5) { exited }, "with no peer and nothing held the daemon exits by itself")
+    check(waitUntil { kill(child, 0) != 0 }, "and io is gone")
 }
 
 /// A respawn is paced by the last *attempt*. Keyed on the last child that

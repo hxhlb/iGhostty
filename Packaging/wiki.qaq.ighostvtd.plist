@@ -24,23 +24,22 @@
 		<integer>10240</integer>
 	</dict>
 	<!--
-		Resident, not demand-launched.
-
-		Demand launch does work here — a killed daemon comes back on the next
-		mach lookup, verified on device. But it makes every disappearance a
-		race the app can lose: the daemon can exit between launchd routing a
-		new connection and the daemon accepting it, and that client sees the
-		service vanish rather than a working session. KeepAlive also covers
-		the case demand launch cannot — a crash while the app sits idle, which
-		otherwise leaves the terminal dead until the user thinks to retry.
-
-		An idle ighostvtd is a few MB holding no sessions. That is the normal
-		shape for a bootstrap daemon, and it is worth far more than the memory.
+		Demand-launched, like the Mac agent. RunAtLoad starts it at boot,
+		which is when it spawns ighostvtd-remote if remote access is on;
+		MachServices brings it back whenever a client looks it up. It exits
+		by itself once no client has been connected for a while and no
+		session is held (IOSupervisor's idle exit), and that successful exit
+		stands; a crash is restarted. With remote access on, the remote
+		helper holds a connection for as long as it runs, so the daemon
+		stays resident exactly as long as the switch is on.
 	-->
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
-	<true/>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
 	<key>Umask</key>
 	<integer>18</integer>
 	<key>MachServices</key>

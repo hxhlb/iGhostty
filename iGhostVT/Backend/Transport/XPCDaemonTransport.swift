@@ -491,14 +491,10 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     }
 
     /// The quit path. Kills `ids` (every session the daemon holds, attached
-    /// or not, when nil), waits for the daemon to report each one *gone* —
-    /// the close reply says only that the SIGHUP was sent, and a shell has
-    /// up to the daemon's two-second grace to leave — and then, if asked and
-    /// only if the daemon is left holding nothing at all, tells it to exit.
-    /// A session kept on purpose is still in the list, so it alone is what
-    /// keeps the daemon up; the daemon refuses the exit on its own count
-    /// too, so a session opened by a window this app never saw is safe
-    /// either way.
+    /// or not, when nil) and waits for the daemon to report each one *gone*
+    /// — the close reply says only that the SIGHUP was sent, and a shell has
+    /// up to the daemon's two-second grace to leave. A daemon left holding
+    /// nothing exits by itself once this connection is gone.
     ///
     /// Blocking on purpose, bounded by `timeout` for the whole sequence:
     /// the one caller is `applicationWillTerminate`, where anything still
@@ -508,7 +504,6 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     /// the exit event would have arrived on.
     static func closeSessionsForQuit(
         _ ids: [UInt64]?,
-        stopDaemonWhenEmpty: Bool,
         timeout: TimeInterval = 3,
     ) {
         let deadline = DispatchTime.now() + timeout
@@ -557,15 +552,8 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                     }
                 }
                 kills.notify(queue: queue) {
-                    awaitGone(targets) { remaining in
-                        guard stopDaemonWhenEmpty, remaining.isEmpty else { return finish() }
-                        xpc_connection_send_message_with_reply(
-                            connection,
-                            makeMessage(.shutdown),
-                            queue,
-                        ) { _ in
-                            finish()
-                        }
+                    awaitGone(targets) { _ in
+                        finish()
                     }
                 }
             }

@@ -179,6 +179,9 @@ check:
 	@plutil -lint "$(ENTITLEMENTS)"
 	@plutil -lint "$(DAEMON_ENTITLEMENTS)" "$(CLI_ENTITLEMENTS)" "$(APPEX_ENTITLEMENTS)" "$(LAUNCH_DAEMON)"
 	@[[ "$$(/usr/libexec/PlistBuddy -c 'Print :SoftResourceLimits:NumberOfFiles' "$(LAUNCH_DAEMON)")" == "10240" ]] || { echo "error: the daemon and its shells require a 10240 soft file-descriptor limit" >&2; exit 65; }
+	@# Demand-launched: the daemon's idle exit has to stand, and a crash
+	@# has to come back.
+	@[[ "$$(/usr/libexec/PlistBuddy -c 'Print :KeepAlive:SuccessfulExit' "$(LAUNCH_DAEMON)")" == "false" ]] || { echo "error: the launch daemon's KeepAlive must be { SuccessfulExit = false }" >&2; exit 65; }
 	@targets="$$(xcodebuild -project "$(PROJECT)" -list)"; \
 		grep -F "ighostvtd" <<<"$$targets" >/dev/null || { echo "error: the ighostvtd target is missing from the project" >&2; exit 65; }; \
 		grep -F "ighostvtd-io" <<<"$$targets" >/dev/null || { echo "error: the ighostvtd-io target is missing from the project" >&2; exit 65; }; \
@@ -413,9 +416,9 @@ mac-zip-check:
 		|| { echo "error: the bundled agent's Label must be wiki.qaq.ighostvtd" >&2; exit 65; }
 	@[[ "$$(/usr/libexec/PlistBuddy -c 'Print :SoftResourceLimits:NumberOfFiles' "$(MAC_AGENT_PLIST)")" == "10240" ]] \
 		|| { echo "error: the daemon and its shells require a 10240 soft file-descriptor limit" >&2; exit 65; }
-	@# The app asks the helper to exit when it quits with nothing running
-	@# (`shutdown`); a KeepAlive that restarts every exit would bring it
-	@# straight back, and one that never restarts would leave a crash dead.
+	@# The helper exits by itself once idle (IOSupervisor); a KeepAlive that
+	@# restarts every exit would bring it straight back, and one that never
+	@# restarts would leave a crash dead.
 	@[[ "$$(/usr/libexec/PlistBuddy -c 'Print :KeepAlive:SuccessfulExit' "$(MAC_AGENT_PLIST)")" == "false" ]] \
 		|| { echo "error: the bundled agent's KeepAlive must be { SuccessfulExit = false }" >&2; exit 65; }
 	@# The App Sandbox is unsupported here, not merely unused: Background Task

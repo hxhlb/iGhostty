@@ -11,9 +11,9 @@
 	with no privilege drop, and the peer check accepts the same user's app
 	bundle (see PeerAuthenticator's macOS branch).
 
-	KeepAlive matches the bundled agent's: restart a crash, let the exit the
-	quitting app asks for (`shutdown`) stand, and rely on MachServices to
-	demand-launch the next time the app connects.
+	KeepAlive matches the bundled agent's: restart a crash, let the daemon's
+	own idle exit stand, and rely on MachServices to demand-launch the next
+	time the app connects.
 -->
 <plist version="1.0">
 <dict>
