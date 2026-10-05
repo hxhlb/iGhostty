@@ -10,26 +10,37 @@ import UIKit
 #if targetEnvironment(macCatalyst)
 
     /// The theme slot's popup button: a real menu, the way a Mac settings
-    /// pane picks from a list, with each theme drawn as its item's image —
-    /// its background and foreground, and its eight base colours. A popover
+    /// pane picks from a list, with the current theme checked. A popover
     /// holding the iOS theme list read as a sheet over the window; a menu
     /// closes on the pick and finds a name as it is typed, as every AppKit
-    /// menu does.
+    /// menu does. The theme's colours sit beside the button — AppKit draws
+    /// no image on a Catalyst popup menu's items, so they cannot be in it.
     ///
-    /// UIKit rather than a SwiftUI `Menu`: an item's checkmark has to be its
-    /// state, not a second image beside the theme's, and the hundreds of
-    /// items are built when the menu opens (`UIDeferredMenuElement`), not on
-    /// every evaluation of the pane.
+    /// UIKit rather than a SwiftUI `Menu`: the check has to be the item's
+    /// state, and the hundreds of items are built when the menu opens
+    /// (`UIDeferredMenuElement`), not on every evaluation of the pane.
     struct MacThemeMenuButton: View {
         let slot: ThemeSlot
         @ObservedObject private var theme = AppTheme.shared
 
+        private var themeName: String {
+            slot == .light
+                ? theme.selection.lightName ?? AppTheme.defaultLightName
+                : theme.selection.darkName ?? AppTheme.defaultDarkName
+        }
+
         var body: some View {
-            MacPopupLabel(title: slot.label(in: theme.selection))
-                .accessibilityHidden(true)
-                .overlay {
-                    MenuTrigger(slot: slot, title: slot.label(in: theme.selection))
+            HStack(spacing: DS.Padding.m) {
+                MacPopupLabel(title: slot.label(in: theme.selection))
+                    .accessibilityHidden(true)
+                    .overlay {
+                        MenuTrigger(slot: slot, title: slot.label(in: theme.selection))
+                    }
+                if let definition = GhosttyThemeCatalog.theme(named: themeName) {
+                    Image(uiImage: ThemePreviewImage.image(for: definition))
+                        .accessibilityHidden(true)
                 }
+            }
         }
     }
 
@@ -62,13 +73,16 @@ import UIKit
 
         private static func items(for slot: ThemeSlot) -> [UIMenuElement] {
             let theme = AppTheme.shared
-            let selected = slot == .light ? theme.selection.lightName : theme.selection.darkName
+            // An unchosen slot is the default theme, and that is the one
+            // checked.
+            let selected = slot == .light
+                ? theme.selection.lightName ?? AppTheme.defaultLightName
+                : theme.selection.darkName ?? AppTheme.defaultDarkName
             return GhosttyThemeCatalog.allThemes
                 .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
                 .map { definition in
                     UIAction(
                         title: definition.name,
-                        image: ThemeMenuImage.image(for: definition),
                         state: definition.name == selected ? .on : .off,
                     ) { _ in
                         switch slot {
@@ -84,16 +98,16 @@ import UIKit
 
     /// A theme as one small picture: the `$_` swatch on its background, in
     /// its foreground, beside the strip of its eight base ANSI colours — the
-    /// two things the iOS list shows for a row, in the space a menu item
-    /// gives its image. Drawn once per theme and kept.
+    /// two things the iOS list shows for a row. Drawn once per theme and
+    /// kept.
     @MainActor
-    private enum ThemeMenuImage {
+    private enum ThemePreviewImage {
         private static var cache: [String: UIImage] = [:]
 
-        private static let swatch = CGSize(width: 22, height: 15)
-        private static let segment: CGFloat = 4
-        private static let stripHeight: CGFloat = 9
-        private static let gap: CGFloat = 5
+        private static let swatch = CGSize(width: 34, height: 24)
+        private static let segment: CGFloat = 7
+        private static let stripHeight: CGFloat = 14
+        private static let gap: CGFloat = 8
 
         static func image(for definition: GhosttyThemeDefinition) -> UIImage {
             if let image = cache[definition.name] {
@@ -108,17 +122,17 @@ import UIKit
             let stripWidth = segment * 8
             let size = CGSize(width: swatch.width + gap + stripWidth, height: swatch.height)
             let edge = UIColor.gray.withAlphaComponent(0.45)
-            let image = UIGraphicsImageRenderer(size: size).image { _ in
+            return UIGraphicsImageRenderer(size: size).image { _ in
                 let swatchRect = CGRect(origin: .zero, size: swatch).insetBy(dx: 0.5, dy: 0.5)
-                let swatchPath = UIBezierPath(roundedRect: swatchRect, cornerRadius: 3)
+                let swatchPath = UIBezierPath(roundedRect: swatchRect, cornerRadius: DS.Radius.s)
                 color(definition.background).setFill()
                 swatchPath.fill()
                 edge.setStroke()
-                swatchPath.lineWidth = 0.5
+                swatchPath.lineWidth = 1
                 swatchPath.stroke()
 
                 let prompt = NSAttributedString(string: "$_", attributes: [
-                    .font: UIFont.monospacedSystemFont(ofSize: 8, weight: .bold),
+                    .font: UIFont.monospacedSystemFont(ofSize: 10, weight: .bold),
                     .foregroundColor: color(definition.foreground),
                 ])
                 let promptSize = prompt.size()
@@ -133,7 +147,7 @@ import UIKit
                     width: stripWidth,
                     height: stripHeight,
                 )
-                let stripPath = UIBezierPath(roundedRect: stripRect, cornerRadius: 2)
+                let stripPath = UIBezierPath(roundedRect: stripRect, cornerRadius: DS.Radius.s)
                 stripPath.addClip()
                 for index in 0 ..< 8 {
                     color(definition.palette[index] ?? definition.foreground).setFill()
@@ -145,11 +159,9 @@ import UIKit
                     ))
                 }
                 edge.setStroke()
-                stripPath.lineWidth = 0.5
+                stripPath.lineWidth = 1
                 stripPath.stroke()
             }
-            // The theme's own colours, never tinted to the menu's text.
-            return image.withRenderingMode(.alwaysOriginal)
         }
 
         private static func color(_ hex: String) -> UIColor {
