@@ -200,10 +200,10 @@ import SwiftUI
         var body: some View {
             MacSettingsForm {
                 MacSettingsRow("Light Theme") {
-                    ThemePopupButton(slot: .light)
+                    MacThemeMenuButton(slot: .light)
                 }
                 MacSettingsRow("Dark Theme") {
-                    ThemePopupButton(slot: .dark)
+                    MacThemeMenuButton(slot: .dark)
                 } details: {
                     MacSettingsNote(
                         "Themes come from the Ghostty theme catalog and apply to every tab in every window.",
@@ -239,33 +239,6 @@ import SwiftUI
                         """,
                     )
                 }
-            }
-        }
-    }
-
-    /// A popup button naming the slot's theme; the catalog is hundreds long
-    /// and searchable, so it opens the theme list in a popover rather than
-    /// a menu.
-    private struct ThemePopupButton: View {
-        let slot: ThemeSlot
-        @ObservedObject private var theme = AppTheme.shared
-        @State private var isChoosing = false
-
-        var body: some View {
-            Button {
-                isChoosing = true
-            } label: {
-                MacPopupLabel(title: slot.label(in: theme.selection))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(slot == .light ? "Light Theme" : "Dark Theme")
-            .accessibilityValue(slot.label(in: theme.selection))
-            .popover(isPresented: $isChoosing, arrowEdge: .trailing) {
-                NavigationView {
-                    ThemeListView(slot: slot)
-                }
-                .navigationViewStyle(.stack)
-                .frame(width: 420, height: 560)
             }
         }
     }

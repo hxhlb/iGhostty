@@ -159,8 +159,8 @@ import SwiftUI
     }
 
     /// What a popup button shows: the current value and the up-down
-    /// chevrons, on a rounded fill. Used as the label of a `Menu`, or of a
-    /// button that opens something larger than a menu (the theme list).
+    /// chevrons, on a rounded fill. Used as the label of a `Menu`, or under
+    /// the UIKit button that opens the theme menu (`MacThemeMenuButton`).
     struct MacPopupLabel: View {
         let title: String
 
