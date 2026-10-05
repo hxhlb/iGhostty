@@ -106,6 +106,13 @@ enum iGhostVTProtocol {
     static var rotatedDaemonLogPath: String {
         daemonLogPath + ".1"
     }
+
+    /// Present when remote access is on — the switch itself, read by the
+    /// proxy at launch. Beside the daemon log, like the session-id store.
+    static var remoteAccessFlagPath: String {
+        let log = daemonLogPath
+        return String(log[..<(log.lastIndex(of: "/") ?? log.startIndex)]) + "/ighostvtd.remote-access"
+    }
 }
 
 /// Client-initiated requests. Each one gets exactly one reply.
@@ -162,6 +169,36 @@ enum iGhostVTOperation: UInt64, Sendable {
     /// this operation answers `invalidRequest`, which a client takes to
     /// mean "keep them in memory only".
     case setSessionAttributes = 14
+
+    // Remote access: the local management of `ighostvtd-remote`. Any
+    // admitted local peer may send them except the remote helper itself;
+    // the proxy answers `setRemoteAccess` and hands the rest to the helper.
+    // None of them is reachable from the network.
+
+    /// The switch, the helper's state, the pairing window, the paired
+    /// devices. With the helper not running, the proxy answers with
+    /// `enabled` and `remoteState` alone.
+    case remoteStatus = 20
+    /// `enabled`: turns remote access on or off. The proxy keeps the switch
+    /// as a file beside the daemon log (`remoteAccessFlagPath`) — that file
+    /// is what a launch reads — and starts or stops the helper.
+    case setRemoteAccess = 21
+    /// Opens the pairing window and answers with its `pairingCode` and
+    /// `pairingExpiresAt`. Opening it again issues a new code.
+    case beginPairing = 22
+    case endPairing = 23
+    /// `deviceID`: forgets a paired device; its key stops working at once.
+    case revokeRemoteDevice = 24
+
+    // Remote access: spoken by the app to `ighostvtd-remote` over the
+    // pairing link only (see `RemoteAccess`), never to the daemon.
+
+    /// `deviceID`, `deviceName`, `share` (the prover's SPAKE2+ share).
+    /// Answered with `hostID`, `hostName`, `share`, `confirmation`.
+    case pairStart = 30
+    /// `confirmation` (the prover's). Answered with success, or with
+    /// `invalidRequest` for a wrong code.
+    case pairFinish = 31
 }
 
 /// The attribute keys and values the app keeps on a session
@@ -276,6 +313,38 @@ enum iGhostVTWireKey {
     /// strings, on that request, in open/attach/snapshot replies, and on
     /// every `listSessions` row.
     static let attributes = "attrs"
+
+    // Remote access.
+    static let enabled = "enabled"
+    /// `off`, `starting`, `listening` or `failed` (`RemoteAccessState`).
+    static let remoteState = "rstate"
+    static let hostID = "hostid"
+    static let hostName = "hostname"
+    static let port = "port"
+    static let pairingCode = "paircode"
+    /// Seconds since 1970, as an int64.
+    static let pairingExpiresAt = "pairexp"
+    /// Failed attempts in the current window: an array of dictionaries
+    /// with `address` and `time`.
+    static let pairingFailures = "pairfail"
+    static let address = "addr"
+    static let time = "time"
+    /// Paired devices: an array of dictionaries with `deviceID`,
+    /// `deviceName`, `time` (paired at) and `lastSeen`.
+    static let devices = "devices"
+    static let deviceID = "devid"
+    static let deviceName = "devname"
+    static let lastSeen = "seen"
+    static let share = "share"
+    static let confirmation = "confirm"
+}
+
+/// The remote helper's state, as `remoteStatus` reports it.
+enum RemoteAccessState: String, Sendable {
+    case off
+    case starting
+    case listening
+    case failed
 }
 
 /// A reply code carrying the sentence the app should show.

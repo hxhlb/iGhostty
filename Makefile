@@ -44,6 +44,8 @@ endif
 # reaches it through SWIFT_INCLUDE_PATHS in Configuration/Base.xcconfig; the
 # hand-rolled harness compile needs the same -I.
 XPC_SHIM_DIR        := $(ROOT_DIR)/Shared/XPCShim
+# The system's SPAKE2+, declared by this project (remote-access pairing).
+CORECRYPTO_SHIM_DIR := $(ROOT_DIR)/Shared/CoreCryptoShim
 CONFIG_DIR          := $(ROOT_DIR)/Configuration
 VERSION_CONFIG      := $(CONFIG_DIR)/Version.xcconfig
 xcconfig_setting     = $(strip $(shell awk -F= '$$1 ~ /^[[:space:]]*$(1)[[:space:]]*$$/ { gsub(/[[:space:]]/, "", $$2); print $$2; exit }' "$(VERSION_CONFIG)"))
@@ -177,7 +179,7 @@ check:
 	@! grep -nE '[A-Za-z0-9_@]2>' "$(ROOT_DIR)"/Packaging/DEBIAN/* \
 		|| { echo "error: a redirect is glued to the word before it above — launchctl would be handed '<label>2' and its errors would show" >&2; exit 65; }
 	@plutil -lint "$(ENTITLEMENTS)"
-	@plutil -lint "$(DAEMON_ENTITLEMENTS)" "$(CLI_ENTITLEMENTS)" "$(APPEX_ENTITLEMENTS)" "$(LAUNCH_DAEMON)"
+	@plutil -lint "$(DAEMON_ENTITLEMENTS)" "$(CLI_ENTITLEMENTS)" "$(APPEX_ENTITLEMENTS)" "$(LAUNCH_DAEMON)" "$(ROOT_DIR)/Packaging/iGhostVTRemote.entitlements"
 	@[[ "$$(/usr/libexec/PlistBuddy -c 'Print :SoftResourceLimits:NumberOfFiles' "$(LAUNCH_DAEMON)")" == "10240" ]] || { echo "error: the daemon and its shells require a 10240 soft file-descriptor limit" >&2; exit 65; }
 	@# Demand-launched: the daemon's idle exit has to stand, and a crash
 	@# has to come back.
@@ -185,7 +187,8 @@ check:
 	@targets="$$(xcodebuild -project "$(PROJECT)" -list)"; \
 		grep -F "ighostvtd" <<<"$$targets" >/dev/null || { echo "error: the ighostvtd target is missing from the project" >&2; exit 65; }; \
 		grep -F "ighostvtd-io" <<<"$$targets" >/dev/null || { echo "error: the ighostvtd-io target is missing from the project" >&2; exit 65; }; \
-		grep -F "ighostvt-cli" <<<"$$targets" >/dev/null || { echo "error: the ighostvt-cli target is missing from the project" >&2; exit 65; }
+		grep -F "ighostvt-cli" <<<"$$targets" >/dev/null || { echo "error: the ighostvt-cli target is missing from the project" >&2; exit 65; }; \
+		grep -F "ighostvtd-remote" <<<"$$targets" >/dev/null || { echo "error: the ighostvtd-remote target is missing from the project" >&2; exit 65; }
 	@grep -qF 'wiki.qaq.ighostvt-cli' "$(ROOT_DIR)/iGhostVTDaemon/Server/PeerAuthenticator.swift" \
 		&& grep -qF 'wiki.qaq.ighostvt-cli' "$(MAC_PACKAGER)" \
 		|| { echo "error: the CLI's signing identifier must match in PeerAuthenticator.swift and package-mac.sh" >&2; exit 65; }
@@ -238,12 +241,12 @@ harness:
 	xcrun --sdk macosx swiftc -swift-version 5 -I "$(XPC_SHIM_DIR)" \
 		"$(ROOT_DIR)/Shared/Protocol/iGhostVTProtocol.swift" \
 		"$(ROOT_DIR)/Shared/Protocol/iGhostVTXPC.swift" \
-		$$(find "$(ROOT_DIR)/iGhostVTDaemonShared" "$(ROOT_DIR)/iGhostVTIO" -name '*.swift' | sort) \
+		$$(find "$(ROOT_DIR)/Shared/Wire" "$(ROOT_DIR)/iGhostVTDaemonShared" "$(ROOT_DIR)/iGhostVTIO" -name '*.swift' | sort) \
 		-o "$$harness_dir/ighostvtd-io" && \
 	xcrun --sdk macosx swiftc -swift-version 5 -DDEBUG -I "$(XPC_SHIM_DIR)" \
 		"$(ROOT_DIR)/Shared/Protocol/iGhostVTProtocol.swift" \
 		"$(ROOT_DIR)/Shared/Protocol/iGhostVTXPC.swift" \
-		$$(find "$(ROOT_DIR)/iGhostVTDaemonShared" "$(ROOT_DIR)/iGhostVTIO" "$(ROOT_DIR)/iGhostVTDaemon" -name '*.swift' ! -name 'main.swift' | sort) \
+		$$(find "$(ROOT_DIR)/Shared/Wire" "$(ROOT_DIR)/iGhostVTDaemonShared" "$(ROOT_DIR)/iGhostVTIO" "$(ROOT_DIR)/iGhostVTDaemon" -name '*.swift' ! -name 'main.swift' | sort) \
 		$$(find "$(ROOT_DIR)/Tests/PTYHarness" -name '*.swift' | sort) \
 		-o "$$harness_dir/harness" && \
 	IGHOSTVT_IO_BINARY="$$harness_dir/ighostvtd-io" \
@@ -255,7 +258,13 @@ harness:
 		"$(ROOT_DIR)/Shared/Screen/KeyNames.swift" \
 		$$(find "$(ROOT_DIR)/Tests/CLIRenderer" -name '*.swift' | sort) \
 		-o "$$harness_dir/cli-renderer" && \
-	"$$harness_dir/cli-renderer"
+	"$$harness_dir/cli-renderer" && \
+	xcrun --sdk macosx swiftc -swift-version 5 -I "$(XPC_SHIM_DIR)" -I "$(CORECRYPTO_SHIM_DIR)" \
+		"$(ROOT_DIR)/Shared/Protocol/iGhostVTProtocol.swift" \
+		"$(ROOT_DIR)/Shared/Protocol/iGhostVTXPC.swift" \
+		$$(find "$(ROOT_DIR)/Shared/Wire" "$(ROOT_DIR)/Shared/Remote" "$(ROOT_DIR)/Tests/RemoteHarness" -name '*.swift' | sort) \
+		-o "$$harness_dir/remote-harness" && \
+	"$$harness_dir/remote-harness"
 
 build: check test bump-build
 	XCBUILD_LABEL=build-ios $(DEVICE_XCODEBUILD) \
@@ -280,6 +289,7 @@ deb: build
 		"$(APP_BUNDLE)" \
 		"$(DAEMON_BINARY)" \
 		"$(DAEMON_IO_BINARY)" \
+		"$(PRODUCTS_DIR)/ighostvtd-remote" \
 		"$(CLI_BINARY)"
 	"$(DEB_PACKAGER)" \
 		"$(APP_BUNDLE)" \

@@ -4,16 +4,21 @@ import XPC
 
 /// One authenticated client connection, relayed to `ighostvtd-io`.
 ///
-/// Holds no session state and reads no request: whatever the client sends
-/// goes to the child with this peer's id, whatever comes back for this id
-/// goes to the client. The one exception is `goodbye`, after which the
-/// connection is the proxy's to close.
+/// Holds no session state and reads no request but its operation code:
+/// whatever the client sends goes to the child with this peer's id,
+/// whatever comes back for this id goes to the client. The exceptions:
+/// `goodbye`, after which the connection is the proxy's to close, and the
+/// remote-access management operations, which go to `RemoteSupervisor`
+/// instead — and which the remote helper itself may not send, nor
+/// `shutdown`: it is the one peer the network stands behind.
 final class PeerRelay: IOPeer {
     let peerID: UInt64
     private let connection: xpc_connection_t
     private let clientPID: Int32
+    private let isRemoteHelper: Bool
     private let queue: DispatchQueue
     private let supervisor: IOSupervisor
+    private let remote: RemoteSupervisor
     private let onInvalidate: (PeerRelay) -> Void
     private var isValid = true
     private var isSuspended = false
@@ -22,15 +27,19 @@ final class PeerRelay: IOPeer {
         peerID: UInt64,
         connection: xpc_connection_t,
         clientPID: Int32,
+        isRemoteHelper: Bool,
         queue: DispatchQueue,
         supervisor: IOSupervisor,
+        remote: RemoteSupervisor,
         onInvalidate: @escaping (PeerRelay) -> Void,
     ) {
         self.peerID = peerID
         self.connection = connection
         self.clientPID = clientPID
+        self.isRemoteHelper = isRemoteHelper
         self.queue = queue
         self.supervisor = supervisor
+        self.remote = remote
         self.onInvalidate = onInvalidate
     }
 
@@ -58,8 +67,27 @@ final class PeerRelay: IOPeer {
         guard type == iGhostVTXPC.typeDictionary, isValid else { return }
 
         let reply = xpc_dictionary_create_reply(event)
-        let isGoodbye = xpc_dictionary_get_uint64(event, iGhostVTWireKey.operation)
-            == iGhostVTOperation.goodbye.rawValue
+        let operationCode = xpc_dictionary_get_uint64(event, iGhostVTWireKey.operation)
+        if Self.isRemoteManagement(operationCode) || operationCode == iGhostVTOperation.shutdown.rawValue,
+           isRemoteHelper
+        {
+            DaemonFileLog.log("peer \(peerID): the remote helper sent operation \(operationCode), refused")
+            if let reply {
+                xpc_dictionary_set_uint64(reply, iGhostVTWireKey.version, iGhostVTProtocol.version)
+                xpc_dictionary_set_int64(reply, iGhostVTWireKey.code, iGhostVTReplyCode.invalidRequest.rawValue)
+                xpc_connection_send_message(connection, reply)
+            }
+            return
+        }
+        if Self.isRemoteManagement(operationCode) {
+            remote.handle(event) { [weak self] result in
+                guard let self, isValid, let reply else { return }
+                IOCodec.copyEntries(from: result, into: reply)
+                xpc_connection_send_message(connection, reply)
+            }
+            return
+        }
+        let isGoodbye = operationCode == iGhostVTOperation.goodbye.rawValue
         supervisor.forward(from: self, message: event, wantsReply: reply != nil) { [weak self] result in
             guard let self, isValid else { return }
             if let reply {
@@ -73,6 +101,10 @@ final class PeerRelay: IOPeer {
         if isGoodbye, reply == nil {
             queue.async { [weak self] in self?.invalidate() }
         }
+    }
+
+    private static func isRemoteManagement(_ code: UInt64) -> Bool {
+        (iGhostVTOperation.remoteStatus.rawValue ... iGhostVTOperation.revokeRemoteDevice.rawValue).contains(code)
     }
 
     // MARK: - IOPeer

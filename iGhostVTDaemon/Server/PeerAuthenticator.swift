@@ -30,7 +30,19 @@ final class PeerAuthenticator {
 
     private lazy var installedClientPaths = resolveInstalledClientPaths()
 
-    func authenticate(_ connection: xpc_connection_t) -> Int32? {
+    struct Admission {
+        var pid: Int32
+        /// The peer is `ighostvtd-remote`, the child `RemoteSupervisor`
+        /// spawned — admitted for being that child, and limited by
+        /// `PeerRelay` to the session operations.
+        var isRemoteHelper = false
+    }
+
+    /// The remote helper's pid (0 when none) and the path it was spawned
+    /// from. Set by `DaemonServer`.
+    var remoteHelper: (() -> (pid: pid_t, path: String)?)?
+
+    func authenticate(_ connection: xpc_connection_t) -> Admission? {
         var token = audit_token_t()
         ighostvtXPCConnectionGetAuditToken(connection, &token)
         // audit_token_t.val: [0] auid, [1] euid, [2] egid, [3] ruid,
@@ -42,6 +54,20 @@ final class PeerAuthenticator {
         guard pid > 1 else {
             deny(pid, "implausible pid \(pid)")
             return nil
+        }
+
+        // Our own child, by pid — which cannot name another process until
+        // RemoteSupervisor reaps it — and by the path it was spawned from.
+        // Checked first and on its own: it carries no client entitlement and
+        // is no app bundle, and it is the same on both platforms.
+        if let helper = remoteHelper?(), helper.pid > 0, pid == helper.pid {
+            guard let clientPath = RuntimeEnvironment.executablePath(pid: pid),
+                  RuntimeEnvironment.canonicalPath(clientPath) == RuntimeEnvironment.canonicalPath(helper.path)
+            else {
+                deny(pid, "the remote helper's pid with another executable")
+                return nil
+            }
+            return Admission(pid: pid, isRemoteHelper: true)
         }
 
         #if os(macOS)
@@ -57,7 +83,7 @@ final class PeerAuthenticator {
                 return nil
             }
             guard let verdict = MacPeerPolicy.shared.judge(clientPath: clientPath, token: &token) else {
-                return pid
+                return Admission(pid: pid)
             }
             deny(pid, verdict)
             return nil
@@ -81,7 +107,7 @@ final class PeerAuthenticator {
                     continue
                 }
                 if clientPath == installedPath {
-                    return pid
+                    return Admission(pid: pid)
                 }
             }
             deny(

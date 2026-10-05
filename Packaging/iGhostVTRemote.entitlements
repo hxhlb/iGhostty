@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	`ighostvtd-remote` on the device: the remote-access helper.
+
+	The same two keys as `ighostvt-cli`, and for the same reason — it is a
+	client of the daemon and nothing more. The daemon admits it by being its
+	own child (pid and path, `PeerAuthenticator`), not by the marker, but the
+	marker costs nothing and keeps it inside the client rule should that
+	ever change. It drops to mobile before it opens a socket, draws nothing,
+	owns no container and spawns nothing, so it needs none of the app's or
+	the daemon's other keys — and must not have them: it is the one process
+	in this project the network can talk to.
+-->
+<plist version="1.0">
+<dict>
+	<key>wiki.qaq.ighostvt.client</key>
+	<true/>
+	<key>com.apple.security.exception.mach-lookup.global-name</key>
+	<array>
+		<string>wiki.qaq.ighostvt.service</string>
+	</array>
+</dict>
+</plist>

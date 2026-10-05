@@ -1,0 +1,12 @@
+// SPAKE2+ from the system's corecrypto, which every iOS since 15.0 and every
+// macOS this app supports export from libcorecrypto (through libSystem). The
+// SDK ships no header for it, and Apple's corecrypto source is licensed for
+// review only, so `shim.h` is this project's own declaration of the few
+// functions used — the pre-RFC 9383 API, the one iOS 15 has.
+//
+// Reached through SWIFT_INCLUDE_PATHS in Configuration/Base.xcconfig, like
+// Shared/XPCShim; not a synchronized group, so it joins no target's sources.
+module CiGhostVTCoreCrypto [system] {
+    header "shim.h"
+    export *
+}

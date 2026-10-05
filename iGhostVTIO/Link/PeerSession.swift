@@ -199,6 +199,11 @@ final class PeerSession {
             guard registry.isEmpty else { return Outcome(.sessionBusy) }
             DaemonFileLog.log("peer \(peerID) shutdown with nothing held")
             return Outcome(.success, then: .exitProcess)
+        case .remoteStatus, .setRemoteAccess, .beginPairing, .endPairing, .revokeRemoteDevice,
+             .pairStart, .pairFinish:
+            // The proxy's and the remote helper's; none of them reaches
+            // here from a client the proxy relays.
+            return Outcome(.invalidRequest)
         }
     }
 

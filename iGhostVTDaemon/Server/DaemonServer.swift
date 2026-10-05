@@ -32,27 +32,36 @@ final class DaemonServer {
     private let authenticator = PeerAuthenticator()
     private lazy var supervisor = IOSupervisor(
         queue: controlQueue,
-        executablePath: Self.ioExecutablePath(),
+        executablePath: Self.siblingPath(IOWire.executableName),
+    )
+    private lazy var remote = RemoteSupervisor(
+        queue: controlQueue,
+        executablePath: Self.siblingPath(RemoteSupervisor.executableName),
     )
 
     private var listener: xpc_connection_t?
     private var peers: [UInt64: PeerRelay] = [:]
     private var nextPeerID: UInt64 = 1
 
-    /// `ighostvtd-io` beside this executable: `/usr/libexec` on the device,
-    /// `Contents/MacOS` in the Mac bundle, the same DerivedData products
-    /// directory for the harness.
-    private static func ioExecutablePath() -> String {
+    /// A program beside this executable — `ighostvtd-io`, `ighostvtd-remote`:
+    /// `/usr/libexec` on the device, `Contents/MacOS` in the Mac bundle, the
+    /// same DerivedData products directory for the harness.
+    private static func siblingPath(_ name: String) -> String {
         guard let own = RuntimeEnvironment.currentExecutablePath(),
               let slash = own.lastIndex(of: "/")
-        else { return IOWire.executableName }
-        return String(own[...slash]) + IOWire.executableName
+        else { return name }
+        return String(own[...slash]) + name
     }
 
     func start() throws {
         guard listener == nil else { return }
         if !supervisor.isRunning {
             try supervisor.start()
+        }
+        let remote = remote
+        authenticator.remoteHelper = { [weak remote] in
+            guard let remote else { return nil }
+            return (remote.helperProcessID, remote.executablePath)
         }
         guard let listener = iGhostVTProtocol.serviceName.withCString({
             ighostvtCreateMachServiceListener(
@@ -71,6 +80,7 @@ final class DaemonServer {
             }
         }
         xpc_connection_activate(listener)
+        remote.startIfEnabled()
         DaemonLog.server.info(
             "listening on \(iGhostVTProtocol.serviceName, privacy: .public), pid \(getpid())",
         )
@@ -81,11 +91,12 @@ final class DaemonServer {
 
     private func accept(_ event: xpc_object_t) {
         guard xpc_get_type(event) == iGhostVTXPC.typeConnection else { return }
-        guard let clientPID = authenticator.authenticate(event) else {
+        guard let admission = authenticator.authenticate(event) else {
             DaemonFileLog.log("peer rejected, connection canceled")
             xpc_connection_cancel(event)
             return
         }
+        let clientPID = admission.pid
 
         let peerID = nextPeerID
         nextPeerID &+= 1
@@ -93,15 +104,20 @@ final class DaemonServer {
             peerID: peerID,
             connection: event,
             clientPID: clientPID,
+            isRemoteHelper: admission.isRemoteHelper,
             queue: controlQueue,
             supervisor: supervisor,
+            remote: remote,
         ) { [weak self] peer in
             self?.peerInvalidated(peer)
         }
         peers[peerID] = peer
         peer.activate()
         DaemonLog.server.info("peer \(clientPID) connected as \(peerID), \(self.peers.count) peer(s)")
-        DaemonFileLog.log("peer \(clientPID) connected as peer \(peerID), \(peers.count) peer(s)")
+        DaemonFileLog.log(
+            "peer \(clientPID) connected as peer \(peerID)"
+                + (admission.isRemoteHelper ? " (remote helper)" : "") + ", \(peers.count) peer(s)",
+        )
     }
 
     /// The peer went away. Its sessions stay: detaching is not closing, and

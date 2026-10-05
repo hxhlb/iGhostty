@@ -17,9 +17,13 @@ import XPC
 ///
 ///     u32 payload length  u8 kind  u8×3 reserved  u64 peer  u64 tag  payload
 ///
-/// Little-endian throughout — both ends are the same build on the same
-/// machine. `tag` is 0 for a request that wants no reply (the app sent it
-/// without `_with_reply`) and for events.
+/// Little-endian throughout. `tag` is 0 for a request that wants no reply
+/// (the app sent it without `_with_reply`) and for events.
+///
+/// The same frames carry remote access: between the app and
+/// `ighostvtd-remote` over TLS, with `peer` always 0, and between the proxy
+/// and `ighostvtd-remote` over the socket it inherits. Every target that
+/// speaks either link compiles this one file (`Shared/Wire`).
 enum IOWire {
     static let headerByteCount = 24
     /// A request may carry `iGhostVTProtocol.maximumMessageDataByteCount`

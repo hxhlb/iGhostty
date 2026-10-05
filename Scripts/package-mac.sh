@@ -15,6 +15,7 @@
 #   iGhostVT.app/Contents/MacOS/iGhostVT                    Catalyst GUI
 #   iGhostVT.app/Contents/MacOS/ighostvtd                   the launch agent, a proxy
 #   iGhostVT.app/Contents/MacOS/ighostvtd-io                its child: the only forking process
+#   iGhostVT.app/Contents/MacOS/ighostvtd-remote            its other child, while remote access is on
 #   iGhostVT.app/Contents/MacOS/ighostvt-cli                the command-line client
 #   iGhostVT.app/Contents/Library/LaunchAgents/wiki.qaq.ighostvtd.plist
 #
@@ -30,6 +31,8 @@ repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 app_bundle="${1:?usage: $0 <app-bundle> <daemon> <daemon-io> <cli> <agent-plist> <app-ents> <daemon-ents> <output-zip> <version> <identity> [notary-profile]}"
 daemon_binary="${2:?missing daemon binary}"
 daemon_io_binary="${3:?missing daemon io binary}"
+# Built beside io by the ighostvtd scheme, which depends on both.
+remote_binary="$(dirname "$daemon_io_binary")/ighostvtd-remote"
 cli_binary="${4:?missing cli binary}"
 agent_plist="${5:?missing agent plist}"
 app_entitlements="${6:?missing app entitlements}"
@@ -64,6 +67,7 @@ test -d "$app_bundle" || die "$app_bundle is not an app bundle"
 test -f "$app_bundle/Contents/Resources/Licenses.json" || die "$app_bundle has no Licenses.json — the Collect Licenses build phase did not run"
 test -f "$daemon_binary" || die "$daemon_binary was not built"
 test -f "$daemon_io_binary" || die "$daemon_io_binary was not built"
+test -f "$remote_binary" || die "$remote_binary was not built"
 test -f "$cli_binary" || die "$cli_binary was not built"
 test -f "$agent_plist" || die "$agent_plist is missing"
 test -f "$app_entitlements" || die "$app_entitlements is missing"
@@ -93,6 +97,7 @@ rm -rf "$staged_app/Contents/_CodeSignature"
 echo "==> staging the helper"
 install -m 0755 "$daemon_binary" "$staged_app/Contents/MacOS/ighostvtd"
 install -m 0755 "$daemon_io_binary" "$staged_app/Contents/MacOS/ighostvtd-io"
+install -m 0755 "$remote_binary" "$staged_app/Contents/MacOS/ighostvtd-remote"
 install -m 0755 "$cli_binary" "$staged_app/Contents/MacOS/ighostvt-cli"
 install -d -m 0755 "$staged_app/Contents/Library/LaunchAgents"
 install -m 0644 "$agent_plist" "$staged_app/Contents/Library/LaunchAgents/$agent_plist_name"
@@ -159,6 +164,9 @@ done < <(find "$staged_app/Contents" \
 # separate designated requirement, and PeerAuthenticator's macOS branch reads
 # that signature to decide who may open a session.
 sign "$staged_app/Contents/MacOS/ighostvtd-io" --entitlements "$daemon_entitlements"
+# The remote helper, like the CLI, carries none: the daemon admits it as its
+# own child, and it is the process the network talks to.
+sign "$staged_app/Contents/MacOS/ighostvtd-remote"
 sign "$staged_app/Contents/MacOS/ighostvtd" --entitlements "$daemon_entitlements"
 # The CLI carries no entitlements at all — it talks to the daemon and prints,
 # and the Hardened Runtime is all it needs. It is signed under its own

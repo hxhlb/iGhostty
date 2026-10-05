@@ -15,6 +15,12 @@ daemon_binary="$2"
 # lives under launchd's jetsam limit, so the PTYs and their buffers live in
 # ighostvtd-io, which it spawns.
 daemon_io_binary="$3"
+# The remote-access helper, which the daemon spawns from beside itself while
+# remote access is on. Built into the same products directory as io (the
+# ighostvtd scheme depends on both), and signed with its own, client-sized
+# entitlements.
+remote_binary="$(dirname "$daemon_io_binary")/ighostvtd-remote"
+remote_entitlements="$repository_root/Packaging/iGhostVTRemote.entitlements"
 # The command-line client. It ships *inside* the app bundle, beside the app
 # binary, because the daemon admits a peer by its executable path and one
 # rule then covers both clients; /usr/bin gets a symlink to it.
@@ -40,9 +46,10 @@ depends="${16}"
 [[ -d "$app_bundle" && -f "$app_bundle/Info.plist" ]] || { echo "error: incomplete app bundle" >&2; exit 66; }
 [[ -x "$daemon_binary" ]] || { echo "error: daemon binary is missing" >&2; exit 66; }
 [[ -x "$daemon_io_binary" ]] || { echo "error: daemon io binary is missing" >&2; exit 66; }
+[[ -x "$remote_binary" ]] || { echo "error: remote helper binary is missing" >&2; exit 66; }
 [[ -x "$cli_binary" ]] || { echo "error: cli binary is missing" >&2; exit 66; }
 for input in "$control_template" "$app_entitlements" "$daemon_entitlements" \
-    "$cli_entitlements" "$appex_entitlements" "$launch_plist"; do
+    "$cli_entitlements" "$appex_entitlements" "$launch_plist" "$remote_entitlements"; do
     [[ -f "$input" ]] || { echo "error: missing packaging input: $input" >&2; exit 66; }
 done
 [[ "$output_deb" == *.deb ]] || { echo "error: output must end in .deb" >&2; exit 64; }
@@ -58,7 +65,7 @@ esac
 depends_pattern='^[A-Za-z0-9][-A-Za-z0-9+.,()~<>= _]*$'
 [[ "$depends" =~ $depends_pattern ]] || { echo "error: invalid Depends: $depends" >&2; exit 64; }
 
-for native_binary in "$daemon_binary" "$daemon_io_binary" "$cli_binary"; do
+for native_binary in "$daemon_binary" "$daemon_io_binary" "$remote_binary" "$cli_binary"; do
     native_dependencies="$(otool -L "$native_binary")"
     if grep -q 'libvroot' <<<"$native_dependencies"; then
         echo "error: native daemon/client already resolves physical paths; unexpected vroot dependency" >&2
@@ -102,6 +109,7 @@ app_signed_entitlements="$scratch/app-entitlements.plist"
 daemon_signed_entitlements="$scratch/daemon-entitlements.plist"
 appex_signed_entitlements="$scratch/appex-entitlements.plist"
 cli_signed_entitlements="$scratch/cli-entitlements.plist"
+remote_signed_entitlements="$scratch/remote-entitlements.plist"
 chmod 0755 "$staging"
 
 debian="$staging/DEBIAN"
@@ -109,6 +117,7 @@ installed_root="$staging$install_prefix"
 installed_app="$installed_root/Applications/iGhostVT.app"
 installed_daemon="$installed_root/usr/libexec/ighostvtd"
 installed_daemon_io="$installed_root/usr/libexec/ighostvtd-io"
+installed_remote="$installed_root/usr/libexec/ighostvtd-remote"
 installed_cli="$installed_app/ighostvt-cli"
 installed_cli_link="$installed_root/usr/bin/ighostvt-cli"
 installed_plist="$installed_root/Library/LaunchDaemons/wiki.qaq.ighostvtd.plist"
@@ -116,6 +125,7 @@ mkdir -p "$debian" "$(dirname "$installed_app")" "$(dirname "$installed_daemon")
 /usr/bin/ditto "$app_bundle" "$installed_app"
 /usr/bin/ditto "$daemon_binary" "$installed_daemon"
 /usr/bin/ditto "$daemon_io_binary" "$installed_daemon_io"
+/usr/bin/ditto "$remote_binary" "$installed_remote"
 /usr/bin/ditto "$cli_binary" "$installed_cli"
 # A relative link, and it has to stay one: under roothide the bootstrap's
 # /Applications is reached through the jbroot this boot, and an absolute
@@ -133,7 +143,7 @@ sed -e "s|@PREFIX@|$install_prefix|g" "$launch_plist" >"$installed_plist"
 }
 rm -rf "$installed_app/_CodeSignature"
 rm -f "$installed_app/embedded.mobileprovision"
-chmod 0755 "$installed_daemon" "$installed_daemon_io" "$installed_cli"
+chmod 0755 "$installed_daemon" "$installed_daemon_io" "$installed_remote" "$installed_cli"
 chmod 0644 "$installed_plist"
 
 strip_and_check_private_paths() {
@@ -152,6 +162,7 @@ strip_and_check_private_paths() {
 strip_and_check_private_paths "$installed_app/$app_executable"
 strip_and_check_private_paths "$installed_daemon"
 strip_and_check_private_paths "$installed_daemon_io"
+strip_and_check_private_paths "$installed_remote"
 strip_and_check_private_paths "$installed_cli"
 
 # The bash and zsh shell integration, which is what makes a session report
@@ -188,6 +199,7 @@ ldid -S"$daemon_entitlements" -Cadhoc "$installed_daemon_io"
 # The client marker and the mach lookup, and nothing else — see the
 # entitlements file for why `no-sandbox` is not among them.
 ldid -S"$cli_entitlements" -Cadhoc "$installed_cli"
+ldid -S"$remote_entitlements" -Cadhoc "$installed_remote"
 ldid -e "$installed_app/$app_executable" >"$app_signed_entitlements"
 
 # App extensions are separate Mach-Os with their own signature, so Xcode's is
@@ -316,6 +328,11 @@ require_true "$cli_signed_entitlements" wiki.qaq.ighostvt.client
     exit 65
 }
 require_unprivileged "$cli_signed_entitlements" ighostvt-cli
+# The process the network talks to carries nothing that widens what it can
+# do: the client marker and the daemon's mach name, as the CLI.
+ldid -e "$installed_remote" >"$remote_signed_entitlements"
+require_true "$remote_signed_entitlements" wiki.qaq.ighostvt.client
+require_unprivileged "$remote_signed_entitlements" ighostvtd-remote
 [[ -z "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.iokit-user-client-class' "$cli_signed_entitlements" 2>/dev/null || true)" ]] || {
     echo "error: the CLI must not carry the GPU iokit-user-client-class list" >&2
     exit 65
@@ -373,6 +390,7 @@ contents="$(dpkg-deb --contents "$temporary_deb")"
 grep -F ".$install_prefix/Applications/iGhostVT.app/$app_executable" <<<"$contents" >/dev/null
 grep -F ".$install_prefix/usr/libexec/ighostvtd" <<<"$contents" >/dev/null
 grep -F ".$install_prefix/usr/libexec/ighostvtd-io" <<<"$contents" >/dev/null
+grep -F ".$install_prefix/usr/libexec/ighostvtd-remote" <<<"$contents" >/dev/null
 grep -F ".$install_prefix/Applications/iGhostVT.app/ighostvt-cli" <<<"$contents" >/dev/null
 grep -F ".$install_prefix/usr/bin/ighostvt-cli -> ../../Applications/iGhostVT.app/ighostvt-cli" <<<"$contents" >/dev/null
 grep -F ".$install_prefix/Library/LaunchDaemons/wiki.qaq.ighostvtd.plist" <<<"$contents" >/dev/null

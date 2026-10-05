@@ -103,6 +103,7 @@ if [[ -n "$identity" && "$identity" != "-" ]]; then
         \( -name '*.framework' -o -name '*.appex' -o -name '*.bundle' -o -name '*.dylib' \) \
         -print0 2>/dev/null)
     resign "$app/Contents/MacOS/ighostvtd-io"
+    [[ ! -e "$app/Contents/MacOS/ighostvtd-remote" ]] || resign "$app/Contents/MacOS/ighostvtd-remote"
     resign "$app/Contents/MacOS/ighostvtd"
     resign "$app/Contents/MacOS/ighostvt-cli"
     resign "$app"
@@ -129,6 +130,7 @@ launchctl bootout "$domain/$label" 2>/dev/null || true
 rm -f "$harness_plist"
 pkill -x ighostvtd 2>/dev/null || true
 pkill -x ighostvtd-io 2>/dev/null || true
+pkill -x ighostvtd-remote 2>/dev/null || true
 defaults delete "$bundle_id" "$digest_key" 2>/dev/null || true
 
 echo "==> replacing $dest"

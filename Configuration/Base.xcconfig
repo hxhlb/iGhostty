@@ -11,4 +11,7 @@
 // XPC_TYPE_* macros. Naming those macros in Swift instead resolves to the iOS
 // 27 SDK's XPC overlay and links /usr/lib/swift/libswiftXPC.dylib non-weakly,
 // which does not exist on iOS 15. See Shared/XPCShim/module.modulemap.
-SWIFT_INCLUDE_PATHS = $(inherited) $(SRCROOT)/Shared/XPCShim
+// The `CiGhostVTCoreCrypto` module — this project's declarations of the
+// system's SPAKE2+, which remote-access pairing runs on. See
+// Shared/CoreCryptoShim/module.modulemap.
+SWIFT_INCLUDE_PATHS = $(inherited) $(SRCROOT)/Shared/XPCShim $(SRCROOT)/Shared/CoreCryptoShim
