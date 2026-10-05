@@ -8,7 +8,8 @@ import Foundation
 /// that unlocks it the system answers with the bare model — "iPad",
 /// "iPhone" — and every device of a kind looks alike; then the model's
 /// marketing name ("iPad Pro (11-inch)") stands in, and failing that the
-/// model identifier ("iPad8,9").
+/// model identifier ("iPad8,9"). On the Mac, where UIKit says only "Mac",
+/// the computer name from Sharing settings comes first.
 enum DeviceNaming {
     static func meaningful(_ assigned: String?) -> String {
         if let assigned = assigned?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -16,6 +17,11 @@ enum DeviceNaming {
         {
             return assigned
         }
+        #if targetEnvironment(macCatalyst)
+            if let name = computerName() {
+                return name
+            }
+        #endif
         return marketingName() ?? modelIdentifier() ?? assigned ?? "iGhostVT"
     }
 
@@ -38,12 +44,35 @@ enum DeviceNaming {
         return name
     }
 
-    /// "iPad8,9": the hardware model, always there.
+    #if targetEnvironment(macCatalyst)
+        /// The name in System Settings ▸ General ▸ Sharing. The Catalyst SDK
+        /// does not declare the call, but the app is not sandboxed and
+        /// SystemConfiguration answers it as it does for AppKit.
+        static func computerName() -> String? {
+            guard let handle = dlopen("/System/Library/Frameworks/SystemConfiguration.framework/SystemConfiguration", RTLD_LAZY),
+                  let symbol = dlsym(handle, "SCDynamicStoreCopyComputerName")
+            else { return nil }
+            typealias CopyComputerName = @convention(c) (CFTypeRef?, UnsafeMutablePointer<UInt32>?) -> Unmanaged<CFString>?
+            let copy = unsafeBitCast(symbol, to: CopyComputerName.self)
+            guard let name = copy(nil, nil)?.takeRetainedValue() as String?,
+                  !name.isEmpty
+            else { return nil }
+            return name
+        }
+    #endif
+
+    /// "iPad8,9" — "Mac14,2" on the Mac, where `hw.machine` says only
+    /// "arm64": the hardware model, always there.
     static func modelIdentifier() -> String? {
+        #if targetEnvironment(macCatalyst)
+            let key = "hw.model"
+        #else
+            let key = "hw.machine"
+        #endif
         var size = 0
-        guard sysctlbyname("hw.machine", nil, &size, nil, 0) == 0, size > 1 else { return nil }
+        guard sysctlbyname(key, nil, &size, nil, 0) == 0, size > 1 else { return nil }
         var buffer = [CChar](repeating: 0, count: size)
-        guard sysctlbyname("hw.machine", &buffer, &size, nil, 0) == 0 else { return nil }
+        guard sysctlbyname(key, &buffer, &size, nil, 0) == 0 else { return nil }
         let identifier = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
         return identifier.isEmpty ? nil : identifier
     }

@@ -26,8 +26,14 @@ import SwiftUI
     }
 
     /// The fill of the row at `index`: every other row is tinted.
+    enum MacTableStripe {
+        static func color(_ index: Int) -> Color {
+            index.isMultiple(of: 2) ? .clear : Color(.secondarySystemBackground).opacity(0.6)
+        }
+    }
+
     private func stripe(_ index: Int) -> Color {
-        index.isMultiple(of: 2) ? .clear : Color(.secondarySystemBackground).opacity(0.6)
+        MacTableStripe.color(index)
     }
 
     /// Every shortcut as a table row: a checkmark column (on or off), what

@@ -4,7 +4,8 @@ import SwiftUI
 /// that may connect, pairing a new one) and this device as a client (one
 /// list: the devices it is paired with, then the ones nearby to pair with —
 /// only a device found on this network can be paired).
-/// Pushed from the settings sheet on iPhone and iPad; a pane on the Mac.
+/// Pushed from the settings sheet on iPhone and iPad; the Mac has a pane
+/// of its own (`MacRemotePane`).
 struct RemoteAccessView: View {
     @StateObject private var model = RemoteAccessModel()
     @ObservedObject private var directory = RemoteHostDirectory.shared
@@ -80,6 +81,11 @@ struct RemoteAccessView: View {
     }
 
     private var problem: String? {
+        Self.problem(model)
+    }
+
+    /// What is wrong with the host side, or nil when nothing is.
+    static func problem(_ model: RemoteAccessModel) -> String? {
         if model.status.isUnavailable {
             return String(localized: "Terminal helper is not running")
         }
@@ -92,7 +98,7 @@ struct RemoteAccessView: View {
             ForEach(model.status.devices) { device in
                 VStack(alignment: .leading, spacing: 2) {
                     Text(device.name)
-                    Text(lastSeenText(device))
+                    Text(Self.lastSeenText(device))
                         .font(DS.Font.detail)
                         .foregroundColor(.secondary)
                 }
@@ -127,7 +133,7 @@ struct RemoteAccessView: View {
         }
     }
 
-    private func lastSeenText(_ device: RemoteAccessStatus.Device) -> String {
+    static func lastSeenText(_ device: RemoteAccessStatus.Device) -> String {
         guard let lastSeen = device.lastSeen else {
             return String(localized: "Not connected yet")
         }
@@ -179,8 +185,7 @@ struct RemoteAccessView: View {
     }
 
     private var unpairedNearby: [DiscoveredRemoteHost] {
-        let paired = Set(directory.paired.map(\.id))
-        return directory.hosts.filter { !paired.contains($0.id) }
+        directory.unpairedNearby
     }
 }
 

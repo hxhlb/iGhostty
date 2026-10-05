@@ -95,6 +95,12 @@ final class RemoteHostDirectory: ObservableObject {
         hosts.first { $0.id == host.id }?.address ?? host.lastAddress
     }
 
+    /// The devices found here that this one is not paired with yet.
+    var unpairedNearby: [DiscoveredRemoteHost] {
+        let pairedIDs = Set(paired.map(\.id))
+        return hosts.filter { !pairedIDs.contains($0.id) }
+    }
+
     /// Starts browsing if it has not; idempotent.
     func start() {
         guard browser == nil else { return }
