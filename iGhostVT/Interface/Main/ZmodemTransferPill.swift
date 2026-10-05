@@ -35,7 +35,6 @@ struct ZmodemTransferPill: View {
         .padding(.horizontal, DS.Padding.l)
         .padding(.vertical, DS.Padding.m)
         .barGlass(in: Capsule(), interactive: info.phase == .active)
-        .transition(.opacity)
     }
 
     @ViewBuilder

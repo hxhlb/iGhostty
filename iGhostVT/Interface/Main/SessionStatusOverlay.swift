@@ -27,6 +27,7 @@ import UIKit
 struct SessionStatusOverlay: View {
     @ObservedObject var store: TerminalSessionStore
     @ObservedObject private var agent = MacLaunchAgent.shared
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     /// Background tabs keep their overlay mounted; only the front tab's
     /// card may steal first responder.
     var isActive: Bool
@@ -180,9 +181,20 @@ struct SessionStatusOverlay: View {
 
         case .connected:
             if let transfer = store.zmodemTransfer {
+                // The pane ends above the keyboard and its accessory bar
+                // (nothing here ignores the keyboard's safe area), so either
+                // place clears them. A phone's foot is its tab bar: there the
+                // transfer sits in the middle of the terminal and grows into
+                // place; beside a sidebar, shown or collapsed, it keeps to the
+                // corner.
                 ZmodemTransferPill(info: transfer) { store.cancelZmodemTransfer() }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity,
+                        alignment: isCompactWidth ? .center : .bottomTrailing,
+                    )
                     .padding(DS.Padding.l)
+                    .transition(isCompactWidth ? .scale(scale: 0.85).combined(with: .opacity) : .opacity)
             } else if store.isAwaitingFirstOutput {
                 // The session is open but the shell has yet to print a byte —
                 // the first shell after a reboot can take half a minute over
@@ -193,6 +205,16 @@ struct SessionStatusOverlay: View {
                 notice("Paste truncated: the program is not reading its input.")
             }
         }
+    }
+
+    /// The phone's layout, with the tab bar along the bottom. Never on the
+    /// Mac, whose narrow window still has the sidebar's layout.
+    private var isCompactWidth: Bool {
+        #if targetEnvironment(macCatalyst)
+            false
+        #else
+            horizontalSizeClass == .compact
+        #endif
     }
 
     private func pill(_ title: LocalizedStringKey) -> some View {
