@@ -15,17 +15,26 @@ struct AccentColorPicker: View {
     private static let side: CGFloat = 20
     private static let ring: CGFloat = 2
     private static let gap: CGFloat = 2
+    /// The row's width at macOS's own 10pt spacing. A narrower row — an
+    /// iPhone's settings form has well under this — closes the spacing up
+    /// instead of clipping the last swatches.
+    private static let preferredWidth: CGFloat = {
+        let count = CGFloat(AccentColorPreference.allCases.count)
+        return count * (side + 2 * (ring + gap)) + (count - 1) * 10
+    }()
 
     private var selection: AccentColorPreference {
         AccentColorPreference(rawValue: rawValue) ?? .multicolor
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
             ForEach(AccentColorPreference.allCases) { choice in
                 swatch(choice)
+                    .frame(maxWidth: .infinity)
             }
         }
+        .frame(maxWidth: Self.preferredWidth)
         // Room for the name under the chosen swatch, which is an overlay so
         // a long name never pushes the swatches apart.
         .padding(.bottom, 18)
@@ -56,7 +65,7 @@ struct AccentColorPicker: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: nameAlignment(for: choice)) {
             if isSelected {
                 Text(verbatim: choice.title)
                     .font(DS.Font.detail)
@@ -80,6 +89,17 @@ struct AccentColorPicker: View {
                 colors: [.red, .orange, .yellow, .green, .blue, .purple, .pink, .red],
                 center: .center,
             ))
+        }
+    }
+
+    /// Centred under its swatch, except at the ends of the row, where a
+    /// long name ("Multicolor" in most languages) would hang past the
+    /// row's edge; there it runs inward from the swatch's outer edge.
+    private func nameAlignment(for choice: AccentColorPreference) -> Alignment {
+        switch choice {
+        case AccentColorPreference.allCases.first: .bottomLeading
+        case AccentColorPreference.allCases.last: .bottomTrailing
+        default: .bottom
         }
     }
 

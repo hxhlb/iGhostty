@@ -8,14 +8,17 @@ import Foundation
 #if targetEnvironment(macCatalyst)
     import ObjectiveC
 
-    /// The accent preference's AppKit half. What AppKit draws itself — the
-    /// settings window's selected toolbar pane, menus, focus rings, the
-    /// input method's candidate highlight — never asks UIKit for a tint; it
-    /// asks `+[NSColor controlAccentColor]`, which under Multicolor answers
-    /// the app's own accent (`NSAccentColorName`). `install()` puts a
+    /// The accent preference's AppKit half. What AppKit draws itself — a
+    /// menu's highlighted item, focus rings — never asks UIKit for a tint;
+    /// it asks `+[NSColor controlAccentColor]`, which under Multicolor
+    /// answers the app's own accent (`NSAccentColorName`). `install()` puts a
     /// wrapper on that class method that answers the chosen colour instead,
     /// as AppKit's own dynamic system colour, so it still follows light and
     /// dark; with Multicolor it calls straight through.
+    ///
+    /// Not everything AppKit tints asks that method: the settings window's
+    /// selected toolbar pane keeps the app's own accent whatever is chosen
+    /// (seen on macOS 27), and nothing here reaches it.
     ///
     /// AppKit is reached through the ObjC runtime, as in
     /// `CatalystWindowChrome`: a class or selector that no longer exists
@@ -56,10 +59,15 @@ import Foundation
 
         /// Swaps the colour AppKit answers and has every AppKit view redraw
         /// with it, as a change in System Settings would.
+        /// Every hosting root calls this as it appears, so only an actual
+        /// change tells AppKit to redraw.
         static func update(_ preference: AccentColorPreference) {
+            let chosen = preference.appKitSelector.map { sel_registerName($0) }
             lock.lock()
-            override = preference.appKitSelector.map { sel_registerName($0) }
+            let changed = chosen != override
+            override = chosen
             lock.unlock()
+            guard changed else { return }
             NotificationCenter.default.post(
                 name: Notification.Name("NSSystemColorsDidChangeNotification"),
                 object: nil,
