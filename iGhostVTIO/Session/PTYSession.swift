@@ -685,29 +685,48 @@ final class PTYSession {
 
     private var hasLoggedFirstOutput = false
 
+    /// How much output one delivery carries at most. A Darwin PTY hands
+    /// out at most 1 KiB per `read`, so delivering each read on its own made
+    /// a flood of output 1 KiB XPC events — tens of thousands a second, each
+    /// one a trip through the proxy, and for a remote tab an encode, a TLS
+    /// record and a decode as well. Reads already waiting are joined up to
+    /// this before they go; nothing waits for more to arrive, so a keystroke's
+    /// echo leaves exactly as soon as it did.
+    private static let outputDeliveryByteCount = 16 * 1024
+
     private func drainAvailableOutput() {
-        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+        var buffer = [UInt8](repeating: 0, count: Self.outputDeliveryByteCount)
+        var filled = 0
+        func deliver() {
+            guard filled > 0 else { return }
+            let data = Data(buffer[0 ..< filled])
+            filled = 0
+            if !hasLoggedFirstOutput {
+                hasLoggedFirstOutput = true
+                DaemonFileLog.log("session \(id) first output, \(data.count) byte(s)")
+            }
+            append(data)
+            onOutput?(id, data)
+            // Output is the moment the foreground is most likely to have
+            // just changed (a command echoed, a TUI's first draw).
+            refreshForegroundProcessNameIfDue()
+        }
         while true {
             let count = buffer.withUnsafeMutableBytes { destination -> Int in
                 guard let base = destination.baseAddress else { return -1 }
-                return read(master, base, destination.count)
+                return read(master, base + filled, destination.count - filled)
             }
             if count > 0 {
-                let data = Data(buffer[0 ..< count])
-                if !hasLoggedFirstOutput {
-                    hasLoggedFirstOutput = true
-                    DaemonFileLog.log("session \(id) first output, \(count) byte(s)")
+                filled += count
+                if filled == buffer.count {
+                    deliver()
                 }
-                append(data)
-                onOutput?(id, data)
-                // Output is the moment the foreground is most likely to
-                // have just changed (a command echoed, a TUI's first draw).
-                refreshForegroundProcessNameIfDue()
                 continue
             }
             if count < 0, errno == EINTR {
                 continue
             }
+            deliver()
             if count == 0 {
                 // EOF: the child closed the terminal. The process source
                 // usually reports the status, but a fast child (/bin/echo)
