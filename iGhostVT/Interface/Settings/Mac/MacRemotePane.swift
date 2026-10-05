@@ -77,12 +77,6 @@ import SwiftUI
             .onChange(of: selectedHostID) { _ in
                 nickname = selectedPaired?.nickname ?? ""
             }
-            .sheet(isPresented: $isShowingPairingCode) {
-                RemotePairingCodeView(model: model)
-            }
-            .sheet(item: $pairingHost) { host in
-                RemotePairDeviceView(host: host)
-            }
         }
 
         private func saveName() {
@@ -92,58 +86,65 @@ import SwiftUI
 
         // MARK: - This Mac as a host
 
-        /// The devices that may open terminals here, and pairing one more.
+        /// The devices that may open terminals here: + under the table pairs
+        /// one more, the selected row's trash takes one away.
         private var allowedDevices: some View {
             VStack(alignment: .leading, spacing: DS.Padding.s) {
                 Text("Allowed Devices")
                     .font(DS.Font.labelEmphasis)
                 MacTableFrame {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(Array(model.status.devices.enumerated()), id: \.element.id) { index, device in
-                                MacDeviceRow(
-                                    name: device.name,
-                                    address: nil,
-                                    detail: RemoteAccessView.lastSeenText(device),
-                                    index: index,
-                                    isSelected: device.id == selectedAllowedID,
-                                ) {
-                                    selectedAllowedID = device.id
-                                }
-                                .contextMenu {
-                                    Button("Remove", role: .destructive) { model.revoke(device) }
+                    VStack(spacing: 0) {
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(model.status.devices.enumerated()), id: \.element.id) { index, device in
+                                    MacDeviceRow(
+                                        name: device.name,
+                                        address: nil,
+                                        detail: RemoteAccessView.lastSeenText(device),
+                                        index: index,
+                                        isSelected: device.id == selectedAllowedID,
+                                        select: { selectedAllowedID = device.id },
+                                    ) {
+                                        MacRowIconButton(symbol: "trash", label: "Remove") {
+                                            model.revoke(device)
+                                            selectedAllowedID = nil
+                                        }
+                                    }
+                                    .contextMenu {
+                                        Button("Remove", role: .destructive) { model.revoke(device) }
+                                    }
                                 }
                             }
                         }
-                    }
-                    .overlay {
-                        if model.status.devices.isEmpty {
-                            Text("Pair a device to let it open terminals here.")
-                                .font(DS.Font.detail)
-                                .foregroundColor(.secondary)
+                        .frame(maxHeight: .infinity)
+                        .overlay {
+                            if model.status.devices.isEmpty {
+                                Text("Pair a device to let it open terminals here.")
+                                    .font(DS.Font.detail)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Divider()
+                        MacTableBar {
+                            Button {
+                                Task {
+                                    await model.beginPairing()
+                                    isShowingPairingCode = true
+                                }
+                            } label: {
+                                Image(systemName: "plus")
+                                    .frame(width: 22, height: 18)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel("Pair New Device…")
+                            .disabled(model.status.state != .listening)
+                            .popover(isPresented: $isShowingPairingCode, arrowEdge: .bottom) {
+                                RemotePairingCodeView(model: model, isPopover: true)
+                            }
                         }
                     }
                 }
-                .frame(height: Self.tableHeight)
-                HStack(spacing: DS.Padding.s) {
-                    Button("Pair New Device…") {
-                        Task {
-                            await model.beginPairing()
-                            isShowingPairingCode = true
-                        }
-                    }
-                    .disabled(model.status.state != .listening)
-                    Button("Remove") {
-                        if let device = model.status.devices.first(where: { $0.id == selectedAllowedID }) {
-                            model.revoke(device)
-                            selectedAllowedID = nil
-                        }
-                    }
-                    .disabled(!model.status.devices.contains { $0.id == selectedAllowedID })
-                    Spacer()
-                }
-                .buttonStyle(.bordered)
-                .tint(Color(.label))
+                .frame(height: Self.tableHeight + macTableBarHeight)
             }
         }
 
@@ -154,7 +155,9 @@ import SwiftUI
         // MARK: - The other devices
 
         /// The devices this Mac is paired with, then the ones nearby it
-        /// could pair with.
+        /// could pair with. The selected row carries its one action — trash
+        /// to forget a paired device, Pair for one nearby — and a paired
+        /// device's name can be changed under the table.
         private var yourDevices: some View {
             let unpaired = directory.unpairedNearby
             return VStack(alignment: .leading, spacing: DS.Padding.s) {
@@ -170,8 +173,11 @@ import SwiftUI
                                     detail: directory.isDiscovered(host.id) ? String(localized: "Nearby") : "",
                                     index: index,
                                     isSelected: host.id == selectedHostID,
+                                    select: { selectedHostID = host.id },
                                 ) {
-                                    selectedHostID = host.id
+                                    MacRowIconButton(symbol: "trash", label: "Forget") {
+                                        confirmForget(host)
+                                    }
                                 }
                             }
                             ForEach(Array(unpaired.enumerated()), id: \.element.id) { offset, host in
@@ -181,8 +187,15 @@ import SwiftUI
                                     detail: "",
                                     index: directory.paired.count + offset,
                                     isSelected: host.id == selectedHostID,
+                                    select: { selectedHostID = host.id },
                                 ) {
-                                    selectedHostID = host.id
+                                    Button("Pair") { pairingHost = host }
+                                        .buttonStyle(.borderless)
+                                        .foregroundColor(.white)
+                                        .font(DS.Font.labelEmphasis)
+                                        .popover(item: $pairingHost, arrowEdge: .trailing) { host in
+                                            RemotePairDeviceView(host: host, isPopover: true)
+                                        }
                                 }
                             }
                         }
@@ -198,12 +211,14 @@ import SwiftUI
                     }
                 }
                 .frame(height: Self.tableHeight)
+                // Always laid out, so selecting a row moves nothing.
                 HStack(spacing: DS.Padding.s) {
                     if let host = selectedPaired {
+                        Text("Name")
                         TextField(host.name, text: $nickname)
                             .textFieldStyle(.roundedBorder)
                             .disableAutocorrection(true)
-                            .frame(maxWidth: 220)
+                            .frame(maxWidth: 240)
                             .onSubmit(saveNickname)
                             .accessibilityLabel("Name")
                         if let lastSeen = host.lastSeen {
@@ -212,18 +227,10 @@ import SwiftUI
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                         }
-                        Spacer()
-                        Button("Forget", role: .destructive) { confirmForget(host) }
-                    } else if let host = unpaired.first(where: { $0.id == selectedHostID }) {
-                        Spacer()
-                        Button("Pair") { pairingHost = host }
-                    } else {
-                        Spacer()
                     }
+                    Spacer()
                 }
-                .buttonStyle(.bordered)
-                .tint(Color(.label))
-                .frame(minHeight: 28)
+                .frame(height: 28)
             }
         }
 
@@ -252,43 +259,85 @@ import SwiftUI
     }
 
     /// One row of a device table: the name with its address dim after it,
-    /// a dim trailing detail, striped, the selection in the accent.
-    private struct MacDeviceRow: View {
+    /// a dim trailing detail, striped, the selection in the accent with the
+    /// row's action at its trailing end.
+    private struct MacDeviceRow<Accessory: View>: View {
         let name: String
         let address: String?
         let detail: String
         let index: Int
         let isSelected: Bool
         let select: () -> Void
+        @ViewBuilder let accessory: () -> Accessory
 
         var body: some View {
-            Button(action: select) {
-                HStack(spacing: DS.Padding.m) {
-                    Group {
-                        if let address {
-                            Text(verbatim: name)
-                                + Text(verbatim: " @\(address)").foregroundColor(isSelected ? .white.opacity(0.75) : .secondary)
-                        } else {
-                            Text(verbatim: name)
-                        }
+            HStack(spacing: DS.Padding.m) {
+                Group {
+                    if let address {
+                        Text(verbatim: name)
+                            + Text(verbatim: " @\(address)").foregroundColor(isSelected ? .white.opacity(0.75) : .secondary)
+                    } else {
+                        Text(verbatim: name)
                     }
-                    .lineLimit(1)
-                    Spacer(minLength: DS.Padding.m)
-                    Text(verbatim: detail)
-                        .font(DS.Font.detail)
-                        .foregroundColor(isSelected ? .white.opacity(0.75) : .secondary)
-                        .lineLimit(1)
                 }
-                .foregroundColor(isSelected ? .white : .primary)
-                .padding(.horizontal, DS.Padding.m)
-                .padding(.vertical, DS.Padding.xs + 2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(isSelected ? Color.accentColor : MacTableStripe.color(index))
-                .contentShape(Rectangle())
+                .lineLimit(1)
+                Spacer(minLength: DS.Padding.m)
+                Text(verbatim: detail)
+                    .font(DS.Font.detail)
+                    .foregroundColor(isSelected ? .white.opacity(0.75) : .secondary)
+                    .lineLimit(1)
+                if isSelected {
+                    accessory()
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .combine)
+            .foregroundColor(isSelected ? .white : .primary)
+            .padding(.horizontal, DS.Padding.m)
+            // The accessory never makes a row taller than one without.
+            .frame(height: 30)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isSelected ? Color.accentColor : MacTableStripe.color(index))
+            .contentShape(Rectangle())
+            .onTapGesture(perform: select)
+            .accessibilityElement(children: .contain)
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        }
+    }
+
+    /// A glyph button on a selected row, white on the accent.
+    private struct MacRowIconButton: View {
+        let symbol: String
+        let label: LocalizedStringKey
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: symbol)
+                    .foregroundColor(.white)
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(label)
+        }
+    }
+
+    /// The strip under a table that holds its + button, as AppKit's
+    /// gradient-button bar does.
+    private let macTableBarHeight: CGFloat = 28
+
+    private struct MacTableBar<Content: View>: View {
+        @ViewBuilder let content: () -> Content
+
+        var body: some View {
+            HStack(spacing: 0) {
+                content()
+                    .buttonStyle(.borderless)
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .padding(.horizontal, DS.Padding.xs)
+            .frame(height: macTableBarHeight)
+            .background(Color(.secondarySystemBackground).opacity(0.5))
         }
     }
 

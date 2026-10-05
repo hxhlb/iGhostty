@@ -110,6 +110,10 @@ struct GhosttyConfigurationView: View {
 /// reads as it would in an editor.
 struct ConfigurationFileView: View {
     let contents: String
+    /// The lines scroll under a header that stays put (the Mac's pane,
+    /// where the file has a fixed height); otherwise the whole view is as
+    /// tall as the file and the page around it scrolls.
+    var scrollsLines = false
 
     private var lines: [String] {
         var lines = contents.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
@@ -152,30 +156,39 @@ struct ConfigurationFileView: View {
             .padding(.vertical, DS.Padding.s)
             .background(Color(.tertiarySystemFill))
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: DS.Padding.m) {
-                    // Line numbers: right-aligned, dimmer than the text.
-                    VStack(alignment: .trailing, spacing: 0) {
-                        ForEach(lines.indices, id: \.self) { index in
-                            Text(verbatim: "\(index + 1)")
-                                .foregroundColor(Color.secondary.opacity(0.5))
-                        }
-                    }
-                    // A gutter of bare numbers read one by one is noise; the
-                    // lines themselves carry the file.
-                    .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(lines.indices, id: \.self) { index in
-                            ConfigurationLine(text: lines[index])
-                        }
-                    }
-                }
-                .font(.system(.footnote, design: .monospaced))
-                .padding(DS.Padding.m)
+            if scrollsLines {
+                ScrollView(.vertical) { numberedLines(lines) }
+            } else {
+                numberedLines(lines)
             }
-            .textSelection(.enabled)
         }
         .background(Color(.secondarySystemGroupedBackground))
+    }
+
+    /// The numbered lines, scrolling sideways for a long one.
+    private func numberedLines(_ lines: [String]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: DS.Padding.m) {
+                // Line numbers: right-aligned, dimmer than the text.
+                VStack(alignment: .trailing, spacing: 0) {
+                    ForEach(lines.indices, id: \.self) { index in
+                        Text(verbatim: "\(index + 1)")
+                            .foregroundColor(Color.secondary.opacity(0.5))
+                    }
+                }
+                // A gutter of bare numbers read one by one is noise; the
+                // lines themselves carry the file.
+                .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(lines.indices, id: \.self) { index in
+                        ConfigurationLine(text: lines[index])
+                    }
+                }
+            }
+            .font(.system(.footnote, design: .monospaced))
+            .padding(DS.Padding.m)
+        }
+        .textSelection(.enabled)
     }
 
     private func copy() {

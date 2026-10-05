@@ -204,16 +204,16 @@ import SwiftUI
                     """,
                 )
                 MacTableFrame {
-                    ScrollView {
-                        ConfigurationFileView(
-                            contents: GhosttyAppConfiguration.renderedConfig(
-                                for: colorScheme == .dark ? .dark : .light,
-                            ),
-                        )
-                        // `terminalFontSize` and `theme` are what the file is
-                        // made of; a read here re-renders on their change.
-                        .id("\(terminalFontSize)-\(theme.selection.lightName ?? "")-\(theme.selection.darkName ?? "")")
-                    }
+                    // The header stays; only the lines scroll.
+                    ConfigurationFileView(
+                        contents: GhosttyAppConfiguration.renderedConfig(
+                            for: colorScheme == .dark ? .dark : .light,
+                        ),
+                        scrollsLines: true,
+                    )
+                    // `terminalFontSize` and `theme` are what the file is
+                    // made of; a read here re-renders on their change.
+                    .id("\(terminalFontSize)-\(theme.selection.lightName ?? "")-\(theme.selection.darkName ?? "")")
                 }
                 MacSettingsNote("The Ghostty configuration every new terminal opens with: your settings, then the lines above.")
             }

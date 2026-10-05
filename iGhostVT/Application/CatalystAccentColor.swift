@@ -17,8 +17,10 @@ import Foundation
     /// dark; with Multicolor it calls straight through.
     ///
     /// Not everything AppKit tints asks that method: the settings window's
-    /// selected toolbar pane keeps the app's own accent whatever is chosen
-    /// (seen on macOS 27), and nothing here reaches it.
+    /// selected toolbar pane reads the application's own accent
+    /// (`-[NSApplication _effectiveAccentColor]`, which is `_accentColor`
+    /// when one is set and the asset catalog's otherwise), so `update` sets
+    /// that too (`_setAccentColor:`, nil for the app's own).
     ///
     /// AppKit is reached through the ObjC runtime, as in
     /// `CatalystWindowChrome`: a class or selector that no longer exists
@@ -28,6 +30,10 @@ import Foundation
         /// override. AppKit asks from whatever thread it draws on.
         private nonisolated(unsafe) static var override: Selector?
         private static let lock = NSLock()
+        /// What `NSApp` was last given; nil until the app is up.
+        /// Read and written on the main thread only, where `update` is called
+        /// once the app is up.
+        private nonisolated(unsafe) static var applicationAccent: Selector??
 
         static func install() {
             guard let colorClass = NSClassFromString("NSColor"),
@@ -54,24 +60,48 @@ import Foundation
                 imp_implementationWithBlock(block),
                 method_getTypeEncoding(method),
             )
-            update(AccentColorPreference.current)
+            update(AccentColorPreference.current, includingApplication: false)
         }
 
         /// Swaps the colour AppKit answers and has every AppKit view redraw
         /// with it, as a change in System Settings would.
         /// Every hosting root calls this as it appears, so only an actual
         /// change tells AppKit to redraw.
-        static func update(_ preference: AccentColorPreference) {
+        ///
+        /// The application's own accent is set only once the app is up
+        /// (`install` runs before `UIApplicationMain`, and asking for
+        /// `NSApp` there would make one too early), so the first hosting
+        /// root to appear is what applies a choice made in an earlier run.
+        static func update(_ preference: AccentColorPreference, includingApplication: Bool = true) {
             let chosen = preference.appKitSelector.map { sel_registerName($0) }
             lock.lock()
             let changed = chosen != override
             override = chosen
             lock.unlock()
+            if includingApplication, applicationAccent != .some(chosen) {
+                applicationAccent = .some(chosen)
+                setApplicationAccent(chosen)
+            }
             guard changed else { return }
             NotificationCenter.default.post(
                 name: Notification.Name("NSSystemColorsDidChangeNotification"),
                 object: nil,
             )
+        }
+    }
+
+    extension CatalystAccentColor {
+        /// `NSApp._setAccentColor:` with the chosen AppKit colour, or nil
+        /// for the app's own; a selector that is gone is left alone.
+        fileprivate static func setApplicationAccent(_ chosen: Selector?) {
+            guard let applicationClass = NSClassFromString("NSApplication") as? NSObject.Type,
+                  let colorClass = NSClassFromString("NSColor") as? NSObject.Type,
+                  let application = applicationClass.value(forKey: "sharedApplication") as? NSObject
+            else { return }
+            let setter = sel_registerName("_setAccentColor:")
+            guard application.responds(to: setter) else { return }
+            let color = chosen.flatMap { colorClass.perform($0)?.takeUnretainedValue() }
+            application.perform(setter, with: color)
         }
     }
 

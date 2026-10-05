@@ -8,6 +8,8 @@ import UIKit
 /// three wrong tries) it offers a new one.
 struct RemotePairingCodeView: View {
     @ObservedObject var model: RemoteAccessModel
+    /// In a popover: no navigation bar, and clicking away is Cancel.
+    var isPopover = false
     @Environment(\.dismiss) private var dismiss
 
     /// When the current code was issued: a device paired since is the one
@@ -18,6 +20,29 @@ struct RemotePairingCodeView: View {
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
+        container
+            .onAppear {
+                issuedAt = Date()
+                model.appear()
+            }
+            .onDisappear {
+                if model.status.pairingCode != nil {
+                    model.endPairing()
+                }
+            }
+            .onReceive(clock) { now = $0 }
+    }
+
+    @ViewBuilder
+    private var container: some View {
+        if isPopover {
+            page.environment(\.setupPageIsCompact, true)
+        } else {
+            sheet
+        }
+    }
+
+    private var sheet: some View {
         NavigationView {
             page
                 .navigationBarTitleDisplayMode(.inline)
@@ -32,16 +57,6 @@ struct RemotePairingCodeView: View {
                 }
         }
         .navigationViewStyle(.stack)
-        .onAppear {
-            issuedAt = Date()
-            model.appear()
-        }
-        .onDisappear {
-            if model.status.pairingCode != nil {
-                model.endPairing()
-            }
-        }
-        .onReceive(clock) { now = $0 }
     }
 
     /// One step per state: the code, the device that paired, or a code
@@ -94,7 +109,7 @@ struct RemotePairingCodeView: View {
     private func codeView(_ code: String) -> some View {
         VStack(spacing: DS.Padding.l) {
             Text(spaced(code))
-                .font(.system(size: 44, weight: .semibold, design: .monospaced))
+                .font(.system(size: isPopover ? 32 : 44, weight: .semibold, design: .monospaced))
                 .padding(.vertical, DS.Padding.m)
                 .frame(maxWidth: .infinity)
                 .background(Color(UIColor.secondarySystemBackground), in: RoundedRectangle(cornerRadius: DS.Radius.l, style: .continuous))

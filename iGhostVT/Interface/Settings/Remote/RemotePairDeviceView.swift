@@ -10,6 +10,8 @@ import UIKit
 /// cannot be discovered here is not offered at all.
 struct RemotePairDeviceView: View {
     let host: DiscoveredRemoteHost
+    /// In a popover: no navigation bar, and clicking away is Cancel.
+    var isPopover = false
     @Environment(\.dismiss) private var dismiss
 
     @State private var code = ""
@@ -19,6 +21,22 @@ struct RemotePairDeviceView: View {
     @FocusState private var isCodeFocused: Bool
 
     var body: some View {
+        container
+            .onAppear {
+                isCodeFocused = true
+            }
+    }
+
+    @ViewBuilder
+    private var container: some View {
+        if isPopover {
+            page.environment(\.setupPageIsCompact, true)
+        } else {
+            sheet
+        }
+    }
+
+    private var sheet: some View {
         NavigationView {
             page
                 .navigationBarTitleDisplayMode(.inline)
@@ -33,9 +51,6 @@ struct RemotePairDeviceView: View {
                 }
         }
         .navigationViewStyle(.stack)
-        .onAppear {
-            isCodeFocused = true
-        }
     }
 
     /// Two steps: the code, then the outcome.
@@ -82,7 +97,7 @@ struct RemotePairDeviceView: View {
             TextField("000000", text: $code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
-                .font(.system(size: 34, weight: .semibold, design: .monospaced))
+                .font(.system(size: isPopover ? 28 : 34, weight: .semibold, design: .monospaced))
                 .multilineTextAlignment(.center)
                 .focused($isCodeFocused)
                 .padding(.vertical, DS.Padding.m)

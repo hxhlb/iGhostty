@@ -4,7 +4,11 @@ import SwiftUI
 /// a centred line of explanation, what the step needs in the middle, and
 /// its buttons held at the bottom edge. The pairing sheets are built from
 /// it, so each of their states — the code, the outcome — reads as one step.
+///
+/// In a popover (the Mac's settings pane) the same step is drawn small:
+/// `setupPageIsCompact` in the environment.
 struct SetupPage<Content: View, Footer: View>: View {
+    @Environment(\.setupPageIsCompact) private var isCompact
     let symbol: String
     var tint: Color = .accentColor
     let title: String
@@ -18,6 +22,38 @@ struct SetupPage<Content: View, Footer: View>: View {
     }
 
     var body: some View {
+        if isCompact {
+            compact
+        } else {
+            regular
+        }
+    }
+
+    /// A popover's worth: the same parts at the sizes a Mac popover uses.
+    private var compact: some View {
+        VStack(spacing: DS.Padding.m) {
+            Image(systemName: symbol)
+                .font(.system(size: 32, weight: .regular))
+                .foregroundColor(tint)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(DS.Font.title)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            Text(message)
+                .font(DS.Font.detail)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            content()
+            footer()
+        }
+        .padding(DS.Padding.xl)
+        .frame(width: 320)
+    }
+
+    private var regular: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: DS.Padding.l) {
@@ -67,20 +103,40 @@ extension SetupPage where Footer == EmptyView {
     }
 }
 
-/// The step's main button, full width at the bottom of a `SetupPage`.
+/// The step's main button, full width at the bottom of a `SetupPage`; in
+/// a popover, a regular default button.
 struct SetupPrimaryButton: View {
+    @Environment(\.setupPageIsCompact) private var isCompact
     let title: String
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(DS.Font.controlEmphasis)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DS.Padding.xs)
+        if isCompact {
+            Button(title, action: action)
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+        } else {
+            Button(action: action) {
+                Text(title)
+                    .font(DS.Font.controlEmphasis)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, DS.Padding.xs)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
         }
-        .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.capsule)
-        .controlSize(.large)
+    }
+}
+
+private struct SetupPageIsCompactKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Draws a `SetupPage` at popover size.
+    var setupPageIsCompact: Bool {
+        get { self[SetupPageIsCompactKey.self] }
+        set { self[SetupPageIsCompactKey.self] = newValue }
     }
 }

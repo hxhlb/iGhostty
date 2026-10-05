@@ -317,21 +317,29 @@ import SwiftUI
                 }
                 Divider()
                 MacSettingsRow("Logs") {
-                    HStack(spacing: DS.Padding.s) {
-                        Button("Open App Log") {
-                            open(AppLog.currentFile ?? AppLog.journalDirectory)
-                        }
-                        Button("Open Helper Log") {
-                            open(URL(fileURLWithPath: iGhostVTProtocol.daemonLogPath))
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    // A Mac push button is grey with dark text; the accent
-                    // is for the selected and the default, neither of these.
-                    .tint(Color(.label))
+                    logFile(AppLog.currentFile ?? AppLog.journalDirectory, label: "Open App Log")
                 } details: {
+                    logFile(URL(fileURLWithPath: iGhostVTProtocol.daemonLogPath), label: "Open Helper Log")
                     MacSettingsNote("Logs open in Console.")
                 }
+            }
+        }
+
+        /// A log by its file name, and the arrow that opens it — Finder's
+        /// own way of pointing at a file.
+        private func logFile(_ url: URL, label: LocalizedStringKey) -> some View {
+            HStack(spacing: DS.Padding.xs) {
+                Text(verbatim: url.lastPathComponent)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Button {
+                    open(url)
+                } label: {
+                    Image(systemName: "arrow.up.right.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(label)
             }
         }
 
