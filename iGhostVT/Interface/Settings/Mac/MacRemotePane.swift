@@ -33,12 +33,15 @@ import SwiftUI
                     ))
                     .disabled(!model.hasLoaded || model.status.isUnavailable)
                 } details: {
+                    // A problem takes the note's line rather than adding one.
                     if let problem = RemoteAccessView.problem(model) {
                         Text(problem)
                             .font(DS.Font.detail)
                             .foregroundColor(.red)
+                            .lineLimit(1)
+                    } else {
+                        MacSettingsNote("Paired devices on this network can open terminals here.")
                     }
-                    MacSettingsNote("Paired devices on this network can open terminals here.")
                 }
                 MacSettingsRow("Name") {
                     TextField(RemoteDeviceIdentity.systemName, text: $name)
@@ -52,9 +55,11 @@ import SwiftUI
                     )
                 }
                 Divider()
-                if model.isEnabled {
-                    allowedDevices
-                }
+                // Both tables stay put whatever the switch says, so turning
+                // it on or off moves nothing: off, the first is dimmed.
+                allowedDevices
+                    .disabled(!model.isEnabled)
+                    .opacity(model.isEnabled ? 1 : 0.5)
                 yourDevices
             }
             .padding(DS.Padding.xl)
@@ -119,7 +124,7 @@ import SwiftUI
                         }
                     }
                 }
-                .frame(height: 104)
+                .frame(height: Self.tableHeight)
                 HStack(spacing: DS.Padding.s) {
                     Button("Pair New Device…") {
                         Task {
@@ -139,11 +144,12 @@ import SwiftUI
                 }
                 .buttonStyle(.bordered)
                 .tint(Color(.label))
-                if !model.status.devices.isEmpty {
-                    MacSettingsNote("A removed device loses access at once and has to pair again.")
-                }
             }
         }
+
+        /// One height for both tables, never the content's: rows coming
+        /// and going scroll inside it.
+        private static let tableHeight: CGFloat = 112
 
         // MARK: - The other devices
 
@@ -191,7 +197,7 @@ import SwiftUI
                         }
                     }
                 }
-                .frame(minHeight: 104, maxHeight: .infinity)
+                .frame(height: Self.tableHeight)
                 HStack(spacing: DS.Padding.s) {
                     if let host = selectedPaired {
                         TextField(host.name, text: $nickname)
