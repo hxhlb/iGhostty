@@ -503,43 +503,42 @@ struct ZmodemDetector {
 
     private static let download: [UInt8] = [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x30]
     private static let upload: [UInt8] = [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x31]
+    private static let maxHold = 21
 
-    private var pending: [UInt8] = []
+    private var cache: [UInt8] = []
 
     mutating func feed(_ data: [UInt8]) -> Result {
         var result = Result()
-        var index = 0
-        while index < data.count {
-            pending.append(data[index])
-            index += 1
-            while !pending.isEmpty {
-                if let trigger = Self.fullMatch(pending) {
-                    result.trigger = trigger
-                    result.parserBytes = pending + Array(data[index...])
-                    pending.removeAll(keepingCapacity: true)
-                    return result
-                }
-                if Self.isPrefix(pending) {
-                    break
-                }
-                result.passthrough.append(pending.removeFirst())
-            }
+        result.passthrough = data
+        cache.append(contentsOf: data)
+        if let match = Self.locateTrigger(cache) {
+            result.trigger = match.trigger
+            result.parserBytes = Array(cache[match.index...])
+            cache.removeAll(keepingCapacity: true)
+            return result
+        }
+        if cache.count > Self.maxHold {
+            cache.removeFirst(cache.count - Self.maxHold)
         }
         return result
     }
 
-    private static func fullMatch(_ bytes: [UInt8]) -> Trigger? {
-        if bytes == download { return .download }
-        if bytes == upload { return .upload }
+    private static func locateTrigger(_ bytes: [UInt8]) -> (index: Int, trigger: Trigger)? {
+        let d = findSubarray(bytes, download)
+        let u = findSubarray(bytes, upload)
+        switch (d, u) {
+        case let (d?, u?): return d <= u ? (d, .download) : (u, .upload)
+        case let (d?, nil): return (d, .download)
+        case let (nil, u?): return (u, .upload)
+        default: return nil
+        }
+    }
+
+    private static func findSubarray(_ haystack: [UInt8], _ needle: [UInt8]) -> Int? {
+        guard needle.count <= haystack.count else { return nil }
+        for start in 0 ... (haystack.count - needle.count) where Array(haystack[start ..< start + needle.count]) == needle {
+            return start
+        }
         return nil
-    }
-
-    private static func isPrefix(_ bytes: [UInt8]) -> Bool {
-        isPrefix(bytes, of: download) || isPrefix(bytes, of: upload)
-    }
-
-    private static func isPrefix(_ bytes: [UInt8], of pattern: [UInt8]) -> Bool {
-        guard bytes.count <= pattern.count else { return false }
-        return Array(pattern[0 ..< bytes.count]) == bytes
     }
 }

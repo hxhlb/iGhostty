@@ -112,25 +112,29 @@ do {
 print("zmodem: trigger detection")
 do {
     var detector = ZmodemDetector()
-    let result = detector.feed(Array("hello\r\n".utf8) + [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x30, 0x41])
+    let input = Array("hello\r\n".utf8) + [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x30, 0x41]
+    let result = detector.feed(input)
     check(result.trigger == .download, "ZRQINIT prefix is detected as a download")
-    check(result.passthrough == Array("hello\r\n".utf8), "text before the trigger passes through")
-    check(result.parserBytes.first == 0x2A && result.parserBytes.last == 0x41,
+    check(result.passthrough == input, "the whole detecting chunk is passed to the terminal in real time")
+    check(result.parserBytes == [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x30, 0x41],
           "the trigger and trailing bytes are handed to the parser")
 }
 do {
     var detector = ZmodemDetector()
     let first = detector.feed([0x2A, 0x2A, 0x18])
-    check(first.trigger == nil && first.passthrough.isEmpty, "a split trigger is held back, not rendered")
+    check(first.trigger == nil, "a split trigger is not yet detected on the first half")
+    check(first.passthrough == [0x2A, 0x2A, 0x18], "partial-prefix bytes are rendered immediately, never withheld")
     let second = detector.feed([0x42, 0x30, 0x31])
     check(second.trigger == .upload, "the rest of a split trigger completes an upload detection")
+    check(second.parserBytes == [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x31],
+          "a split trigger is reassembled across chunks for the parser")
 }
 do {
     var detector = ZmodemDetector()
-    let result = detector.feed(Array("a ** b ***".utf8))
+    let input = Array("a ** b ***".utf8)
+    let result = detector.feed(input)
     check(result.trigger == nil, "stray asterisks do not false-trigger")
-    // Everything but a possible trailing prefix is rendered.
-    check(result.passthrough.count >= Array("a ** b ".utf8).count, "non-trigger text is rendered")
+    check(result.passthrough == input, "non-trigger text is rendered verbatim, including a trailing prefix")
 }
 
 // MARK: Loopback — sender ↔ receiver

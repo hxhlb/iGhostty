@@ -256,6 +256,10 @@ final class ZmodemSender {
         guard let file = current else { return }
         while !sentLastBlock, offset - ackedOffset < window {
             let chunk = file.read(offset, blockSize)
+            if chunk.isEmpty, offset < file.size {
+                cancel()
+                return
+            }
             offset += UInt64(chunk.count)
             let isLast = offset >= file.size
             send(ZmodemEncoder.dataSubpacket32(chunk, end: isLast ? .wait : .query))

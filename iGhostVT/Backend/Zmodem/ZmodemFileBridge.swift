@@ -39,6 +39,12 @@ private final class ZmodemReceiveWriter: ZmodemFileWriter, @unchecked Sendable {
         self.onSaved = onSaved
     }
 
+    deinit {
+        try? handle?.close()
+        for url in received { try? FileManager.default.removeItem(at: url) }
+        if let currentURL { try? FileManager.default.removeItem(at: currentURL) }
+    }
+
     func beginFile(name: String, size _: UInt64?) -> Bool {
         let directory = ZmodemFileBridge.stagingDirectory
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -120,6 +126,13 @@ private final class ZmodemUploadSource: ZmodemFileSource, @unchecked Sendable {
 
     init(urls: [URL]) {
         self.urls = urls
+    }
+
+    deinit {
+        try? handle?.close()
+        for url in urls where url.path.contains(FileManager.default.temporaryDirectory.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     func nextFile() -> ZmodemOutgoingFile? {

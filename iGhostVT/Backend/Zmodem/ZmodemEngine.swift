@@ -141,7 +141,10 @@ final class ZmodemEngine: @unchecked Sendable {
 
     private func attachSource(_ source: ZmodemFileSource?) {
         AppLog.info(.zmodem, "attachSource mode=\(mode) source=\(source != nil)")
-        guard mode == .awaitingSource else { return }
+        guard mode == .awaitingSource else {
+            source?.finish(completed: false)
+            return
+        }
         guard let source else {
             abort()
             return

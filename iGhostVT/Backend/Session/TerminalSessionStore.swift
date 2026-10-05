@@ -341,6 +341,7 @@ final class TerminalSessionStore: ObservableObject {
     // The engine suppresses its own confirmation for a download, so this one —
     // posted after the save picker — is what the user sees.
     private func showZmodemSaved(name: String, count: Int) {
+        guard zmodemTransfer == nil else { return }
         let display = count > 1 ? String(localized: "\(count) files") : name
         let notice = ZmodemTransferInfo(direction: .download, name: display, transferred: 0, total: nil, phase: .done)
         zmodemTransfer = notice
