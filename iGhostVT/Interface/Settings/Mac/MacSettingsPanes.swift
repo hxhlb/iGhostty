@@ -214,19 +214,14 @@ import SwiftUI
                     // The value as text and the stepper bare beside it: a
                     // Stepper's own label sits on a line of its own here.
                     HStack(spacing: DS.Padding.m) {
-                        Text(String.localizedStringWithFormat(
-                            NSLocalizedString("%lld pt", comment: "A font size in points"),
-                            terminalFontSize,
-                        ))
-                        .monospacedDigit()
+                        SizeValue(text: Self.points(terminalFontSize))
                         Stepper("Terminal", value: $terminalFontSize, in: TerminalFontSize.range)
                             .labelsHidden()
                     }
                 }
                 MacSettingsRow("Interface") {
                     HStack(spacing: DS.Padding.m) {
-                        Text(verbatim: "\(Int((InterfaceTextSize.scale(step: interfaceTextStep) * 100).rounded()))%")
-                            .monospacedDigit()
+                        SizeValue(text: Self.percent(interfaceTextStep))
                         Stepper("Interface", value: $interfaceTextStep, in: InterfaceTextSize.steps)
                             .labelsHidden()
                     }
@@ -239,6 +234,50 @@ import SwiftUI
                         """,
                     )
                 }
+            }
+        }
+
+        static func points(_ size: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("%lld pt", comment: "A font size in points"),
+                size,
+            )
+        }
+
+        static func percent(_ step: Int) -> String {
+            "\(Int((InterfaceTextSize.scale(step: step) * 100).rounded()))%"
+        }
+
+        /// Every value either row can show at its widest — the largest size
+        /// in this language's spelling, the largest and smallest scale —
+        /// so both value columns reserve one width and the two steppers
+        /// start at the same x whatever the values are.
+        static var widestValues: [String] {
+            [
+                points(TerminalFontSize.range.upperBound),
+                points(TerminalFontSize.range.lowerBound),
+                percent(InterfaceTextSize.steps.upperBound),
+                percent(InterfaceTextSize.steps.lowerBound),
+            ]
+        }
+
+        /// A size's value, trailing-aligned in a column as wide as the
+        /// widest value either row can show. The candidates are laid out
+        /// hidden underneath, so the width comes from the text itself and
+        /// no frame is measured.
+        private struct SizeValue: View {
+            let text: String
+
+            var body: some View {
+                ZStack(alignment: .trailing) {
+                    ForEach(Array(MacAppearancePane.widestValues.enumerated()), id: \.offset) { _, candidate in
+                        Text(verbatim: candidate).hidden()
+                    }
+                    Text(verbatim: text)
+                }
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
             }
         }
     }
