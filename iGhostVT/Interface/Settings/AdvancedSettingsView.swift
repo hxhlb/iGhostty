@@ -12,13 +12,27 @@ import SwiftUI
 /// background helper's status beside it.
 struct AdvancedSettingsView: View {
     @AppStorage(DetailedTerminalLog.key) private var verboseTerminalLog = false
+    @AppStorage(ZmodemSetting.key) private var zmodemEnabled = ZmodemSetting.defaultValue
 
     var body: some View {
         Form {
+            fileTransferSection
             debugSection
         }
         .navigationTitle("Advanced")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var fileTransferSection: some View {
+        Section {
+            Toggle("ZMODEM File Transfer", isOn: $zmodemEnabled)
+        } header: {
+            Text("File Transfer")
+                .font(DS.Font.caption)
+        } footer: {
+            Text("Support for ZMODEM (`rz`/`sz`) file transfers.")
+                .font(DS.Font.detail)
+        }
     }
 
     /// The keystroke log's switch and the way into the logs themselves —
@@ -45,6 +59,15 @@ struct AdvancedSettingsView: View {
             )
             .font(DS.Font.detail)
         }
+    }
+}
+
+enum ZmodemSetting {
+    static let key = "Transfer.zmodemEnabled"
+    static let defaultValue = false
+
+    static var isEnabled: Bool {
+        UserDefaults.standard.object(forKey: key) as? Bool ?? defaultValue
     }
 }
 

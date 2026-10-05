@@ -30,6 +30,7 @@ enum AppLog {
         case transport
         case drop
         case ghostty
+        case zmodem
     }
 
     enum Level {
