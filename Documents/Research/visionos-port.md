@@ -1,5 +1,8 @@
 # visionOS port — experiment log and plan
 
+> **Historical.** visionOS support was dropped after 1.2.1; the tree no
+> longer builds for xros. Kept as the record of what the port took.
+
 *2026-08-31. Experiments run on a Mac with Xcode 27.0 beta 6 (visionOS 27.0
 SDK) and Zig 0.15.2, against a scratch copy of this repo and of
 libghostty-spm. The libghostty-spm half has since landed there (`dd2df3f`,

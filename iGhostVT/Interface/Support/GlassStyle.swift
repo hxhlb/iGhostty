@@ -9,25 +9,17 @@ extension View {
     /// (the sidebar opening) moves the label first and drags the background
     /// a beat behind it. Grouping resolves the subtree's geometry in one
     /// transaction so both travel together. iOS 15/16 have no equivalent.
-    ///
-    /// visionOS has no `glassEffect`; its windows are already glass, so the
-    /// material fallback is the whole treatment there.
     @ViewBuilder
     func barGlass(in shape: some Shape, interactive: Bool = true) -> some View {
-        #if os(visionOS)
+        if #available(iOS 26.0, *) {
+            glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
+                .geometryGroup()
+        } else if #available(iOS 17.0, *) {
             background(.ultraThinMaterial, in: shape)
                 .geometryGroup()
-        #else
-            if #available(iOS 26.0, *) {
-                glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
-                    .geometryGroup()
-            } else if #available(iOS 17.0, *) {
-                background(.ultraThinMaterial, in: shape)
-                    .geometryGroup()
-            } else {
-                background(.ultraThinMaterial, in: shape)
-            }
-        #endif
+        } else {
+            background(.ultraThinMaterial, in: shape)
+        }
     }
 }
 
@@ -39,15 +31,11 @@ extension View {
     /// circle and blobs splitting and merging on the way.
     @ViewBuilder
     func glassMaterializes() -> some View {
-        #if os(visionOS)
+        if #available(iOS 26.0, *) {
+            glassEffectTransition(.materialize)
+        } else {
             self
-        #else
-            if #available(iOS 26.0, *) {
-                glassEffectTransition(.materialize)
-            } else {
-                self
-            }
-        #endif
+        }
     }
 }
 
@@ -58,22 +46,15 @@ extension View {
     /// within the corners.
     @ViewBuilder
     func cardGlass(in shape: some Shape) -> some View {
-        #if os(visionOS)
+        if #available(iOS 26.0, *) {
+            clipShape(shape)
+                .glassEffect(.regular, in: shape)
+        } else {
             clipShape(shape)
                 .background(.regularMaterial)
                 .background(Color(UIColor.systemBackground).opacity(0.5))
                 .clipShape(shape)
-        #else
-            if #available(iOS 26.0, *) {
-                clipShape(shape)
-                    .glassEffect(.regular, in: shape)
-            } else {
-                clipShape(shape)
-                    .background(.regularMaterial)
-                    .background(Color(UIColor.systemBackground).opacity(0.5))
-                    .clipShape(shape)
-            }
-        #endif
+        }
     }
 }
 
@@ -84,14 +65,10 @@ struct GlassBarContainer<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        #if os(visionOS)
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing, content: content)
+        } else {
             content()
-        #else
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer(spacing: spacing, content: content)
-            } else {
-                content()
-            }
-        #endif
+        }
     }
 }

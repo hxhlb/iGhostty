@@ -4,13 +4,13 @@
 # that run has passed.
 #
 # The package jobs share nothing: each is a machine recipe, and they run in
-# parallel so a roothide box, a rootless box, a Vision Pro box, and a Mac box
+# parallel so a roothide box, a rootless box, and a Mac box
 # can all work at once. They communicate only by `upload-artifact`. The
 # `packages` job is the merge — it collects those artifacts, counts them, and
 # uploads the one `ighostvt-<sha>` a tag downloads.
 #
-# workflow_dispatch can run all four or just one (`platform`), and can pin
-# each job to a runner label so the four machines do not have to be
+# workflow_dispatch can run all three or just one (`platform`), and can pin
+# each job to a runner label so the three machines do not have to be
 # GitHub-hosted. A single-platform dispatch skips the merge: a partial set of
 # artifacts is not something a release can be cut from. A dispatch on a tag
 # (`gh workflow run ci.yml --ref vX.Y.Z`) is how a commit that never reached
@@ -50,7 +50,6 @@ on:
           - all
           - roothide
           - rootless
-          - xros
           - macos
         default: all
       runner_roothide:
@@ -59,10 +58,6 @@ on:
         default: macos-26
       runner_rootless:
         description: Runner label for the rootless .deb
-        type: string
-        default: macos-26
-      runner_xros:
-        description: Runner label for the visionOS .deb
         type: string
         default: macos-26
       runner_macos:
@@ -120,8 +115,8 @@ jobs:
       # The version is the commit's — the tag branch is for a dispatch against
       # a tag, the documented way back once an artifact has aged out. The
       # build number is always this run's, floored so it keeps climbing past
-      # the counter the old publishing workflow left behind. All four jobs
-      # take the same number from the same run, so the four packages agree.
+      # the counter the old publishing workflow left behind. All three jobs
+      # take the same number from the same run, so the three packages agree.
       - name: Pin the build number to this run
         shell: bash
         run: |
@@ -149,7 +144,7 @@ jobs:
           shasum -a 256 *.deb *-dSYMs.zip | tee SHA256SUMS.roothide
 
       # A transport between jobs of this run, not the release's artifact: the
-      # `packages` job below merges these four into `ighostvt-<sha>`.
+      # `packages` job below merges these three into `ighostvt-<sha>`.
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
@@ -215,67 +210,6 @@ jobs:
             build/Packages/*.deb
             build/Packages/*-dSYMs.zip
             build/Packages/SHA256SUMS.rootless
-          if-no-files-found: error
-          retention-days: 1
-
-  # The same app and daemon built against the visionOS SDK, for a jailbroken
-  # Apple Vision Pro. roothide layout; the architecture label is xros-arm64e
-  # so the package stays distinct from the iOS one in a shared repository.
-  package-xros:
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'xros'
-    runs-on: ${{ github.event.inputs.runner_xros || 'macos-26' }}
-    timeout-minutes: 60
-
-    steps:
-      - name: Check out iGhostVT
-        uses: actions/checkout@v7
-
-      - name: Select newest Xcode
-        run: |
-          latest="$(ls -d /Applications/Xcode*.app | sort -V | tail -n1)"
-          sudo xcode-select -s "$latest/Contents/Developer"
-          xcodebuild -version
-          xcodebuild -showsdks | grep -- '-sdk xros' || { echo "the selected Xcode has no visionOS SDK" >&2; exit 1; }
-
-      - name: Install packaging tools
-        run: |
-          brew untap aws/tap 2>/dev/null || true
-          brew install ldid dpkg xcbeautify
-          ldid -h 2>&1 | head -n1 || true
-          dpkg-deb --version | head -n1
-
-      - name: Pin the build number to this run
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="$(make --no-print-directory print-version)"
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            version="${GITHUB_REF_NAME#v}"
-          fi
-          make set-version VERSION="$version" BUILD="$(( GITHUB_RUN_NUMBER + BUILD_NUMBER_FLOOR ))"
-
-      - name: Build visionOS package (xros-arm64e)
-        run: make deb-xros
-
-      - name: Archive dSYMs
-        run: |
-          version="$(make --no-print-directory print-version)"
-          cd /private/tmp/ighostvt-deriveddata/Build/Products/Release-xros
-          zip -qry "$GITHUB_WORKSPACE/build/Packages/iGhostVT-${version}-xros-dSYMs.zip" *.dSYM
-
-      - name: Checksums
-        run: |
-          cd build/Packages
-          shasum -a 256 *.deb *-dSYMs.zip | tee SHA256SUMS.xros
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ighostvt-xros
-          path: |
-            build/Packages/*.deb
-            build/Packages/*-dSYMs.zip
-            build/Packages/SHA256SUMS.xros
           if-no-files-found: error
           retention-days: 1
 
@@ -360,10 +294,10 @@ jobs:
 
   # Merge. Needs every platform job; a skipped sibling (a single-platform
   # dispatch) skips this too, which is what we want — a partial set of
-  # artifacts is not a release. Tag pushes and pushes to main run all four,
+  # artifacts is not a release. Tag pushes and pushes to main run all three,
   # then this, and its artifact is what `release.yml` downloads.
   packages:
-    needs: [package-roothide, package-rootless, package-xros, package-macos]
+    needs: [package-roothide, package-rootless, package-macos]
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -384,19 +318,18 @@ jobs:
           ls -l
           test -f SHA256SUMS.roothide || { echo "roothide checksums missing" >&2; exit 1; }
           test -f SHA256SUMS.rootless || { echo "rootless checksums missing" >&2; exit 1; }
-          test -f SHA256SUMS.xros || { echo "xros checksums missing" >&2; exit 1; }
           test -f SHA256SUMS.macos || { echo "macos checksums missing" >&2; exit 1; }
           # One file for every .deb, matching the layout previous releases
           # attached, plus the macOS checksums beside the zip.
-          cat SHA256SUMS.roothide SHA256SUMS.rootless SHA256SUMS.xros > SHA256SUMS
-          rm -f SHA256SUMS.roothide SHA256SUMS.rootless SHA256SUMS.xros
+          cat SHA256SUMS.roothide SHA256SUMS.rootless > SHA256SUMS
+          rm -f SHA256SUMS.roothide SHA256SUMS.rootless
           shopt -s nullglob
           debs=(*.deb)
           zips=(*-macos.zip)
           dsyms=(*-dSYMs.zip)
-          [[ "${#debs[@]}" -eq 3 ]] || { echo "expected 3 debs, got ${#debs[@]}" >&2; exit 1; }
+          [[ "${#debs[@]}" -eq 2 ]] || { echo "expected 2 debs, got ${#debs[@]}" >&2; exit 1; }
           [[ "${#zips[@]}" -eq 1 ]] || { echo "expected 1 zip, got ${#zips[@]}" >&2; exit 1; }
-          [[ "${#dsyms[@]}" -eq 4 ]] || { echo "expected 4 dSYM zips, got ${#dsyms[@]}" >&2; exit 1; }
+          [[ "${#dsyms[@]}" -eq 3 ]] || { echo "expected 3 dSYM zips, got ${#dsyms[@]}" >&2; exit 1; }
 
       # The lists the packaging jobs wrote, checked once here so a bad upload
       # is this run's failure rather than the tag's. `release.yml` checks them

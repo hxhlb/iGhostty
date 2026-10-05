@@ -5,7 +5,7 @@
 
 # iGhostVT
 
-在 iPhone、iPad、Apple Vision Pro 和 Mac 上使用真正的终端，绘制引擎与桌面版 [Ghostty](https://ghostty.org) 相同。启动一条命令，离开应用再回来，shell 仍在运行。
+在 iPhone、iPad 和 Mac 上使用真正的终端，绘制引擎与桌面版 [Ghostty](https://ghostty.org) 相同。启动一条命令，离开应用再回来，shell 仍在运行。
 
 ![应用预览](./Documents/screenshots.png)
 
@@ -21,10 +21,9 @@
 | --- | --- |
 | 越狱 iPhone 或 iPad，[roothide](https://github.com/roothide) | `iphoneos-arm64e` |
 | 越狱 iPhone 或 iPad，rootless（`/var/jb`） | `iphoneos-arm64` |
-| 越狱 Apple Vision Pro | `xros-arm64e` 或 `xros-arm64` |
 | Mac | `iGhostVT-<version>-macos.zip` |
 
-需要 iOS 15 或更高版本、visionOS 1 或更高版本，或 macOS 13 或更高版本。
+需要 iOS 15 或更高版本，或 macOS 13 或更高版本。
 
 ### Mac
 
@@ -68,7 +67,6 @@ ighostvt-cli kill 1
 ```sh
 make deb              # iOS，roothide
 make deb-rootless     # iOS，rootless
-make deb-xros         # visionOS，roothide
 make mac-zip          # Mac
 make test
 ```
@@ -79,6 +77,6 @@ make test
 
 iGhostVT 使用 [MIT 许可证](LICENSE)。
 
-iOS 与 visionOS 应用需要越狱，不适用于 App Store。Mac 应用不需要越狱。
+iOS 应用需要越狱，不适用于 App Store。Mac 应用不需要越狱。
 
 欢迎加入 [Discord](https://discord.gg/vqhDEep2mN) 社区。

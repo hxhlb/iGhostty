@@ -1,8 +1,8 @@
 # iGhostVT — Agent Notes
 
 Ghostty-powered terminal for jailbroken iOS 15+ — roothide and rootless
-bootstraps both. The app renders; the bundled `ighostvtd` LaunchDaemon owns
-every terminal session. `ighostvtd` is a thin XPC proxy under launchd's 6 MB
+bootstraps both — and for the Mac; visionOS is no longer supported. The app
+renders; the bundled `ighostvtd` LaunchDaemon owns every terminal session. `ighostvtd` is a thin XPC proxy under launchd's 6 MB
 jetsam limit; it spawns one child, `ighostvtd-io`, and forwards the wire to
 it. The PTYs, the replay buffers, and every shell live in `ighostvtd-io`,
 which launchd never sized — so a session's buffers cannot jetsam the daemon.
@@ -91,14 +91,14 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   changes land in that repo and ship via a new package release — don't
   reintroduce a local path reference to a sibling checkout.
 - **CI builds; Release publishes what CI built.** `ci.yml` compiles, packages
-  and verifies all four flavours on every push and pull request, and keeps
+  and verifies all three flavours on every push and pull request, and keeps
   `build/Packages/` as the artifact `ighostvt-<sha>` for thirty days.
   `release.yml` runs on the tag, **compiles nothing**, waits for that commit's
   CI run, refuses to publish unless it passed, and attaches the bytes CI
   verified. Never rebuild at tag time: a second build is a different build
   number, a different runner image and bytes no test ever ran against. The
   workflow stays named `Release` — `pages.yml` watches for it, and
-  `Scripts/release.sh` finds the run by that name and then checks all ten
+  `Scripts/release.sh` finds the run by that name and then checks all eight
   assets by name, so an asset that is renamed breaks the cut.
 - **The release note is a file in the repo**, `Documents/Releases/<version>.md`,
   written before the tag: one headline sentence, one bullet per user-visible
@@ -642,48 +642,6 @@ titles are hand-entered in `Localizable.xcstrings` (eleven languages,
 `extractionState: manual`), and two keys made of the same words collide in
 the catalog's generated symbols, which is why the menu's entry is keyed
 `Settings… (menu)`.
-
-## visionOS
-
-A jailbroken Apple Vision Pro is the same product as a jailbroken iPad — the
-app renders, `ighostvtd` owns the shells — so the tree builds for xros with
-`make deb PLATFORM=xros` (roothide layout, `xros-arm64e`; `deb-xros` and
-`deb-xros-rootless` are the shorthands, and ci.yml has a `package-xros`
-job beside the two iOS ones). `PLATFORM` picks the SDK, the destination, the
-`Build/Products/<config>-xros` directory, the architecture label's OS half,
-and the control file's `Depends` (`firmware (>= 1.0)` there — the iOS
-`firmware (>= 15.0)` would refuse to install on a visionOS 1.x/2.x
-bootstrap); `PACKAGE_FLAVOR` stays the layout axis and is independent of it.
-The daemon needed no source change at all; the app needed seven guards, all
-`#if os(visionOS)` nested inside code that is already UIKit-only, each around
-one API the xros SDK lacks: `inputAssistantItem` and the `inputAccessoryView`
-override (`LockableTerminalView`), `ActivityKit` (`SessionActivityController`,
-`TerminalSessionAttributes` — the framework is absent from the SDK, so it is
-`canImport`, and the widget target is already `platformFilter = ios`, which
-keeps the appex out of the xros bundle), `glassEffect` /
-`GlassEffectContainer` (`GlassStyle`, `AlertCardView` — visionOS windows are
-glass already, the material fallback is the whole treatment), and the
-keyboard-frame test in `KeyboardState` (the visionOS keyboard is its own
-window; the frame says nothing), and `SPIndicator` (`CopiedIndicator` — the
-package compiles its views for `os(iOS)` only, so the module is empty on
-xros and a copy there goes unconfirmed). `XROS_DEPLOYMENT_TARGET` is 1.0 in
-`Configuration/Base.xcconfig` — the lowest the SDK offers and what
-libghostty-spm declares. The one thing that would raise it: two or more
-children inside a single `#available` branch of a `@ViewBuilder` form a
-`TupleContent`, whose `View` conformance the SDK dates to visionOS 26 with
-no back-deployment (`TabContextMenu.lockControls` is split into one builder
-per control for exactly this). libghostty-spm ships the xros and xrsimulator
-slices since 1.5.0 (`upstream.1.3.1-2`); that repo's `Patches/ghostty/0012`,
-`Patches/zig/` and the wrapper's own `os(visionOS)` guards are the other
-half, and `Documents/Research/visionos-port.md` is the experiment log.
-What is not known yet, because it takes the device: the bootstrap's dpkg
-architecture (override `PACKAGE_ARCHITECTURE=` if it is not `xros-arm64e`),
-whether `uikittools` exists there, and whether the M2's GPU user-client
-classes match the AGX names in `Packaging/iGhostVT.entitlements` — a miss
-is the same silent black terminal as on iOS, and the kernel log names the
-class. Building the xros app locally on Xcode 27 needs nothing special;
-building *libghostty* locally does (see that repo's
-`Script/support/xcode27-sdk-overlay.sh`).
 
 ## Build & verify
 

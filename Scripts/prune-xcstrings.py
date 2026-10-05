@@ -10,8 +10,8 @@ keeps those: a stale key whose quoted text still appears in a source file
 becomes `manual`, which Xcode never touches.
 
 **Stale does not mean dead, and this script does not delete by default.** The
-extractor reports on the target it just built. An app with an iOS target, a
-visionOS target and a macOS target marks every macOS-only string stale after
+extractor reports on the target it just built. An app with an iOS target and a
+macOS target marks every macOS-only string stale after
 an iOS build, and every one of them is live. So is a key reached through
 interpolation, one named in a xib, and one a package builds from a constant.
 A key found nowhere in the roots given is therefore marked `manual` and
@@ -128,7 +128,7 @@ def main(argv):
         print(
             f"\n{len(orphans)} key(s) appear in none of: {' '.join(source_roots)}\n"
             "Before deleting any of them, check that every target's sources were\n"
-            "passed — a macOS-only or visionOS-only string looks exactly like this\n"
+            "passed — a macOS-only string looks exactly like this\n"
             "after an iOS build, and deleting it takes all of its translations with\n"
             "it. When the roots are complete, re-run with --delete-orphans.",
             file=sys.stderr,

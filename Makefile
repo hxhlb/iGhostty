@@ -1,5 +1,4 @@
-# iGhostVT Xcode build and jailbreak Debian packaging (roothide, rootless;
-# iOS and visionOS)
+# iGhostVT Xcode build and jailbreak Debian packaging (roothide, rootless)
 
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -10,30 +9,12 @@ SCHEME              := iGhostVT
 CONFIGURATION       ?= Release
 DERIVED_DATA        ?= /private/tmp/ighostvt-deriveddata
 
-# Which OS the device build targets. `ios` is the iPhone/iPad package; `xros`
-# is the same app and daemon built for a jailbroken Apple Vision Pro — same
-# sources, same packaging, a different SDK and Mach-O platform. The two axes
-# are independent: PLATFORM picks the binaries, PACKAGE_FLAVOR the layout.
-PLATFORM            ?= ios
-ifeq ($(PLATFORM),ios)
 DEVICE_DESTINATION  := generic/platform=iOS
 PRODUCTS_SDK        := iphoneos
 DEB_ARCH_OS         := iphoneos
 # uikittools' triggers register the app; the maintainer scripts run launchctl
 # and killall, and killall ships in shell-cmds.
 DEB_DEPENDS         := firmware (>= 15.0), uikittools, launchctl, shell-cmds
-else ifeq ($(PLATFORM),xros)
-DEVICE_DESTINATION  := generic/platform=visionOS
-PRODUCTS_SDK        := xros
-# The dpkg architecture a visionOS bootstrap reports is its own to say; xros-*
-# keeps the package distinct from the iOS one in a shared APT repository (same
-# id, same version, different binaries). Override PACKAGE_ARCHITECTURE if the
-# device's dpkg wants another label.
-DEB_ARCH_OS         := xros
-DEB_DEPENDS         := firmware (>= 1.0), uikittools, launchctl, shell-cmds
-else
-$(error PLATFORM must be ios or xros, got '$(PLATFORM)')
-endif
 PRODUCTS_DIR        := $(DERIVED_DATA)/Build/Products/$(CONFIGURATION)-$(PRODUCTS_SDK)
 APP_BUNDLE          := $(PRODUCTS_DIR)/iGhostVT.app
 DAEMON_BINARY       := $(PRODUCTS_DIR)/ighostvtd
@@ -115,18 +96,16 @@ ifeq ($(BUILD_NUMBER),)
 $(error CURRENT_PROJECT_VERSION is missing from Configuration/Version.xcconfig)
 endif
 
-.PHONY: all help print-version print-build-number print-deb-path print-mac-zip-path set-version bump-build check test harness build deb deb-roothide deb-rootless deb-xros deb-xros-rootless mac-app mac-daemon mac-daemon-uninstall mac-run mac-zip-check mac-zip mac-update-from-github release clean
+.PHONY: all help print-version print-build-number print-deb-path print-mac-zip-path set-version bump-build check test harness build deb deb-roothide deb-rootless mac-app mac-daemon mac-daemon-uninstall mac-run mac-zip-check mac-zip mac-update-from-github release clean
 
 all: deb
 
 help:
 	@echo "iGhostVT:"
-	@echo "  build       Build the unsigned iGhostVT.app and daemon (PLATFORM=$(PLATFORM): ios or xros)"
-	@echo "  deb         Build, ad-hoc sign, and package the .deb (PLATFORM=$(PLATFORM) PACKAGE_FLAVOR=$(PACKAGE_FLAVOR))"
+	@echo "  build       Build the unsigned iGhostVT.app and daemon"
+	@echo "  deb         Build, ad-hoc sign, and package the .deb (PACKAGE_FLAVOR=$(PACKAGE_FLAVOR))"
 	@echo "  deb-roothide  Package for roothide (unprefixed, iphoneos-arm64e)"
 	@echo "  deb-rootless  Package for a rootless bootstrap (/var/jb, iphoneos-arm64)"
-	@echo "  deb-xros    Package the visionOS build for roothide (unprefixed, xros-arm64e)"
-	@echo "  deb-xros-rootless  Package the visionOS build for a rootless bootstrap (/var/jb, xros-arm64)"
 	@echo "  test        Run the PTY harness"
 	@echo "  harness     Run the daemon on macOS: proxy, ighostvtd-io, and the PTY spawn tests"
 	@echo "  check       Validate the project and packaging inputs"
@@ -234,7 +213,7 @@ check:
 	@# purpose — nothing extracts them. `stale` is different: Xcode writes it
 	@# during a build, into a twelve-thousand-line file, and it rides into a
 	@# commit as one green line. One did. And it matters more here than
-	@# anywhere else, because one catalog serves iOS, visionOS and macOS: an
+	@# anywhere else, because one catalog serves iOS and macOS: an
 	@# iOS build marks every Mac-only string stale while all of them are live,
 	@# so the answer is never a bulk delete. Scripts/prune-xcstrings.py keeps
 	@# what it cannot account for and needs every target's sources.
@@ -276,32 +255,29 @@ harness:
 	"$$harness_dir/cli-renderer"
 
 build: check test bump-build
-	XCBUILD_LABEL=build-$(PLATFORM) $(DEVICE_XCODEBUILD) \
+	XCBUILD_LABEL=build-ios $(DEVICE_XCODEBUILD) \
 		-configuration "$(CONFIGURATION)" \
 		-scheme "$(SCHEME)" \
 		-destination "$(DEVICE_DESTINATION)" \
 		build
-	XCBUILD_LABEL=build-daemon-$(PLATFORM) $(DEVICE_XCODEBUILD) \
+	XCBUILD_LABEL=build-daemon-ios $(DEVICE_XCODEBUILD) \
 		-configuration "$(CONFIGURATION)" \
 		-scheme "$(DAEMON_SCHEME)" \
 		-destination "$(DEVICE_DESTINATION)" \
 		build
 
 deb: build
-ifeq ($(PLATFORM),ios)
 	@# A clean build says nothing about the floor: the linker trusts the SDK's
 	@# availability metadata, and where that is wrong the process dies in dyld
 	@# before main on the old device — libswiftXPC did it to this app on iOS
 	@# 15 before 0.9.0. Every binary the package ships is audited against the
 	@# floor before anything is packaged.
-	@# The visionOS build is not an iOS floor and is not audited here.
 	@test -n "$(IOS_DEPLOYMENT_FLOOR)" || { echo "error: no IPHONEOS_DEPLOYMENT_TARGET in project.pbxproj" >&2; exit 65; }
 	"$(FLOOR_AUDIT)" "$(IOS_DEPLOYMENT_FLOOR)" \
 		"$(APP_BUNDLE)" \
 		"$(DAEMON_BINARY)" \
 		"$(DAEMON_IO_BINARY)" \
 		"$(CLI_BINARY)"
-endif
 	"$(DEB_PACKAGER)" \
 		"$(APP_BUNDLE)" \
 		"$(DAEMON_BINARY)" \
@@ -327,15 +303,6 @@ deb-roothide:
 
 deb-rootless:
 	@$(MAKE) --no-print-directory PACKAGE_FLAVOR=rootless deb
-
-# The visionOS build is a different set of binaries (Mach-O platform xros),
-# so it has its own products directory and its own architecture label; the
-# layout axis is the same as above.
-deb-xros:
-	@$(MAKE) --no-print-directory PLATFORM=xros PACKAGE_FLAVOR=roothide deb
-
-deb-xros-rootless:
-	@$(MAKE) --no-print-directory PLATFORM=xros PACKAGE_FLAVOR=rootless deb
 
 # Mac Catalyst development harness: the whole stack off-device (AGENTS.md,
 # "make mac-run"). The app is signed with *no* entitlements — a Catalyst app

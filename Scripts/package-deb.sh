@@ -34,9 +34,7 @@ architecture="${14}"
 # package ships — including the ones inside the launch daemon and the
 # maintainer scripts.
 install_prefix="${15}"
-# The control file's Depends line. The firmware floor differs per platform —
-# iOS 15 for iphoneos-*, visionOS 1 for xros-* — and the Makefile knows which
-# it built.
+# The control file's Depends line, as the Makefile composes it.
 depends="${16}"
 
 [[ -d "$app_bundle" && -f "$app_bundle/Info.plist" ]] || { echo "error: incomplete app bundle" >&2; exit 66; }
@@ -53,7 +51,7 @@ done
 [[ "$architecture" =~ ^[A-Za-z0-9][A-Za-z0-9-]+$ ]] || { echo "error: invalid architecture" >&2; exit 64; }
 [[ "$install_prefix" =~ ^(/[A-Za-z0-9][A-Za-z0-9._-]*)*$ ]] || { echo "error: invalid install prefix" >&2; exit 64; }
 case "$architecture:$install_prefix" in
-iphoneos-arm64:/var/jb | iphoneos-arm64e: | xros-arm64:/var/jb | xros-arm64e:) ;;
+iphoneos-arm64:/var/jb | iphoneos-arm64e:) ;;
 *) echo "error: architecture and install prefix name different bootstrap layouts" >&2; exit 64 ;;
 esac
 

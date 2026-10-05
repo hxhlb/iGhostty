@@ -3,9 +3,7 @@
 //  iGhostVT
 //
 
-#if !os(visionOS)
-    import SPIndicator
-#endif
+import SPIndicator
 import UIKit
 
 /// The one confirmation a copy gets: a pasteboard write changes nothing on
@@ -18,15 +16,11 @@ import UIKit
 @MainActor
 enum CopiedIndicator {
     static func present(in window: UIWindow?) {
-        // SPIndicator compiles its views for `os(iOS)` only, so on
-        // visionOS the module is empty; the copy itself still happens.
-        #if !os(visionOS)
-            let indicator = SPIndicatorView(
-                title: String(localized: "Copied"),
-                preset: .done,
-            )
-            indicator.presentWindow = window
-            indicator.present(haptic: .success)
-        #endif
+        let indicator = SPIndicatorView(
+            title: String(localized: "Copied"),
+            preset: .done,
+        )
+        indicator.presentWindow = window
+        indicator.present(haptic: .success)
     }
 }

@@ -5,7 +5,7 @@
 
 # iGhostVT
 
-A real terminal on iPhone, iPad, Apple Vision Pro, and Mac, drawn by the same engine as [Ghostty](https://ghostty.org) on the desktop. Start a command, leave the app, and come back — the shell is still running.
+A real terminal on iPhone, iPad, and Mac, drawn by the same engine as [Ghostty](https://ghostty.org) on the desktop. Start a command, leave the app, and come back — the shell is still running.
 
 ![Preview](./Documents/screenshots.png)
 
@@ -21,10 +21,9 @@ Packages are also on [GitHub Releases](https://github.com/owngoal-dev/iGhostVT/r
 | --- | --- |
 | Jailbroken iPhone or iPad, [roothide](https://github.com/roothide) | `iphoneos-arm64e` |
 | Jailbroken iPhone or iPad, rootless (`/var/jb`) | `iphoneos-arm64` |
-| Jailbroken Apple Vision Pro | `xros-arm64e` or `xros-arm64` |
 | Mac | `iGhostVT-<version>-macos.zip` |
 
-Requires iOS 15 or later, visionOS 1 or later, or macOS 13 or later.
+Requires iOS 15 or later, or macOS 13 or later.
 
 ### Mac
 
@@ -68,7 +67,6 @@ On a Mac the tool is `/Applications/iGhostVT.app/Contents/MacOS/ighostvt-cli`.
 ```sh
 make deb              # iOS, roothide
 make deb-rootless     # iOS, rootless
-make deb-xros         # visionOS, roothide
 make mac-zip          # Mac
 make test
 ```
@@ -79,6 +77,6 @@ Contributor notes are in [AGENTS.md](AGENTS.md). Architecture is in [Documents/A
 
 iGhostVT is available under the [MIT License](LICENSE).
 
-The iOS and visionOS apps require a jailbreak. They are not for the App Store. The Mac app does not require a jailbreak.
+The iOS app requires a jailbreak. They are not for the App Store. The Mac app does not require a jailbreak.
 
 Join the community on [Discord](https://discord.gg/vqhDEep2mN).

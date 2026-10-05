@@ -80,10 +80,8 @@ for want in \
     "iGhostVT-$version-macos.zip" \
     "wiki.qaq.ighostvt_${version}_iphoneos-arm64.deb" \
     "wiki.qaq.ighostvt_${version}_iphoneos-arm64e.deb" \
-    "wiki.qaq.ighostvt_${version}_xros-arm64e.deb" \
     "iGhostVT-$version-roothide-dSYMs.zip" \
     "iGhostVT-$version-rootless-dSYMs.zip" \
-    "iGhostVT-$version-xros-dSYMs.zip" \
     "iGhostVT-$version-macos-dSYMs.zip" \
     "SHA256SUMS" \
     "SHA256SUMS.macos"; do

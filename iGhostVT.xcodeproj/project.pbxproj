@@ -604,7 +604,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.iGhostVT;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -629,7 +629,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.iGhostVT;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -644,7 +644,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PRODUCT_NAME = ighostvtd;
-				SUPPORTED_PLATFORMS = "iphoneos macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -657,7 +657,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PRODUCT_NAME = ighostvtd;
-				SUPPORTED_PLATFORMS = "iphoneos macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -716,7 +716,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PRODUCT_NAME = "ighostvtd-io";
-				SUPPORTED_PLATFORMS = "iphoneos macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -729,7 +729,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PRODUCT_NAME = "ighostvtd-io";
-				SUPPORTED_PLATFORMS = "iphoneos macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -742,7 +742,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PRODUCT_NAME = "ighostvt-cli";
-				SUPPORTED_PLATFORMS = "iphoneos macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -755,7 +755,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PRODUCT_NAME = "ighostvt-cli";
-				SUPPORTED_PLATFORMS = "iphoneos macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos macosx";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -49,10 +49,8 @@ final class LockableTerminalView: TerminalView {
             // an empty keyboard leaves it (and its dictation button) floating
             // over the terminal, stealing 40pt of grid. Empty its groups for
             // as long as the lock lasts.
-            #if !os(visionOS)
-                inputAssistantItem.leadingBarButtonGroups = []
-                inputAssistantItem.trailingBarButtonGroups = []
-            #endif
+            inputAssistantItem.leadingBarButtonGroups = []
+            inputAssistantItem.trailingBarButtonGroups = []
             guard isFirstResponder else { return }
             // Already first responder: swap the input views in place, so
             // locking drops the keyboard that is up and unlocking brings it
@@ -90,20 +88,18 @@ final class LockableTerminalView: TerminalView {
         isSoftwareKeyboardLocked ? suppressedInputView : super.inputView
     }
 
-    #if !os(visionOS)
-        override var inputAccessoryView: UIView? {
-            // The bar belongs to the keyboard; leaving it floating over a
-            // keyboard that is not there reads as a half-open keyboard. With a
-            // hardware keyboard connected the user may not want it at all.
-            if isSoftwareKeyboardLocked {
-                return nil
-            }
-            if KeyboardBarStore.hidesWithHardwareKeyboard, GCKeyboard.coalesced != nil {
-                return nil
-            }
-            return super.inputAccessoryView
+    override var inputAccessoryView: UIView? {
+        // The bar belongs to the keyboard; leaving it floating over a
+        // keyboard that is not there reads as a half-open keyboard. With a
+        // hardware keyboard connected the user may not want it at all.
+        if isSoftwareKeyboardLocked {
+            return nil
         }
-    #endif
+        if KeyboardBarStore.hidesWithHardwareKeyboard, GCKeyboard.coalesced != nil {
+            return nil
+        }
+        return super.inputAccessoryView
+    }
 
     /// A keyboard connecting or going away, or the setting flipping,
     /// changes the answer above; UIKit only asks again on reload.

@@ -66,12 +66,6 @@ struct TabContextMenu: View {
     /// The two are one choice: `TabAttributes.lock` holds at most one of
     /// them, so turning on the other lock switches, and turning off the one
     /// that is on clears it.
-    ///
-    /// One control per builder, on purpose: two toggles inside one
-    /// `#available` branch make a `TupleContent`, whose `View` conformance
-    /// the visionOS SDK dates to visionOS 26 with no back-deployment, and
-    /// the app's floor there is visionOS 1. A single child per branch never
-    /// forms the tuple.
     @ViewBuilder
     private var lockControls: some View {
         lockControl($attributes.isLocked, lock: "Lock Tab", lockImage: "lock", unlock: "Unlock Tab", unlockImage: "lock.open")

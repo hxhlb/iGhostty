@@ -1,7 +1,7 @@
 # Tag vX.Y.Z → the packages CI built for the tagged commit, published.
 #
 # Nothing is tested, compiled or packaged here. The push of the commit to
-# main ran `ci.yml`: the roothide, rootless, visionOS and macOS packages each
+# main ran `ci.yml`: the roothide, rootless and macOS packages each
 # compiled, packaged and verified on their own runner, merged into the
 # artifact `ighostvt-<sha>`. The tag publishes that artifact, and only once
 # that run has succeeded: a failed check fails the run, and the release with
@@ -97,10 +97,8 @@ jobs:
           sha256sum \
             "wiki.qaq.ighostvt_${version}_iphoneos-arm64e.deb" \
             "wiki.qaq.ighostvt_${version}_iphoneos-arm64.deb" \
-            "wiki.qaq.ighostvt_${version}_xros-arm64e.deb" \
             "iGhostVT-${version}-roothide-dSYMs.zip" \
-            "iGhostVT-${version}-rootless-dSYMs.zip" \
-            "iGhostVT-${version}-xros-dSYMs.zip" > SHA256SUMS
+            "iGhostVT-${version}-rootless-dSYMs.zip" > SHA256SUMS
           sha256sum \
             "iGhostVT-${version}-macos.zip" \
             "iGhostVT-${version}-macos-dSYMs.zip" > SHA256SUMS.macos
@@ -117,7 +115,7 @@ jobs:
             cp "Documents/Releases/$version.md" "$notes"
           else
             cat > "$notes" <<NOTES
-          iGhostVT $version, for roothide and rootless (/var/jb) bootstraps, for a jailbroken Apple Vision Pro, and for the Mac.
+          iGhostVT $version, for roothide and rootless (/var/jb) bootstraps and for the Mac.
 
           The Mac app is ad-hoc signed; clear its quarantine once with \`xattr -dr com.apple.quarantine /Applications/iGhostVT.app\`.
 
@@ -126,15 +124,13 @@ jobs:
           fi
           files=("build/Packages/wiki.qaq.ighostvt_${version}_iphoneos-arm64e.deb"
                  "build/Packages/wiki.qaq.ighostvt_${version}_iphoneos-arm64.deb"
-                 "build/Packages/wiki.qaq.ighostvt_${version}_xros-arm64e.deb"
                  "build/Packages/iGhostVT-${version}-macos.zip"
                  "build/Packages/iGhostVT-${version}-roothide-dSYMs.zip"
                  "build/Packages/iGhostVT-${version}-rootless-dSYMs.zip"
-                 "build/Packages/iGhostVT-${version}-xros-dSYMs.zip"
                  "build/Packages/iGhostVT-${version}-macos-dSYMs.zip"
                  "build/Packages/SHA256SUMS"
                  "build/Packages/SHA256SUMS.macos")
-          # Ten assets, and the dSYM zips are not small: a 5xx from the
+          # Eight assets, and the dSYM zips are not small: a 5xx from the
           # upload API must not end a release that already has a verified
           # set of bytes in hand. `Scripts/publish-release.sh` retried for
           # exactly this reason, and the retry comes across with it.

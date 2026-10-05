@@ -2,11 +2,11 @@ Package: @PACKAGE_ID@
 Name: iGhostVT
 Version: @VERSION@
 Architecture: @ARCHITECTURE@
-Description: Ghostty-powered terminal for iOS and visionOS
+Description: Ghostty-powered terminal for iOS
  A real terminal on your device, drawn by the same engine as Ghostty on the
  desktop. Your shell keeps running in the background, so a build you started
  is still going when you switch apps and still there when you come back.
- Runs on iPhone, iPad and Apple Vision Pro.
+ Runs on iPhone and iPad.
 Icon: https://owngoal-dev.github.io/iGhostVT/icon.png
 Depiction: https://owngoal-dev.github.io/iGhostVT/
 SileoDepiction: https://owngoal-dev.github.io/iGhostVT/depiction.json
