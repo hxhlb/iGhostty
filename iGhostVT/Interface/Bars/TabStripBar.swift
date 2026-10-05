@@ -173,56 +173,62 @@ struct TabStripBar: View {
                                     transaction.animation = nil
                                 }
                             }
-                        #if targetEnvironment(macCatalyst)
+                            #if targetEnvironment(macCatalyst)
                             // Beside the chip's button, not over it: a
                             // press it outranked never reached the button,
                             // and a click stopped selecting the tab.
                             .simultaneousGesture(chipGesture(for: tab, pitch: width + DS.Padding.xs, scroller: scroller))
-                        #endif
+                            #endif
                             .id(tab.id)
                         }
                     }
                     .padding(DS.Padding.xs)
                     // The gaps between chips are bare chrome too.
                     .background(WindowDragRegion())
-                #if !targetEnvironment(macCatalyst)
-                    .background(
-                        ChipPressRecognizer(
-                            onLift: { x in
-                                let index = Int((x - DS.Padding.xs) / (width + DS.Padding.xs))
-                                guard tabManager.tabs.indices.contains(index) else { return false }
-                                lift(tabManager.tabs[index])
-                                return true
-                            },
-                            onMove: { translation in
-                                guard let tab = liftedTab else { return }
-                                moveLiftedChip(tab, by: translation, pitch: width + DS.Padding.xs, scroller: scroller)
-                            },
-                            onEnd: { dropped in
-                                if dropped { dropLiftedChip() }
-                                settleChipDrag(scroller: scroller)
-                            },
-                        ),
-                    )
-                #endif
+                    #if !targetEnvironment(macCatalyst)
+                        .background(
+                            ChipPressRecognizer(
+                                onLift: { x in
+                                    let index = Int((x - DS.Padding.xs) / (width + DS.Padding.xs))
+                                    guard tabManager.tabs.indices.contains(index) else { return false }
+                                    lift(tabManager.tabs[index])
+                                    return true
+                                },
+                                onMove: { translation in
+                                    guard let tab = liftedTab else { return }
+                                    moveLiftedChip(tab, by: translation, pitch: width + DS.Padding.xs, scroller: scroller)
+                                },
+                                onEnd: { dropped in
+                                    if dropped {
+                                        dropLiftedChip()
+                                    }
+                                    settleChipDrag(scroller: scroller)
+                                },
+                            ),
+                        )
+                    #endif
                 }
                 .onAppear {
                     stripWidth = proxy.size.width
                     reveal(with: scroller, animated: false)
                 }
                 .onChange(of: proxy.size.width) { stripWidth = $0 }
-            #if targetEnvironment(macCatalyst)
-                .onChange(of: isChipPressed) { pressed in
-                    if !pressed { settleChipDrag(scroller: scroller) }
-                }
-                .onChange(of: isMovingWindow) { moving in
-                    if !moving { window?.endWindowMovement() }
-                }
-            #endif
-                .onChange(of: tabManager.activeTabID) { _ in reveal(with: scroller, animated: true) }
-                // A resize or a tab opened or closed changes every chip's
-                // width, and the active one can slide out of view with it.
-                .onChange(of: width) { _ in reveal(with: scroller, animated: false) }
+                #if targetEnvironment(macCatalyst)
+                    .onChange(of: isChipPressed) { pressed in
+                        if !pressed {
+                            settleChipDrag(scroller: scroller)
+                        }
+                    }
+                    .onChange(of: isMovingWindow) { moving in
+                        if !moving {
+                            window?.endWindowMovement()
+                        }
+                    }
+                #endif
+                    .onChange(of: tabManager.activeTabID) { _ in reveal(with: scroller, animated: true) }
+                    // A resize or a tab opened or closed changes every chip's
+                    // width, and the active one can slide out of view with it.
+                    .onChange(of: width) { _ in reveal(with: scroller, animated: false) }
             }
         }
         // A GeometryReader fills whatever it is given, in both axes; the
@@ -808,7 +814,7 @@ private struct ChipScroller<Content: View>: View {
             /// How long a still finger holds before the context menu wins.
             static let menuDelay: TimeInterval = 0.6
 
-            override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent) {
                 guard touches.count == 1, numberOfTouches == 1, let touch = touches.first, let view else {
                     state = .failed
                     return
@@ -822,7 +828,9 @@ private struct ChipScroller<Content: View>: View {
             @objc private func liftTimerFired() {
                 guard state == .possible else { return }
                 isLifted = onLift?(pressX) ?? false
-                if !isLifted { state = .failed }
+                if !isLifted {
+                    state = .failed
+                }
             }
 
             /// Held still this long, the touch is the context menu's.
@@ -838,7 +846,9 @@ private struct ChipScroller<Content: View>: View {
                 let distance = hypot(translation.width, translation.height)
                 switch state {
                 case .possible where !isLifted:
-                    if distance > Self.holdSlop { state = .failed }
+                    if distance > Self.holdSlop {
+                        state = .failed
+                    }
                 case .possible:
                     if distance > Self.carryDistance {
                         isCarried = true

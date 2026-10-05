@@ -48,7 +48,7 @@ final class HostSessionWatcher {
 
     private func check() {
         Task {
-            update(await RemoteAccessControl.status())
+            await update(RemoteAccessControl.status())
             reconcile()
         }
     }

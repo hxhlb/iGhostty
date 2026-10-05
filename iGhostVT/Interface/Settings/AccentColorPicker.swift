@@ -61,7 +61,6 @@ struct AccentColorPicker: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
-    @ViewBuilder
     private func fill(for choice: AccentColorPreference) -> some View {
         Circle().fill(choice.color)
     }

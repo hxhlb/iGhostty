@@ -13,7 +13,7 @@ struct DiscoveredRemoteHost: Identifiable, Equatable, Sendable {
     var endpoint: NWEndpoint
     /// The address it advertises, for a list to tell same-named devices
     /// apart; nil from a host that does not say.
-    var address: String? = nil
+    var address: String?
 }
 
 /// The hosts nearby, from an `NWBrowser` on `_ighostvt._tcp`.
@@ -37,7 +37,7 @@ final class RemoteHostDirectory: ObservableObject {
         didSet { publish() }
     }
 
-    nonisolated private static let ownHostIDKey = "Remote.ownHostID"
+    private nonisolated static let ownHostIDKey = "Remote.ownHostID"
 
     func noteOwnHostID(_ id: String?) {
         guard let id, id != ownHostID else { return }

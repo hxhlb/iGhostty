@@ -272,20 +272,20 @@ do {
     let tail = Data(repeating: UInt8(ascii: "y"), count: max(1, room / 2))
     let paste: UInt64 = 77
     check(
-        !harnessQueue.sync(execute: { session.write(chunk, paste: paste) }),
+        !harnessQueue.sync { session.write(chunk, paste: paste) },
         "a paste chunk past the cap is refused (\(room) bytes of room)",
     )
     check(
-        !harnessQueue.sync(execute: { session.write(tail, paste: paste) }),
+        !harnessQueue.sync { session.write(tail, paste: paste) },
         "and so is the rest of that paste, though it would fit",
     )
     check(harnessQueue.sync { session.pendingInputByteCount } == held, "nothing of the refused paste is held")
     check(
-        harnessQueue.sync(execute: { session.write(tail, paste: paste + 1) }),
+        harnessQueue.sync { session.write(tail, paste: paste + 1) },
         "another paste that fits is taken",
     )
     check(
-        harnessQueue.sync(execute: { session.write(tail) }),
+        harnessQueue.sync { session.write(tail) },
         "as is input that is not a paste",
     )
     harnessQueue.sync { session.invalidate() }
@@ -365,6 +365,7 @@ func footprintBytes() -> UInt64 {
     }
     return info.ri_phys_footprint
 }
+
 do {
     let floodMiB = 128
     let session = try PTYSession(

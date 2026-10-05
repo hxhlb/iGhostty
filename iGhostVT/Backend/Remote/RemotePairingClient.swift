@@ -45,7 +45,7 @@ enum RemotePairingClient {
         xpc_dictionary_set_uint64(start, iGhostVTWireKey.operation, iGhostVTOperation.pairStart.rawValue)
         xpc_dictionary_set_string(start, iGhostVTWireKey.deviceID, deviceID)
         xpc_dictionary_set_string(start, iGhostVTWireKey.deviceName, deviceName)
-        set(try exchange.makeShare(), iGhostVTWireKey.share, in: start)
+        try set(exchange.makeShare(), iGhostVTWireKey.share, in: start)
         let answer = try await session.request(start)
         try check(answer)
         guard let hostShare = data(iGhostVTWireKey.share, in: answer),
@@ -60,15 +60,15 @@ enum RemotePairingClient {
         try exchange.receiveShare(hostShare)
         let sessionKey: SymmetricKeyBox
         do {
-            sessionKey = SymmetricKeyBox(try exchange.verifyConfirmation(hostConfirmation))
+            sessionKey = try SymmetricKeyBox(exchange.verifyConfirmation(hostConfirmation))
         } catch {
             throw Failure.wrongCode
         }
         let finish = xpc_dictionary_create(nil, nil, 0)
         xpc_dictionary_set_uint64(finish, iGhostVTWireKey.version, iGhostVTProtocol.version)
         xpc_dictionary_set_uint64(finish, iGhostVTWireKey.operation, iGhostVTOperation.pairFinish.rawValue)
-        set(try exchange.makeConfirmation(), iGhostVTWireKey.confirmation, in: finish)
-        try check(try await session.request(finish))
+        try set(exchange.makeConfirmation(), iGhostVTWireKey.confirmation, in: finish)
+        try await check(session.request(finish))
 
         let paired = PairedRemoteHost(
             id: hostID,

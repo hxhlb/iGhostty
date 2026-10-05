@@ -49,17 +49,23 @@ final class RemoteClient {
     ]
 
     var isAuthenticated: Bool {
-        if case .handshaking = mode { return false }
+        if case .handshaking = mode {
+            return false
+        }
         return true
     }
 
     var isPairing: Bool {
-        if case .pairing = mode { return true }
+        if case .pairing = mode {
+            return true
+        }
         return false
     }
 
     var deviceID: String? {
-        if case let .session(deviceID) = mode { return deviceID }
+        if case let .session(deviceID) = mode {
+            return deviceID
+        }
         return nil
     }
 

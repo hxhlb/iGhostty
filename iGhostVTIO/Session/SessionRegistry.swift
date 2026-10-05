@@ -141,7 +141,7 @@ final class SessionRegistry {
         )
         sessions[id] = session
         DaemonLog.sessions.info(
-            "session \(id) spawned \(plan.command.first ?? "?", privacy: .public), \(self.sessions.count)/\(iGhostVTProtocol.maximumSessions) held",
+            "session \(id) spawned \(plan.command.first ?? "?", privacy: .public), \(sessions.count)/\(iGhostVTProtocol.maximumSessions) held",
         )
         DaemonFileLog.log(
             "session \(id) spawned \(plan.command.first ?? "?")"
@@ -244,7 +244,6 @@ final class SessionRegistry {
         watchers.removeValue(forKey: ObjectIdentifier(peer))
     }
 
-
     /// How long a closed shell gets to exit on its own before it is killed.
     /// Long enough for a shell to run its exit hooks, short enough that the
     /// user never notices the session is still there.
@@ -279,7 +278,7 @@ final class SessionRegistry {
     /// keeps a tab pointing at a session the daemon no longer has.
     private func handleExit(sessionID: UInt64, exitCode: Int32) {
         DaemonLog.sessions.info(
-            "session \(sessionID) exited with status \(exitCode), \(self.sessions.count - 1) remain",
+            "session \(sessionID) exited with status \(exitCode), \(sessions.count - 1) remain",
         )
         DaemonFileLog.log(
             "session \(sessionID) exited with status \(exitCode), \(sessions.count - 1) remain",

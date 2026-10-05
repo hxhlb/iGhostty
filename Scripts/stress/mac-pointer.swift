@@ -135,7 +135,9 @@ let modifierFlags: [String: CGEventFlags] = [
 func key(_ chord: String) {
     var parts = chord.lowercased().split(separator: "+").map(String.init)
     // "cmd++" splits into an empty tail: the plus key, which is "=".
-    if chord.hasSuffix("++") { parts.removeAll { $0.isEmpty }; parts.append("=") }
+    if chord.hasSuffix("++") {
+        parts.removeAll { $0.isEmpty }; parts.append("=")
+    }
     guard let name = parts.popLast(), let code = keyCodes[name] else { fail("unknown key in \(chord)") }
     var flags: CGEventFlags = []
     for part in parts {

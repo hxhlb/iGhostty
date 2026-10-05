@@ -37,7 +37,9 @@ enum DaemonEndpoint: Sendable, Equatable {
     case remote(hostID: String)
 
     var isRemote: Bool {
-        if case .remote = self { return true }
+        if case .remote = self {
+            return true
+        }
         return false
     }
 

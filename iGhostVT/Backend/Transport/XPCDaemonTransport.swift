@@ -592,8 +592,8 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                 completion(Self.sessions(in: reply))
             }
         }
-        /// Polls the daemon's list until none of `targets` remain, or the
-        /// deadline passes; hands over the last list either way.
+        // Polls the daemon's list until none of `targets` remain, or the
+        // deadline passes; hands over the last list either way.
         @Sendable func awaitGone(_ targets: Set<UInt64>, then: @escaping @Sendable ([SessionSummary]) -> Void) {
             list { rows in
                 guard let rows else { return finish() }

@@ -98,7 +98,7 @@ enum PairedRemoteHostStore {
     static let didChange = Notification.Name("wiki.qaq.ighostvt.pairedRemoteHostsDidChange")
 
     private static let lock = NSLock()
-    nonisolated(unsafe) private static var cache: [PairedRemoteHost]?
+    private nonisolated(unsafe) static var cache: [PairedRemoteHost]?
 
     static var hosts: [PairedRemoteHost] {
         lock.withLock { loadedLocked() }

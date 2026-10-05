@@ -37,7 +37,7 @@ final class RemoteAccessModel: ObservableObject {
     }
 
     func refresh() async {
-        apply(await RemoteAccessControl.status())
+        await apply(RemoteAccessControl.status())
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -53,11 +53,11 @@ final class RemoteAccessModel: ObservableObject {
     }
 
     func beginPairing() async {
-        apply(await RemoteAccessControl.beginPairing())
+        await apply(RemoteAccessControl.beginPairing())
     }
 
     func endPairing() {
-        Task { apply(await RemoteAccessControl.endPairing()) }
+        Task { await apply(RemoteAccessControl.endPairing()) }
     }
 
     /// Names this device for the others — as a host, its advertisement;
@@ -76,11 +76,11 @@ final class RemoteAccessModel: ObservableObject {
 
     private func sendName() {
         UserDefaults.standard.set(false, forKey: Self.namePendingKey)
-        Task { apply(await RemoteAccessControl.setHostName(RemoteDeviceIdentity.chosenName)) }
+        Task { await apply(RemoteAccessControl.setHostName(RemoteDeviceIdentity.chosenName)) }
     }
 
     func revoke(_ device: RemoteAccessStatus.Device) {
-        Task { apply(await RemoteAccessControl.revoke(deviceID: device.id)) }
+        Task { await apply(RemoteAccessControl.revoke(deviceID: device.id)) }
     }
 
     private func apply(_ status: RemoteAccessStatus) {

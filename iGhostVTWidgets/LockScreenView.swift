@@ -162,9 +162,15 @@ extension TerminalSessionAttributes.Session {
     /// — then whatever the shell titled itself, then the configured shell,
     /// then the session's number.
     var name: String {
-        if let process, !process.isEmpty { return process }
-        if !title.isEmpty { return title }
-        if !shell.isEmpty { return shell }
+        if let process, !process.isEmpty {
+            return process
+        }
+        if !title.isEmpty {
+            return title
+        }
+        if !shell.isEmpty {
+            return shell
+        }
         if let number {
             return String(localized: "Session \(number)", comment: "A session the widget has no other name for")
         }

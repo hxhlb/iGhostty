@@ -24,7 +24,9 @@ func check(_ condition: Bool, _ description: String) {
 func waitUntil(_ timeout: TimeInterval = 5, _ condition: () -> Bool) -> Bool {
     let deadline = Date().addingTimeInterval(timeout)
     while Date() < deadline {
-        if condition() { return true }
+        if condition() {
+            return true
+        }
         Thread.sleep(forTimeInterval: 0.02)
     }
     return condition()
@@ -61,6 +63,7 @@ if let key = matched.prover {
     let b = PairingExchange.deviceKey(sessionKey: key, hostID: "H", deviceID: "E")
     check(a.count == 32 && a != b, "the device key is 32 bytes and bound to the device id")
 }
+
 let codes = (0 ..< 200).map { _ in RemoteAccess.makePairingCode() }
 check(codes.allSatisfy { $0.count == 6 && $0.allSatisfy(\.isNumber) }, "pairing codes are six digits")
 
@@ -94,12 +97,14 @@ listener.newConnectionHandler = { connection in
     serverSide = frames
     frames.start()
 }
+
 var listenerReady = false
 listener.stateUpdateHandler = { state in
     if case .ready = state {
         listenerReady = true
     }
 }
+
 listener.start(queue: queue)
 check(waitUntil { queue.sync { listenerReady } }, "a loopback listener comes up")
 let port = listener.port!
@@ -137,6 +142,7 @@ if let clientExporter {
         "nor for another session",
     )
 }
+
 let big = xpc_dictionary_create(nil, nil, 0)
 let payload = [UInt8](repeating: 0x41, count: 600_000)
 xpc_dictionary_set_data(big, "data", payload, payload.count)

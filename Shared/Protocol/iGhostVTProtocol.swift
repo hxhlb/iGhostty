@@ -347,7 +347,7 @@ enum iGhostVTWireKey {
     /// On `hello`: send this connection the watcher events.
     static let watchSessions = "watch"
 
-    // Remote access.
+    /// Remote access.
     static let enabled = "enabled"
     /// `off`, `starting`, `listening` or `failed` (`RemoteAccessState`).
     static let remoteState = "rstate"
