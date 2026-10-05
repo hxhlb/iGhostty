@@ -163,7 +163,7 @@ final class TerminalTab: ObservableObject, Identifiable {
             }
             return transport
         })
-        store.recordsRecentDirectories = remoteHostID == nil
+        store.recentDirectoryHostID = remoteHostID
         store.reconnectsPatiently = remoteHostID != nil
         if remoteHostID == nil {
             store.onHeldElsewhere = {
@@ -296,6 +296,12 @@ final class TerminalTab: ObservableObject, Identifiable {
             let view = LockableTerminalView(frame: .zero)
             view.isInteractionLocked = self?.isLocked ?? false
             view.isSoftwareKeyboardLocked = self?.isKeyboardLocked ?? false
+            if let hostID = self?.remoteHostID {
+                view.uploadDroppedFiles = { [weak self] files in
+                    guard let self else { return files.map { _ in nil } }
+                    return await store.uploadDroppedFiles(files, to: .remote(hostID: hostID))
+                }
+            }
             return view
         }
     }

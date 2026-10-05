@@ -141,8 +141,10 @@ final class TerminalSessionStore: ObservableObject {
     private var hasAutoConnected = false
     private var isSceneActive = false
     private let makeTransport: () -> TerminalTransport
-    /// False for a session on another device (remote access).
     var recordsRecentDirectories = true
+    /// The paired device the session runs on (remote access): its
+    /// directories are remembered under that device, never as this one's.
+    var recentDirectoryHostID: String?
     /// A session on another device: its link drops with the network, not
     /// only with a daemon restart, so it is tried for a minute, backing off
     /// (`patientReconnectDelay`), before the tab says it failed — and again
@@ -389,7 +391,99 @@ final class TerminalSessionStore: ObservableObject {
     }
 
     func cancelZmodemTransfer() {
+        if let fileUpload {
+            fileUpload.cancel()
+            return
+        }
         zmodemEngine?.cancel()
+    }
+
+    /// The copy a drop started toward another device, while it runs.
+    private var fileUpload: Task<[String?], Never>?
+
+    /// Copies dropped files to the device `endpoint` names, one after
+    /// another, and answers with the path each has there — nil for one that
+    /// did not get there. Shown on the transfer pill, as an `rz` upload
+    /// is: one bar across every file, and the pill's × cancels the lot.
+    func uploadDroppedFiles(_ files: [URL], to endpoint: DaemonEndpoint) async -> [String?] {
+        // A finished transfer's notice may still be up; only one running
+        // stands in the way.
+        guard fileUpload == nil, zmodemTransfer.map({ $0.phase != .active }) ?? true else {
+            AppLog.warning(.drop, "drop upload refused: another transfer is on screen")
+            return files.map { _ in nil }
+        }
+        // A file whose size cannot be read is not sent at all; sent as
+        // empty it would paste a path to nothing.
+        let sizes = files.map { url in
+            ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.uint64Value
+        }
+        let total = sizes.reduce(0) { $0 + ($1 ?? 0) }
+        let display = files.count == 1 ? files[0].lastPathComponent : String(localized: "\(files.count) files")
+        let start = ZmodemTransferInfo(direction: .upload, name: display, transferred: 0, total: total)
+        zmodemTransfer = start
+        let throttle = UploadProgressThrottle { [weak self] sent in
+            guard let self, var info = zmodemTransfer, info.phase == .active else { return }
+            info.transferred = sent
+            zmodemTransfer = info
+        }
+        let task = Task { () -> [String?] in
+            var paths: [String?] = []
+            var base: UInt64 = 0
+            for (file, size) in zip(files, sizes) {
+                guard !Task.isCancelled, let size else {
+                    paths.append(nil)
+                    continue
+                }
+                let upload = DaemonFileUpload(
+                    endpoint: endpoint,
+                    file: file,
+                    name: file.lastPathComponent,
+                    size: size,
+                ) { [base] held in
+                    throttle.note(base + held)
+                }
+                do {
+                    try await paths.append(upload.run())
+                } catch is CancellationError {
+                    paths.append(nil)
+                } catch {
+                    AppLog.error(.drop, "upload of \(file.lastPathComponent) failed: \(error)")
+                    await MainActor.run { [weak self] in
+                        self?.finishUpload(.failed(error.localizedDescription))
+                    }
+                    return paths + Array(repeating: nil, count: files.count - paths.count)
+                }
+                base += size
+            }
+            return paths
+        }
+        fileUpload = task
+        let paths = await task.value
+        fileUpload = nil
+        // Cancelled means nothing is pasted, whatever reached the other
+        // device before the cancel took.
+        if task.isCancelled {
+            finishUpload(.cancelled)
+            return files.map { _ in nil }
+        }
+        if zmodemTransfer?.phase == .active {
+            finishUpload(.done)
+        }
+        return paths
+    }
+
+    private func finishUpload(_ phase: ZmodemTransferPhase) {
+        guard var info = zmodemTransfer, info.phase == .active else { return }
+        info.phase = phase
+        if phase == .done, let total = info.total {
+            info.transferred = total
+        }
+        zmodemTransfer = info
+        let notice = info
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: phase == .done ? 2_000_000_000 : 5_000_000_000)
+            if self?.zmodemTransfer == notice { self?.zmodemTransfer = nil }
+        }
     }
 
     // The engine suppresses its own confirmation for a download, so this one —
@@ -461,10 +555,9 @@ final class TerminalSessionStore: ObservableObject {
         case let .currentDirectory(directory):
             currentDirectory = directory
             // The transport only reports changes, so this is one visit —
-            // of this device's file system; another device's directories
-            // name nothing here.
+            // filed under the device whose file system it is.
             if recordsRecentDirectories {
-                RecentDirectoryStore.shared.record(directory)
+                RecentDirectoryStore.shared.record(directory, onHost: recentDirectoryHostID)
             }
         case let .sessionAttributes(attributes, isResumed):
             onSessionAttributes?(attributes, isResumed)
@@ -760,5 +853,36 @@ private final class OutputSignal: @unchecked Sendable {
         bytes = 0
         hopPending = false
         return drained
+    }
+}
+
+/// At most ten progress updates a second reach the main actor, newest
+/// wins: a fast link acknowledges hundreds of parts a second.
+private final class UploadProgressThrottle: @unchecked Sendable {
+    private let lock = NSLock()
+    private var latest: UInt64 = 0
+    private var isScheduled = false
+    private let apply: @MainActor (UInt64) -> Void
+
+    init(apply: @escaping @MainActor (UInt64) -> Void) {
+        self.apply = apply
+    }
+
+    func note(_ sent: UInt64) {
+        let schedule = lock.withLock {
+            latest = max(latest, sent)
+            guard !isScheduled else { return false }
+            isScheduled = true
+            return true
+        }
+        guard schedule else { return }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            let value = self.lock.withLock {
+                self.isScheduled = false
+                return self.latest
+            }
+            self.apply(value)
+        }
     }
 }

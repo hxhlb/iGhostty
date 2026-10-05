@@ -61,7 +61,7 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
         TerminalFileStaging.removeStaleFiles()
         Task { [weak self] in
             // Resolved together, pasted in drop order.
-            let resolved = await withTaskGroup(of: (Int, Resolved?).self) { group in
+            var resolved = await withTaskGroup(of: (Int, Resolved?).self) { group in
                 for (index, payload) in payloads.enumerated() {
                     group.addTask {
                         let resolved = await payload.resolve(stagingIn: directory)
@@ -79,10 +79,47 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
                 AppLog.info(.drop, "drop skipped: nothing resolved from \(payloads.count) item(s)")
                 return
             }
+            if let upload = terminal.uploadDroppedFiles {
+                resolved = await Self.uploaded(resolved, with: upload)
+                guard !resolved.isEmpty else { return }
+            }
             let text = resolved.map(\.pasted).joined(separator: " ")
             let trailer = resolved.last?.isPath == true ? " " : ""
             AppLog.info(.drop, "drop pasting \(resolved.count) of \(payloads.count) item(s)")
             terminal.paste(text: text + trailer)
+        }
+    }
+
+    /// A drop on a tab whose shell is on another device: every file is
+    /// copied there first and pastes as the path it has there. A folder
+    /// goes nowhere — it would be a tree of copies for one drop — and
+    /// neither does a file whose copy failed or was cancelled; text and
+    /// links paste as they are.
+    private static func uploaded(
+        _ resolved: [Resolved],
+        with upload: @MainActor ([URL]) async -> [String?],
+    ) async -> [Resolved] {
+        var files: [URL] = []
+        for case let .path(path) in resolved {
+            var isDirectory: ObjCBool = false
+            if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), !isDirectory.boolValue {
+                files.append(URL(fileURLWithPath: path))
+            } else {
+                AppLog.info(.drop, "drop on a remote tab: \((path as NSString).lastPathComponent) is a folder, left out")
+            }
+        }
+        let remote = files.isEmpty ? [] : await upload(files)
+        var byLocal: [String: String] = [:]
+        for (file, path) in zip(files, remote) {
+            if let path {
+                byLocal[file.path] = path
+            }
+        }
+        return resolved.compactMap { item in
+            switch item {
+            case let .path(path): byLocal[path].map(Resolved.path)
+            case .text: item
+            }
         }
     }
 

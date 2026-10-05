@@ -933,6 +933,8 @@ func runProxyLinkTests() {
         "leaving none of the old keys behind",
     )
 
+    runUploadTests(supervisor, first: peer, second: second)
+
     // Requests no client sends, over and over: each is refused, none is
     // kept, and neither side grows with them. The harness process is the
     // proxy and io's caller both, so its footprint stands for theirs.
@@ -1426,4 +1428,179 @@ func runSpawnPacingTest() {
     unlink(script)
     kill(standIn, SIGKILL)
     _ = waitUntil { harnessQueue.sync { !supervisor.isRunning } }
+}
+
+
+/// `uploadFile`: a file copied in parts, refused out of order, resumed
+/// from another peer as a link that dropped would, and given up.
+func runUploadTests(_ supervisor: IOSupervisor, first: HarnessPeer, second: HarnessPeer) {
+    print("uploads")
+    func begin(_ name: String, size: UInt64) -> xpc_object_t? {
+        request(supervisor, from: first, .uploadFile) { message in
+            xpc_dictionary_set_string(message, iGhostVTWireKey.fileName, name)
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.fileSize, size)
+        }
+    }
+    func part(_ from: HarnessPeer, _ id: UInt64, offset: UInt64, _ bytes: [UInt8]) -> xpc_object_t? {
+        request(supervisor, from: from, .uploadFile) { message in
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.upload, id)
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.offset, offset)
+            bytes.withUnsafeBytes { xpc_dictionary_set_data(message, iGhostVTWireKey.data, $0.baseAddress!, $0.count) }
+        }
+    }
+    func ask(_ from: HarnessPeer, _ id: UInt64) -> xpc_object_t? {
+        request(supervisor, from: from, .uploadFile) { message in
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.upload, id)
+        }
+    }
+
+    let content = (0 ..< 300_000).map { UInt8(truncatingIfNeeded: $0 &* 31) }
+    let begun = begin("shot 1/2\n.png", size: UInt64(content.count))
+    check(replyCode(begun) == .success, "an upload begins")
+    guard let begun else { return }
+    let id = xpc_dictionary_get_uint64(begun, iGhostVTWireKey.upload)
+    let path = xpc_dictionary_get_string(begun, iGhostVTWireKey.path).map { String(cString: $0) } ?? ""
+    check(id != 0 && path.hasPrefix("/"), "the reply names the upload and an absolute path (\(path))")
+    check(
+        (path as NSString).lastPathComponent == "shot 1_2_.png",
+        "a separator and a control in the name become _ (\((path as NSString).lastPathComponent))",
+    )
+
+    let half = 128 * 1024
+    let firstPart = part(first, id, offset: 0, Array(content[0 ..< half]))
+    check(replyCode(firstPart) == .success, "the first part is taken")
+    check(
+        firstPart.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.offset) } == UInt64(half),
+        "and the reply says how much is there",
+    )
+    let skipped = part(first, id, offset: UInt64(half + 10), Array(content[half + 10 ..< half + 20]))
+    check(replyCode(skipped) == .invalidRequest, "a part past what is there is refused")
+    check(
+        skipped.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.offset) } == UInt64(half),
+        "with where to carry on",
+    )
+    // A part the host already has — one the old link sent, landing after
+    // the new link asked — is taken without writing anything again, and
+    // one that overlaps writes only its new end.
+    let repeated = part(first, id, offset: 0, Array(content[0 ..< 10]))
+    check(
+        replyCode(repeated) == .success
+            && repeated.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.offset) } == UInt64(half),
+        "a part already there is taken as it stands",
+    )
+    let overlapping = part(first, id, offset: UInt64(half - 100), Array(content[(half - 100) ..< (half + 100)]))
+    check(
+        replyCode(overlapping) == .success
+            && overlapping.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.offset) } == UInt64(half + 100),
+        "a part that overlaps writes only what is new",
+    )
+
+    // Another peer — the link that came back after a drop — asks, then
+    // finishes it.
+    let asked = ask(second, id)
+    check(
+        replyCode(asked) == .success && asked.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.offset) } == UInt64(half + 100),
+        "another peer asks how much is there",
+    )
+    // The new link starts a little behind, as it does when the old link's
+    // parts land after the question.
+    var offset = half - 5000
+    while offset < content.count {
+        let end = min(offset + 64 * 1024, content.count)
+        guard replyCode(part(second, id, offset: UInt64(offset), Array(content[offset ..< end]))) == .success else {
+            check(false, "a resumed part at \(offset) is taken")
+            return
+        }
+        offset = end
+    }
+    let written = FileManager.default.contents(atPath: path)
+    check(written == Data(content), "the file on disk is every byte, in order (\(written?.count ?? -1))")
+    let done = ask(first, id)
+    check(
+        replyCode(done) == .success
+            && done.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.offset) } == UInt64(content.count),
+        "a finished upload still answers with its size, for a client whose last reply was lost",
+    )
+    check(
+        replyCode(part(second, id, offset: UInt64(content.count - 10), Array(content[(content.count - 10)...]))) == .success,
+        "a last part sent again after the reply was lost is taken as done",
+    )
+    check(FileManager.default.contents(atPath: path) == Data(content), "and changes nothing")
+
+    // Offsets are the client's: any value at all is answered, never trapped
+    // on — an overflow here would take io, and every shell, down with it.
+    check(
+        replyCode(part(first, id, offset: UInt64.max - 1, [1, 2, 3])) == .unknownSession,
+        "a finished upload answers an offset near the top of the range without trapping",
+    )
+    let edge = begin("edge.bin", size: 100)
+    let edgeID = edge.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.upload) } ?? 0
+    check(
+        replyCode(part(first, edgeID, offset: UInt64.max - 1, [1, 2, 3])) == .invalidRequest,
+        "a running upload refuses such an offset, and io is still there to say so",
+    )
+    check(
+        replyCode(part(first, edgeID, offset: 0, Array(repeating: 7, count: 101))) == .invalidRequest,
+        "a part past the declared size is refused",
+    )
+
+    // A begin sent again — its answer lost — finds the same upload.
+    let chosen: UInt64 = 0x1234_5678_9ABC
+    func beginAs(_ id: UInt64, _ name: String, size: UInt64) -> xpc_object_t? {
+        request(supervisor, from: second, .uploadFile) { message in
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.upload, id)
+            xpc_dictionary_set_string(message, iGhostVTWireKey.fileName, name)
+            xpc_dictionary_set_uint64(message, iGhostVTWireKey.fileSize, size)
+        }
+    }
+    let firstBegin = beginAs(chosen, "again.txt", size: 10)
+    let secondBegin = beginAs(chosen, "again.txt", size: 10)
+    let pathOf = { (reply: xpc_object_t?) in
+        reply.flatMap { xpc_dictionary_get_string($0, iGhostVTWireKey.path) }.map { String(cString: $0) }
+    }
+    check(
+        replyCode(firstBegin) == .success
+            && firstBegin.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.upload) } == chosen,
+        "a client may choose the upload's id",
+    )
+    check(
+        replyCode(secondBegin) == .success && pathOf(secondBegin) == pathOf(firstBegin),
+        "and the same begin again answers the same upload",
+    )
+    check(
+        replyCode(beginAs(chosen, "other.txt", size: 10)) == .invalidRequest,
+        "a begin under that id for another file is refused",
+    )
+    _ = part(second, chosen, offset: 0, Array("0123456789".utf8))
+    check(
+        replyCode(beginAs(chosen, "again.txt", size: 10)) == .success,
+        "a begin repeated after the upload finished still answers",
+    )
+
+    let tooBig = begin("big", size: iGhostVTProtocol.maximumUploadByteCount + 1)
+    check(replyCode(tooBig) == .invalidRequest, "a file past the limit is refused")
+
+    let abandoned = begin("partial.bin", size: 1000)
+    let abandonedID = abandoned.map { xpc_dictionary_get_uint64($0, iGhostVTWireKey.upload) } ?? 0
+    let abandonedPath = abandoned.flatMap { xpc_dictionary_get_string($0, iGhostVTWireKey.path) }.map { String(cString: $0) } ?? ""
+    _ = part(first, abandonedID, offset: 0, [1, 2, 3])
+    check(FileManager.default.fileExists(atPath: abandonedPath), "a partial file is there while it uploads")
+    check(
+        replyCode(request(supervisor, from: second, .shutdown)) == .sessionBusy,
+        "an upload in progress holds the io process open",
+    )
+    _ = request(supervisor, from: first, .uploadFile) { message in
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.upload, abandonedID)
+        xpc_dictionary_set_bool(message, iGhostVTWireKey.cancel, true)
+    }
+    check(!FileManager.default.fileExists(atPath: abandonedPath), "a cancelled upload leaves no file")
+    check(replyCode(ask(first, abandonedID)) == .unknownSession, "and is no longer known")
+    check(replyCode(ask(first, 12345)) == .unknownSession, "an upload never begun is unknown")
+    for cleanup in [path, pathOf(firstBegin) ?? ""] where !cleanup.isEmpty {
+        try? FileManager.default.removeItem(atPath: (cleanup as NSString).deletingLastPathComponent)
+    }
+    _ = request(supervisor, from: first, .uploadFile) { message in
+        xpc_dictionary_set_uint64(message, iGhostVTWireKey.upload, edgeID)
+        xpc_dictionary_set_bool(message, iGhostVTWireKey.cancel, true)
+    }
 }

@@ -54,6 +54,13 @@ enum iGhostVTProtocol {
     static let sessionPendingInputByteCount = 4 << 20
 
     static let maximumSessionsPerPeer = 32
+
+    /// `uploadFile`: the most one file may be, the most begun and not yet
+    /// finished at once, and how much one part carries — small enough that
+    /// a part lost to a weak link costs little to send again.
+    static let maximumUploadByteCount: UInt64 = 4 << 30
+    static let maximumPendingUploadCount = 16
+    static let uploadChunkByteCount = 256 * 1024
     static let maximumCommandArgumentCount = 64
     static let maximumListedShellCount = 4
 
@@ -172,6 +179,28 @@ enum iGhostVTOperation: UInt64, Sendable {
     /// this operation answers `invalidRequest`, which a client takes to
     /// mean "keep them in memory only".
     case setSessionAttributes = 14
+
+    /// Copies a file onto this device for a shell here to read — a drop on
+    /// a tab whose shell runs on another device. Three shapes:
+    /// - `fileName` and `fileSize`: begins one; answered with `upload` (its
+    ///   id) and `path`, where the file will be. A client may name the id
+    ///   itself in `upload`, so a begin sent again after its answer was lost
+    ///   answers again rather than making a second file.
+    /// - `upload`, `offset`, `data`: the next part, at most
+    ///   `uploadChunkByteCount`. A part may overlap what the host holds —
+    ///   an old link's parts can land after a new link asked — and only its
+    ///   new end is written; one that would leave a hole is
+    ///   `invalidRequest` with nothing written.
+    /// - `upload` alone: how much is here, in `offset` — what a client asks
+    ///   after its link dropped, before it carries on. `cancel` as well:
+    ///   give it up and remove the partial file.
+    /// Every reply about an upload states `offset`. An upload outlives the
+    /// connection that began it (a weak network drops links mid-file) and is
+    /// given up only after a quarter of an hour without a word; one the host
+    /// does not know is `unknownSession`. Any admitted peer may upload — it
+    /// could already open a shell that writes anything it likes. A daemon
+    /// older than this answers `invalidRequest` to the first shape.
+    case uploadFile = 15
 
     // Remote access: the local management of `ighostvtd-remote`. Any
     // admitted local peer may send them except the remote helper itself;
@@ -339,6 +368,14 @@ enum iGhostVTWireKey {
     static let takeover = "takeover"
     /// On `hello`: send this connection the watcher events.
     static let watchSessions = "watch"
+
+    /// `uploadFile`.
+    static let fileName = "fname"
+    static let fileSize = "fsize"
+    static let upload = "upid"
+    static let offset = "off"
+    static let path = "path"
+    static let cancel = "cancel"
 
     /// Remote access.
     static let enabled = "enabled"

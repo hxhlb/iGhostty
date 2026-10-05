@@ -46,6 +46,7 @@ final class RemoteClient {
     private static let sessionOperations: Set<iGhostVTOperation> = [
         .hello, .listSessions, .openSession, .attachSession, .detachSession, .write, .resize,
         .closeSession, .goodbye, .snapshotSession, .injectInput, .listShells, .setSessionAttributes,
+        .uploadFile,
     ]
 
     var isAuthenticated: Bool {

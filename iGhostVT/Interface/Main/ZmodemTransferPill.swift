@@ -56,6 +56,11 @@ struct ZmodemTransferPill: View {
             Text("Cancelled")
                 .font(DS.Font.detail)
                 .foregroundStyle(.secondary)
+        case let .failed(reason):
+            Text(verbatim: reason)
+                .font(DS.Font.detail)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
         }
     }
 
@@ -68,6 +73,7 @@ struct ZmodemTransferPill: View {
         case .active: info.direction == .download ? "arrow.down.circle" : "arrow.up.circle"
         case .done: "checkmark.circle.fill"
         case .cancelled: "xmark.circle"
+        case .failed: "exclamationmark.circle.fill"
         }
     }
 
@@ -76,6 +82,7 @@ struct ZmodemTransferPill: View {
         case .active: .primary
         case .done: .green
         case .cancelled: .secondary
+        case .failed: .orange
         }
     }
 

@@ -59,6 +59,13 @@ final class LockableTerminalView: TerminalView {
         }
     }
 
+    /// Set on a tab whose shell runs on another device: a dropped file is
+    /// copied there and its path on that device is what gets pasted
+    /// (`TerminalDropDelegate`), since no path on this one means anything
+    /// to that shell. Answers in order, nil for a file that did not get
+    /// there.
+    var uploadDroppedFiles: (@MainActor ([URL]) async -> [String?])?
+
     /// What the terminal offers UIKit as its keyboard while locked. An empty
     /// view keeps first-responder status — and with it the hardware key
     /// path — while leaving nothing to raise.

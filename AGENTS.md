@@ -262,6 +262,40 @@ any other op and did not change. A daemon older than the op answers
 as "keep it in memory" and stops sending on that transport. The CLI's `list`
 shows the `lock` key as a LOCK column.
 
+`uploadFile` (op 15) puts a file on the daemon's device for a shell there
+to read: what a drop on a *remote* tab pastes, since no path on the app's
+device means anything to that shell. Begin (`fileName`, `fileSize`, and the
+client's own `upload` id, so a begin resent after a lost answer finds the
+same upload) answers the `path`; parts (`upload`, `offset`, `data`, at most
+`uploadChunkByteCount`) follow; `upload` alone asks how much is there, and
+with `cancel` gives it up. Every reply carries `offset`. The state lives in
+`ighostvtd-io` (`FileUploadStore`), keyed by upload, never by peer: a weak
+link drops mid-file, the client comes back as another peer, asks, and
+carries on. An upload with no part written for fifteen minutes is given up
+(asking does not count), and while one is pending the idle `shutdown` is
+refused. A part may overlap what is there — an old link's parts can land
+after the new link asked — and only its new end is written; one that would
+leave a hole or run past the size is `invalidRequest`. **Offsets are the
+client's: compare, never add before checking** — an overflow trap in io
+kills every shell on the device. Files land in
+`<bootstrap>/var/lib/ighostvt/upload/<id>/` (root-only, unlike `/var/tmp`,
+where any user can take the name first; the user's temporary directory on
+the Mac); begin refuses a file that would leave under a GiB free. The file
+*and its id directory* are handed to the session user, so everything under
+the root is treated as theirs: reached by descriptor, `O_NOFOLLOW`, removed
+one `unlinkat` at a time, a day after it was made. The client
+(`DaemonFileUpload`) uses a link of its own and sends parts *in file order
+from one task* — sent from the group's child tasks they left in whatever
+order the tasks ran, and the host saw holes — eight unanswered at most,
+halving after a timeout. A request gives up only when the link has answered
+*nothing* for 30 s (a part queued behind two megabytes on a slow link is
+not dead), the upload after three minutes without progress. Cancel closes
+the link at once and pastes nothing; every failure after begin, cancel
+included, tells the host to remove the partial file over a fresh link. The
+file's size and modification time are checked before and after, so an edit
+during the copy fails it. `ighostvtd-remote` forwards the op like every
+other session op.
+
 The app's Shortcuts actions (`iGhostVT/Backend/Shortcuts/`, iOS 16+ behind
 `#available`) are the CLI's verbs a third time. `ShortcutDaemonClient` is
 the CLI's one-shot client with `async` in place of the semaphore — every
@@ -527,6 +561,20 @@ with tabs open the bar shows the title capsule and ⋯ is the only new-tab
 control on screen. The sidebar row, the compact bar's `+`, the switcher's
 dashed card and that entry are the four.
 
+Paired devices (remote access) follow, each with New Terminal, the
+directories this app's tabs were in on that device, and the terminals it has
+open. Fewer than three devices are listed inline, each in a section under
+its name; three or more get a submenu each
+(`NewTabDirectoryChoices.remoteSubmenuThreshold`). The Mac's File ▸ New Tab
+on Device is the same list built in UIKit from an `uncached`
+`UIDeferredMenuElement` — but the Mac's menu bar keeps a deferred element's
+first answer regardless, so `RemoteSessionCatalog` calls
+`UIMenuSystem.main.setNeedsRebuild()` whenever hosts, sessions or the
+remote recents change; without it the first opening, made before Bonjour
+answered, said No Paired Devices for the rest of the run. The catalog also
+asks a device for its terminals the moment the browser finds it, not at the
+next 30 s poll.
+
 The recent list is `RecentDirectoryStore`, and it is the one thing about
 sessions the app persists (`UserDefaults`): the daemon keeps no such record,
 and the visit counts and the two spellings exist nowhere else. Every entry
@@ -538,7 +586,11 @@ the first row anyway. Settings ▸ Recent Directories is the whole
 of its configuration: Remember Directories both hides the group *and* stops
 recording — a switch that says the app is not keeping this has to mean it —
 Sort By is Last Visited or Most Visited, and Clear is the only thing that
-throws the list away, so turning the switch back on restores it.
+throws the list away, so turning the switch back on restores it. A remote
+tab's directories are kept apart, per host id (`remoteEntries`, twenty per
+device, five in its menu group): a path on another device names nothing
+here. They open with `startDirectory` on *that* device's daemon, which
+checks them like any other, and unpairing a device drops its list.
 
 The two locks are for touch. Some programs in a terminal take taps and
 drags of their own, and a tab showing one of them — or just being watched —
@@ -857,7 +909,10 @@ Gotchas that bit us:
   off a web page) is written there too, named for its UTType so the path
   carries a real extension. Links and text snippets paste as text. The
   library's own staging API is internal, so the copy lives in the app; only
-  the directory and the stale sweep are shared with pastes.
+  the directory and the stale sweep are shared with pastes. On a **remote**
+  tab every resolved file is then copied to the other device
+  (`uploadFile`, above) and *that* path is pasted, the transfer pill showing
+  progress and cancel; a folder is left out.
 - **The Mac window's chrome is AppKit's, reached through the ObjC runtime.**
   `CatalystWindowChrome.install()` (called from `main.swift`, before any
   scene) hooks `UINSApplicationDelegate didCreateUIScene:`. The sidebar has

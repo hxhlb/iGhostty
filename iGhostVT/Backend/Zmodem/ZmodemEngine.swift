@@ -14,6 +14,9 @@ enum ZmodemTransferPhase: Equatable {
     case active
     case done
     case cancelled
+    /// A drop's copy to another device that did not get there; what went
+    /// wrong is the caption.
+    case failed(String)
 }
 
 struct ZmodemTransferInfo: Equatable {

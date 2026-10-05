@@ -178,6 +178,11 @@ enum ShellLaunch {
         return Credentials(uid: user.uid, gid: user.gid)
     }
 
+    /// Who a session's files belong to: the identity its shell drops to.
+    static var sessionCredentials: Credentials? {
+        credentials(for: sessionUser)
+    }
+
     /// What every session's program finds in its environment, shell or
     /// not: the terminal's identity and the user's, and a `PATH` — the
     /// daemon's own is launchd's, and the session runs as someone else.

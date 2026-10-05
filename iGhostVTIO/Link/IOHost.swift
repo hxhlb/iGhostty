@@ -21,6 +21,8 @@ final class IOHost {
     )
     private let channel: IOChannel
     private lazy var registry = SessionRegistry(queue: queue)
+    /// Not any peer's: a link that drops mid-file resumes as another.
+    private(set) lazy var uploads = FileUploadStore(queue: queue)
     private var peers: [UInt64: PeerSession] = [:]
     private var isOutputPaused = false
 

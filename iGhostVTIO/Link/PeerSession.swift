@@ -214,13 +214,15 @@ final class PeerSession {
             return Outcome(injectInput(message))
         case .setSessionAttributes:
             return Outcome(setSessionAttributes(message))
+        case .uploadFile:
+            return Outcome(uploadFile(message, reply: reply))
         case .goodbye:
             return Outcome(.success, then: .closePeer)
         case .shutdown:
             // Only with nothing held: a session the app did not close is a
             // shell someone is coming back for. Replied to before exiting,
             // so the quitting app hears the outcome.
-            guard registry.isEmpty else { return Outcome(.sessionBusy) }
+            guard registry.isEmpty, host.uploads.isEmpty else { return Outcome(.sessionBusy) }
             DaemonFileLog.log("peer \(peerID) shutdown with nothing held")
             return Outcome(.success, then: .exitProcess)
         case .remoteStatus, .setRemoteAccess, .beginPairing, .endPairing, .revokeRemoteDevice, .setHostName,
@@ -448,6 +450,59 @@ final class PeerSession {
             "peer \(peerID) set session \(id) attributes \(attributes.keys.sorted().map { "\($0)=\(attributes[$0] ?? "")" })",
         )
         return .success
+    }
+
+    /// One of `uploadFile`'s three shapes (see the operation). Every reply
+    /// about a known upload carries `offset`, so a client that sent a part
+    /// the host did not take knows where to carry on without another trip.
+    private func uploadFile(_ message: xpc_object_t, reply: xpc_object_t?) -> iGhostVTReplyCode {
+        let uploads = host.uploads
+        let requestedID = optionalUInt64(message, key: iGhostVTWireKey.upload)
+        if let name = xpc_dictionary_get_string(message, iGhostVTWireKey.fileName) {
+            guard let size = optionalUInt64(message, key: iGhostVTWireKey.fileSize), requestedID != 0 else {
+                return .invalidRequest
+            }
+            switch uploads.begin(name: String(cString: name), size: size, requestedID: requestedID) {
+            case let .success(begun):
+                if let reply {
+                    xpc_dictionary_set_uint64(reply, iGhostVTWireKey.upload, begun.id)
+                    xpc_dictionary_set_string(reply, iGhostVTWireKey.path, begun.path)
+                    xpc_dictionary_set_uint64(reply, iGhostVTWireKey.offset, 0)
+                }
+                return .success
+            case let .failure(failure):
+                if let reply {
+                    xpc_dictionary_set_string(reply, iGhostVTWireKey.errorMessage, failure.message)
+                }
+                return failure.code
+            }
+        }
+        guard let id = requestedID else { return .invalidRequest }
+        if xpc_dictionary_get_bool(message, iGhostVTWireKey.cancel) {
+            uploads.cancel(id)
+            return .success
+        }
+        guard xpc_dictionary_get_value(message, iGhostVTWireKey.data) != nil else {
+            guard let received = uploads.received(id) else { return .unknownSession }
+            if let reply {
+                xpc_dictionary_set_uint64(reply, iGhostVTWireKey.offset, received)
+            }
+            return .success
+        }
+        guard let data = Self.inputData(in: message),
+              data.count <= iGhostVTProtocol.uploadChunkByteCount * 2,
+              let offset = optionalUInt64(message, key: iGhostVTWireKey.offset)
+        else { return .invalidRequest }
+        let result = uploads.write(id, offset: offset, data: data)
+        if let reply, let received = uploads.received(id) {
+            xpc_dictionary_set_uint64(reply, iGhostVTWireKey.offset, received)
+        }
+        switch result {
+        case .success:
+            return .success
+        case let .failure(code):
+            return code
+        }
     }
 
     /// The `attributes` of a `setSessionAttributes`, or `nil` when the key
