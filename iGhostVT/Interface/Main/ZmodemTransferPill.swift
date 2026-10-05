@@ -1,0 +1,87 @@
+//
+//  ZmodemTransferPill.swift
+//  iGhostVT
+//
+
+import SwiftUI
+
+struct ZmodemTransferPill: View {
+    let info: ZmodemTransferInfo
+    var onCancel: () -> Void
+
+    var body: some View {
+        HStack(spacing: DS.Padding.m) {
+            Image(systemName: iconName)
+                .imageScale(.large)
+                .foregroundStyle(iconTint)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(displayName)
+                    .font(DS.Font.labelEmphasis)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                caption
+            }
+            .frame(width: 220, alignment: .leading)
+            if info.phase == .active {
+                Button(action: onCancel) {
+                    Image(systemName: "xmark.circle.fill")
+                        .imageScale(.large)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Cancel Transfer"))
+            }
+        }
+        .padding(.horizontal, DS.Padding.l)
+        .padding(.vertical, DS.Padding.m)
+        .barGlass(in: Capsule(), interactive: info.phase == .active)
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private var caption: some View {
+        switch info.phase {
+        case .active:
+            if let fraction {
+                ProgressView(value: fraction)
+                    .progressViewStyle(.linear)
+            } else {
+                ProgressView()
+                    .progressViewStyle(.linear)
+            }
+        case .done:
+            Text(info.direction == .download ? "Saved" : "Sent")
+                .font(DS.Font.detail)
+                .foregroundStyle(.secondary)
+        case .cancelled:
+            Text("Cancelled")
+                .font(DS.Font.detail)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var displayName: String {
+        info.name.isEmpty ? String(localized: "File") : info.name
+    }
+
+    private var iconName: String {
+        switch info.phase {
+        case .active: info.direction == .download ? "arrow.down.circle" : "arrow.up.circle"
+        case .done: "checkmark.circle.fill"
+        case .cancelled: "xmark.circle"
+        }
+    }
+
+    private var iconTint: Color {
+        switch info.phase {
+        case .active: .primary
+        case .done: .green
+        case .cancelled: .secondary
+        }
+    }
+
+    private var fraction: Double? {
+        guard let total = info.total, total > 0 else { return nil }
+        return min(1, Double(info.transferred) / Double(total))
+    }
+}

@@ -110,6 +110,10 @@ final class TerminalSessionStore: ObservableObject {
     private var firstOutputGeneration: UInt64 = 0
     private static let firstOutputGrace: UInt64 = 1_000_000_000
 
+    /// The ZMODEM transfer in flight, when `rz`/`sz` detection is on and a
+    /// handshake was seen. Drives the progress pill; nil the rest of the time.
+    @Published private(set) var zmodemTransfer: ZmodemTransferInfo?
+
     /// Whether the shell is verifiably sitting at its prompt. Only a
     /// connected session can vouch for that — a detached session's last
     /// report is stale, and an unknown state reads as "something may be
@@ -130,6 +134,10 @@ final class TerminalSessionStore: ObservableObject {
     let session: InMemoryTerminalSession
     private let relay = TransportRelay()
     private let titleTracker = CommandTitleTracker()
+    /// The ZMODEM endpoint for this connection, created in `connect()` when
+    /// the setting is on. Interposes on received output; nil means the feature
+    /// is off and the output path is the plain one.
+    private var zmodemEngine: ZmodemEngine?
     private var hasAutoConnected = false
     private var isSceneActive = false
     private let makeTransport: () -> TerminalTransport
@@ -300,7 +308,14 @@ final class TerminalSessionStore: ObservableObject {
         // connection its owner dropped without disconnecting.
         let session = session
         let outputSignal = outputSignal
-        transport.onEvent = { [weak self, weak relay] event in
+        // Per-connection and holds no shared session state, so another client
+        // or an older daemon is unaffected.
+        let engine = makeZmodemEngine()
+        zmodemEngine = engine
+        AppLog.info(.zmodem, "connect: zmodem engine \(engine == nil ? "OFF" : "ON") (setting=\(ZmodemSetting.isEnabled))")
+        // `engine` weak for the same reason `relay` is: the store holds it
+        // strongly, and a strong capture here would outlive teardown.
+        transport.onEvent = { [weak self, weak relay, weak engine] event in
             // Output goes straight into the session from the transport's
             // queue — `receive` only takes a lock and enqueues on the
             // session's own serial parse queue, so stream order is the
@@ -309,14 +324,28 @@ final class TerminalSessionStore: ObservableObject {
             // busy main thread without bound and kept growing after the
             // output stopped. The main actor now hears only that output
             // happened, through at most one pending hop (`OutputSignal`).
-            if case let .received(data) = event {
-                session.receive(data)
-                if outputSignal.noteChunk(byteCount: data.count) {
-                    Task { @MainActor [weak self] in
-                        self?.noteReceived()
+            if case let .received(data, replay) = event {
+                if let engine, !replay {
+                    // Live bytes run through the engine (it renders non-ZMODEM
+                    // output and swallows a transfer); replayed scrollback is
+                    // historical, so it skips the engine — a stale rz/sz frame
+                    // in the buffer must not start a transfer.
+                    engine.ingest(data)
+                } else {
+                    session.receive(data)
+                    if outputSignal.noteChunk(byteCount: data.count) {
+                        Task { @MainActor [weak self] in
+                            self?.noteReceived()
+                        }
                     }
                 }
                 return
+            }
+            if case .state(.disconnected) = event {
+                engine?.reset()
+            }
+            if case .state(.interrupted) = event {
+                engine?.reset()
             }
             // Sized here, on the transport's own queue and before the hop
             // to the main actor: the newest grid has to reach the session
@@ -351,9 +380,56 @@ final class TerminalSessionStore: ObservableObject {
     func disconnect() {
         reconnectGeneration &+= 1
         reconnectAttempt = 0
+        zmodemEngine?.reset()
         relay.transport?.disconnect()
         relay.transport = nil
         status = .idle
+    }
+
+    func cancelZmodemTransfer() {
+        zmodemEngine?.cancel()
+    }
+
+    // The engine suppresses its own confirmation for a download, so this one —
+    // posted after the save picker — is what the user sees.
+    private func showZmodemSaved(name: String, count: Int) {
+        guard zmodemTransfer == nil else { return }
+        let display = count > 1 ? String(localized: "\(count) files") : name
+        let notice = ZmodemTransferInfo(direction: .download, name: display, transferred: 0, total: nil, phase: .done)
+        zmodemTransfer = notice
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            if self?.zmodemTransfer == notice { self?.zmodemTransfer = nil }
+        }
+    }
+
+    private func makeZmodemEngine() -> ZmodemEngine? {
+        guard ZmodemSetting.isEnabled else { return nil }
+        let session = session
+        let relay = relay
+        let outputSignal = outputSignal
+        return ZmodemEngine(
+            sink: { bytes in relay.send(Data(bytes)) },
+            passthrough: { [weak self] bytes in
+                let data = Data(bytes)
+                session.receive(data)
+                if outputSignal.noteChunk(byteCount: data.count) {
+                    Task { @MainActor [weak self] in self?.noteReceived() }
+                }
+            },
+            makeWriter: { [weak self] in
+                let store = self
+                return ZmodemFileBridge.makeReceiveWriter(onSaved: { name, count in
+                    Task { @MainActor in store?.showZmodemSaved(name: name, count: count) }
+                })
+            },
+            requestSource: { completion in
+                Task { @MainActor in ZmodemFileBridge.requestUploadSource(completion) }
+            },
+            onState: { [weak self] info in
+                Task { @MainActor [weak self] in self?.zmodemTransfer = info }
+            },
+        )
     }
 
     private let outputSignal = OutputSignal()
