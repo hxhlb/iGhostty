@@ -20,6 +20,22 @@ enum RemoteNetwork {
         }
     }
 
+    /// A host as a dotted IPv4 address, an IPv4-mapped IPv6 one included;
+    /// nil for any other IPv6 address or a name.
+    static func ipv4Description(_ host: NWEndpoint.Host) -> String? {
+        switch host {
+        case let .ipv4(address):
+            return "\(address)"
+        case let .ipv6(address):
+            let bytes = [UInt8](address.rawValue)
+            guard bytes.count == 16, bytes[0 ..< 10].allSatisfy({ $0 == 0 }), bytes[10] == 0xFF, bytes[11] == 0xFF
+            else { return nil }
+            return bytes[12 ..< 16].map(String.init).joined(separator: ".")
+        default:
+            return nil
+        }
+    }
+
     /// Until remote access goes beyond the local network, only a peer on it
     /// is served: private IPv4, link-local, loopback, and IPv6 unique-local.
     static func isLocal(_ endpoint: NWEndpoint) -> Bool {

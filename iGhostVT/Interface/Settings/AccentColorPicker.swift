@@ -28,10 +28,15 @@ struct AccentColorPicker: View {
     }
 
     var body: some View {
+        // The slack goes between the swatches only: a frame around each
+        // one split it into half a gap past either end, and the row read as
+        // inset from the edges it is aligned to.
         HStack(spacing: 0) {
-            ForEach(AccentColorPreference.allCases) { choice in
+            ForEach(Array(AccentColorPreference.allCases.enumerated()), id: \.element) { index, choice in
+                if index > 0 {
+                    Spacer(minLength: 0)
+                }
                 swatch(choice)
-                    .frame(maxWidth: .infinity)
             }
         }
         .frame(maxWidth: Self.preferredWidth)

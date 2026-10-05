@@ -107,11 +107,11 @@ enum ShortcutBridge {
     }
 
     /// Opens a tab on a paired device in the frontmost window (remote
-    /// access): a fresh shell there.
+    /// access): a fresh shell there, in its home or in `directory`.
     @discardableResult
-    static func openRemoteTab(hostID: String) async throws -> TerminalTab {
+    static func openRemoteTab(hostID: String, directory: TerminalDirectory? = nil) async throws -> TerminalTab {
         let manager = try await frontTabManager()
-        return manager.newTab(.remote(hostID: hostID))
+        return manager.newTab(.remote(hostID: hostID, directory: directory))
     }
 
     /// The same, for a terminal the device already has open.

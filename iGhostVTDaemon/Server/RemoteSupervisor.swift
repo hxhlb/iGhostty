@@ -276,15 +276,23 @@ final class RemoteSupervisor {
         } while result < 0 && errno == EINTR
         if result == 0 {
             channel?.close()
-            if attempt < 100 {
-                queue.asyncAfter(deadline: .now() + .milliseconds(20)) { [weak self] in
-                    self?.reap(attempt: attempt + 1)
-                }
+            // Asked until it is reaped, however long: the respawn waits on
+            // it, and a helper that is never reaped never comes back.
+            let delay: DispatchTimeInterval = attempt < 100 ? .milliseconds(20) : .seconds(1)
+            queue.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.reap(attempt: attempt + 1)
             }
             return
         }
         childPID = 0
         channel?.close()
+        // The link usually closes first, while the child is not yet
+        // waitable (XNU posts the exit before the zombie), and the respawn
+        // asked for then found a child still here and stood down. This is
+        // the moment it can go ahead.
+        if isEnabled, channel == nil {
+            scheduleRespawn()
+        }
     }
 
     private func scheduleRespawn() {

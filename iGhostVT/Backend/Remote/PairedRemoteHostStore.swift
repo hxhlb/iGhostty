@@ -160,17 +160,7 @@ enum PairedRemoteHostStore {
     /// The link reached the host: the address that answered, and when — kept up to date on every connection for a
     /// launch on which the browser has not found it.
     static func noteReached(_ connection: NWConnection, forHostID id: String) {
-        // A link-local IPv6 answer is kept out: stored without its
-        // interface it routes nowhere, and it would replace an address that
-        // does.
-        var address: String?
-        if case let .hostPort(host, _) = connection.currentPath?.remoteEndpoint {
-            if case let .ipv6(ipv6) = host, ipv6.isLinkLocal {
-                address = nil
-            } else {
-                address = RemoteNetwork.hostDescription(host)
-            }
-        }
+        let address = rememberedAddress(of: connection, hostID: id)
         lock.withLock {
             var hosts = loadedLocked()
             guard let index = hosts.firstIndex(where: { $0.id == id }) else { return }
@@ -181,6 +171,20 @@ enum PairedRemoteHostStore {
             hosts[index] = host
             writeLocked(hosts)
         }
+    }
+
+    /// The IPv4 address to remember for a host a connection reached. Bonjour
+    /// often resolves to IPv6, which is no address to show or to dial back:
+    /// a link-local one routes nowhere without its interface, and a
+    /// unique-local or temporary one changes under the host. The host's own
+    /// advertised IPv4 stands in for it; with neither, nil keeps the last.
+    static func rememberedAddress(of connection: NWConnection, hostID: String) -> String? {
+        if case let .hostPort(host, _) = connection.currentPath?.remoteEndpoint,
+           let address = RemoteNetwork.ipv4Description(host)
+        {
+            return address
+        }
+        return RemoteHostDirectory.advertisedAddress(forHostID: hostID)
     }
 
     private static var fileURL: URL {
@@ -197,8 +201,16 @@ enum PairedRemoteHostStore {
         if let cache {
             return cache
         }
-        let loaded = (try? Data(contentsOf: fileURL))
+        var loaded = (try? Data(contentsOf: fileURL))
             .flatMap { try? JSONDecoder().decode([PairedRemoteHost].self, from: $0) } ?? []
+        // Earlier builds kept whatever the connection resolved, IPv6
+        // included; only an IPv4 address is kept. The next connection
+        // records the right one.
+        for index in loaded.indices {
+            if let address = loaded[index].lastAddress, IPv4Address(address) == nil {
+                loaded[index].lastAddress = nil
+            }
+        }
         cache = loaded
         return loaded
     }

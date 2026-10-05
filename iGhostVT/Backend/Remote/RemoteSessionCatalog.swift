@@ -17,9 +17,35 @@ final class RemoteSessionCatalog: ObservableObject {
 
     private var poll: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
+    private var subscriptions: Set<AnyCancellable> = []
     private static let interval: UInt64 = 30_000_000_000
 
-    private init() {}
+    private init() {
+        // A device the browser has just found is asked at once, rather
+        // than at the next poll: the first one ran at launch, before
+        // Bonjour had answered.
+        RemoteHostDirectory.shared.$hosts
+            .combineLatest(RemoteHostDirectory.shared.$paired)
+            .map { _, _ in RemoteHostDirectory.shared.reachablePaired.map(\.id) }
+            .removeDuplicates()
+            .dropFirst()
+            .sink { _ in
+                Task { @MainActor in await RemoteSessionCatalog.shared.refresh() }
+            }
+            .store(in: &subscriptions)
+        // The Mac's menu bar keeps a deferred menu's first answer; a
+        // rebuild is what makes it ask again (`AppMenus.remoteTabMenu`).
+        $sessions
+            .map { _ in () }
+            .merge(with: RemoteHostDirectory.shared.$hosts.map { _ in () })
+            .merge(with: RemoteHostDirectory.shared.$paired.map { _ in () })
+            .merge(with: RecentDirectoryStore.shared.$remoteEntries.map { _ in () })
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .sink { _ in
+                UIMenuSystem.main.setNeedsRebuild()
+            }
+            .store(in: &subscriptions)
+    }
 
     func start() {
         guard observers.isEmpty else { return }

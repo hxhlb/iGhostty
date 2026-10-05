@@ -349,8 +349,9 @@ final class TabManager: ObservableObject {
         /// that visited them.
         case directory(TerminalDirectory)
         /// A paired device's daemon (remote access): a fresh shell there,
-        /// in its user's home.
-        case remote(hostID: String)
+        /// in its user's home or in `directory` — one that device reported
+        /// earlier, handed back to it.
+        case remote(hostID: String, directory: TerminalDirectory? = nil)
     }
 
     /// Opens where `origin` says. For a live session the new one names it
@@ -373,8 +374,8 @@ final class TabManager: ObservableObject {
             makeTab(inheritDirectoryFrom: sessionID)
         case let .directory(directory):
             makeTab(startDirectory: directory.path)
-        case let .remote(hostID):
-            makeTab(remoteHostID: hostID)
+        case let .remote(hostID, directory):
+            makeTab(startDirectory: directory?.path, remoteHostID: hostID)
         }
         return adopt(tab, afterActiveTab: true)
     }

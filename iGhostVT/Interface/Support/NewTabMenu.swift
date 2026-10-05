@@ -99,10 +99,24 @@ struct NewTabMenuContent: View {
                 Text("Recent")
             }
         }
-        if !choices.remoteHosts.isEmpty {
+        if choices.isRemoteFlattened {
+            // Two devices or fewer: each one's rows are right here, under
+            // its name, rather than a submenu away.
+            ForEach(choices.remoteHosts) { host in
+                Section {
+                    remoteHostRows(host, grouped: false)
+                } header: {
+                    Text(verbatim: host.displayName)
+                }
+            }
+        } else if !choices.remoteHosts.isEmpty {
             Section {
                 ForEach(choices.remoteHosts) { host in
-                    remoteHostMenu(host)
+                    Menu {
+                        remoteHostRows(host, grouped: true)
+                    } label: {
+                        SwiftUI.Label(host.displayName, systemImage: "network")
+                    }
                 }
             } header: {
                 Text("Other Devices")
@@ -110,35 +124,61 @@ struct NewTabMenuContent: View {
         }
     }
 
-    /// A paired device: a fresh shell there, or one of the terminals it
-    /// has open — which then opens here, and is taken from where it was.
-    private func remoteHostMenu(_ host: PairedRemoteHost) -> some View {
-        Menu {
-            row(
-                String(localized: "New Terminal", comment: "Menu item: a fresh shell on another device"),
-                systemImage: "plus",
-                origin: .remote(hostID: host.id),
-            )
-            let sessions = choices.remoteSessions[host.id] ?? []
+    /// A paired device: a fresh shell there — in its home or in a directory
+    /// a tab here was in on it — or one of the terminals it has open, which
+    /// then opens here and is taken from where it was. `grouped` when the
+    /// rows have a submenu to themselves and can be sectioned; inline they
+    /// already sit in the device's own section.
+    @ViewBuilder
+    private func remoteHostRows(_ host: PairedRemoteHost, grouped: Bool) -> some View {
+        row(
+            String(localized: "New Terminal", comment: "Menu item: a fresh shell on another device"),
+            systemImage: "plus",
+            origin: .remote(hostID: host.id),
+        )
+        let recents = choices.remoteRecents[host.id] ?? []
+        let sessions = choices.remoteSessions[host.id] ?? []
+        if grouped {
+            if !recents.isEmpty {
+                Section {
+                    remoteRecentRows(recents, on: host)
+                } header: {
+                    Text("Recent")
+                }
+            }
             if !sessions.isEmpty {
                 Section {
-                    ForEach(sessions) { session in
-                        Button {
-                            tabManager.openRemoteTab(attachingTo: session.id, hostID: host.id)
-                            onOpen()
-                        } label: {
-                            SwiftUI.Label(
-                                session.label.isEmpty ? String(localized: "Terminal") : session.label,
-                                systemImage: isOpenHere(session, on: host) ? "checkmark" : "terminal",
-                            )
-                        }
-                    }
+                    remoteSessionRows(sessions, on: host)
                 } header: {
                     Text("Open Terminals")
                 }
             }
-        } label: {
-            SwiftUI.Label(host.displayName, systemImage: "network")
+        } else {
+            remoteRecentRows(recents, on: host)
+            remoteSessionRows(sessions, on: host)
+        }
+    }
+
+    private func remoteRecentRows(_ recents: [TerminalDirectory], on host: PairedRemoteHost) -> some View {
+        ForEach(recents, id: \.path) { directory in
+            row(directory.label, systemImage: "clock", origin: .remote(hostID: host.id, directory: directory))
+        }
+    }
+
+    private func remoteSessionRows(
+        _ sessions: [XPCDaemonTransport.SessionSummary],
+        on host: PairedRemoteHost,
+    ) -> some View {
+        ForEach(sessions) { session in
+            Button {
+                tabManager.openRemoteTab(attachingTo: session.id, hostID: host.id)
+                onOpen()
+            } label: {
+                SwiftUI.Label(
+                    session.label.isEmpty ? String(localized: "Terminal") : session.label,
+                    systemImage: isOpenHere(session, on: host) ? "checkmark" : "terminal",
+                )
+            }
         }
     }
 
@@ -185,6 +225,16 @@ struct NewTabDirectoryChoices {
     var remoteHosts: [PairedRemoteHost]
     /// The terminals each of those has open, as last asked.
     var remoteSessions: [String: [XPCDaemonTransport.SessionSummary]]
+    /// Where tabs here have been on each of those, by host id.
+    var remoteRecents: [String: [TerminalDirectory]]
+
+    /// Fewer devices than this are listed inline, each under its own name;
+    /// from this many on, each is a submenu, or the menu runs off the screen.
+    static let remoteSubmenuThreshold = 3
+
+    var isRemoteFlattened: Bool {
+        !remoteHosts.isEmpty && remoteHosts.count < Self.remoteSubmenuThreshold
+    }
 
     /// Home is not counted: it is always offered, and a menu that holds
     /// nothing else is not worth opening.
@@ -201,6 +251,9 @@ struct NewTabDirectoryChoices {
     ) {
         self.remoteHosts = remoteHosts.reachablePaired
         self.remoteSessions = remoteSessions.sessions
+        remoteRecents = Dictionary(uniqueKeysWithValues: self.remoteHosts.map { host in
+            (host.id, store.menuDirectories(onHost: host.id))
+        })
         var rows: [OpenTab] = []
         var listed: Set<String> = []
         // The active tab first: when two tabs share a directory, the row

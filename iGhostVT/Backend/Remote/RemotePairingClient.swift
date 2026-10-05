@@ -78,7 +78,7 @@ enum RemotePairingClient {
             deviceID: deviceID,
             deviceKey: PairingExchange.deviceKey(sessionKey: sessionKey.key, hostID: hostID, deviceID: deviceID),
             pairedAt: Date(),
-            lastAddress: session.remoteAddress,
+            lastAddress: PairedRemoteHostStore.rememberedAddress(of: session.connection, hostID: hostID),
             lastSeen: Date(),
         )
         PairedRemoteHostStore.save(paired)
@@ -176,10 +176,8 @@ private final class PairingSession: @unchecked Sendable {
         }
     }
 
-    /// The address that answered, once connected.
-    var remoteAddress: String? {
-        guard case let .hostPort(host, _) = frames.connection.currentPath?.remoteEndpoint else { return nil }
-        return RemoteNetwork.hostDescription(host)
+    var connection: NWConnection {
+        frames.connection
     }
 }
 

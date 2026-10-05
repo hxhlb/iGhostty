@@ -265,13 +265,26 @@ final class IOSupervisor {
     }
 
     /// The mirror of `IOHost.updateOutputPause`, for the other direction.
+    private var inputPauseCount = 0
+    private var lastInputPauseLog: UInt64 = 0
+
     private func updateInputPause(pending: Int) {
         if !isInputPaused, pending > Self.inputPauseAboveByteCount {
             isInputPaused = true
             for peer in peers.values {
                 peer.suspend()
             }
-            DaemonFileLog.log("io not draining input (\(pending) bytes queued), peers suspended")
+            // A large upload pauses and resumes hundreds of times a
+            // second; one line per episode filled the log with them.
+            inputPauseCount += 1
+            let now = DispatchTime.now().uptimeNanoseconds
+            if now &- lastInputPauseLog >= 5_000_000_000 {
+                lastInputPauseLog = now
+                DaemonFileLog.log(
+                    "io not draining input (\(pending) bytes queued), peers suspended (\(inputPauseCount) time(s) since the last line)",
+                )
+                inputPauseCount = 0
+            }
         } else if isInputPaused, pending < Self.inputResumeBelowByteCount {
             isInputPaused = false
             for peer in peers.values {

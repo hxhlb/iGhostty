@@ -56,6 +56,7 @@ final class RemoteHostDirectory: ObservableObject {
 
     private nonisolated static let lock = NSLock()
     private nonisolated(unsafe) static var endpoints: [String: NWEndpoint] = [:]
+    private nonisolated(unsafe) static var addresses: [String: String] = [:]
 
     private init() {
         observer = NotificationCenter.default.addObserver(
@@ -64,7 +65,13 @@ final class RemoteHostDirectory: ObservableObject {
             queue: .main,
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.paired = PairedRemoteHostStore.hosts
+                let paired = PairedRemoteHostStore.hosts
+                self?.paired = paired
+                // An unpaired device takes its recent directories with it.
+                let kept = Set(paired.map(\.id))
+                for hostID in RecentDirectoryStore.shared.remoteEntries.keys where !kept.contains(hostID) {
+                    RecentDirectoryStore.shared.forget(host: hostID)
+                }
             }
         }
     }
@@ -72,6 +79,11 @@ final class RemoteHostDirectory: ObservableObject {
     /// The host's current address, for a transport's queue.
     nonisolated static func endpoint(forHostID id: String) -> NWEndpoint? {
         lock.withLock { endpoints[id] }
+    }
+
+    /// The IPv4 address the host advertises, for a transport's queue.
+    nonisolated static func advertisedAddress(forHostID id: String) -> String? {
+        lock.withLock { addresses[id] }
     }
 
     /// Paired hosts worth offering: the ones the browser sees, and the ones
@@ -136,6 +148,10 @@ final class RemoteHostDirectory: ObservableObject {
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         Self.lock.withLock {
             Self.endpoints = Dictionary(visible.map { ($0.id, $0.endpoint) }, uniquingKeysWith: { first, _ in first })
+            Self.addresses = Dictionary(
+                visible.compactMap { host in host.address.map { (host.id, $0) } },
+                uniquingKeysWith: { first, _ in first },
+            )
         }
         if visible != hosts {
             hosts = visible
