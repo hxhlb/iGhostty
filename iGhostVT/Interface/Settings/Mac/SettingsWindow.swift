@@ -224,7 +224,11 @@ import UIKit
 
         override func viewDidLoad() {
             super.viewDidLoad()
-            view.backgroundColor = .systemGroupedBackground
+            // A Mac window's own background — Catalyst maps
+            // `systemBackground` to it (white, and #1E1E1E dark, on Tahoe).
+            // The grouped background is the iPhone's grey, and it put the
+            // window a shade off every other app's settings.
+            view.backgroundColor = .systemBackground
             view.clipsToBounds = true
         }
 
