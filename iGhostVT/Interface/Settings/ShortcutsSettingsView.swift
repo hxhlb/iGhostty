@@ -28,7 +28,6 @@ struct ShortcutsSettingsView: View {
                 Text("A shortcut that is off hands its key to the program running in the terminal. Escape always reaches the terminal.")
                     .font(DS.Font.detail)
             }
-            SettingsFormSpacer()
         }
         .navigationTitle("Shortcuts")
         .navigationBarTitleDisplayMode(.inline)

@@ -22,7 +22,7 @@ final class RecentDirectoryStore: ObservableObject {
     static let shared = RecentDirectoryStore()
 
     /// How the new-tab menu orders the list. The user's choice, in
-    /// Settings ▸ Advanced.
+    /// Settings ▸ Recent Directories.
     enum SortOrder: String, CaseIterable, Identifiable {
         /// Where they were last — the default, since the thing just left
         /// is usually the thing wanted again.

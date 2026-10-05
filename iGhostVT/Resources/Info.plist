@@ -44,6 +44,7 @@
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>wiki.qaq.ighostvt.move-tab</string>
+		<string>wiki.qaq.ighostvt.settings</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
@@ -58,6 +59,12 @@
 					<string>Default Configuration</string>
 					<key>UISceneDelegateClassName</key>
 					<string>SceneDelegate</string>
+				</dict>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Settings</string>
+					<key>UISceneDelegateClassName</key>
+					<string>SettingsSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

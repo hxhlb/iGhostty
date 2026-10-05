@@ -179,10 +179,13 @@ final class TerminalWindow: UIWindow, AppCommandResponder {
     /// has only the one scene, is sent home.
     private func closeEmptyWindow() {
         #if targetEnvironment(macCatalyst)
-            // Another window of this app on screen: closing this one leaves
-            // the app running.
+            // Another terminal window on screen: closing this one leaves
+            // the app running. The settings window does not count — it is
+            // no reason to keep an app with no terminal open.
             let hasOtherWindows = UIApplication.shared.connectedScenes.contains { scene in
-                scene !== windowScene && scene.activationState != .unattached
+                scene !== windowScene
+                    && scene.activationState != .unattached
+                    && !SettingsWindow.isSettings(scene.session)
             }
             if hasOtherWindows {
                 closeWindow(nil)

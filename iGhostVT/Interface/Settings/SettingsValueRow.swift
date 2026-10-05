@@ -9,12 +9,11 @@ import SwiftUI
 /// the shape shared by the theme slots and the text-size steppers.
 struct SettingsValueRow: View {
     let title: LocalizedStringKey
-    let icon: String
     let value: String
 
     var body: some View {
         HStack {
-            Label(title, systemImage: icon)
+            Text(title)
             Spacer()
             Text(value)
                 .foregroundColor(.secondary)

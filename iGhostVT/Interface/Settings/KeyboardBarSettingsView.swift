@@ -25,7 +25,6 @@ import SwiftUI
                 moreKeysSection
                 resetSection
                 hardwareKeyboardSection
-                SettingsFormSpacer()
             }
             // Permanently in edit mode, the way the old Control Center editor
             // was: reorder handles always visible, no Edit button to find first.

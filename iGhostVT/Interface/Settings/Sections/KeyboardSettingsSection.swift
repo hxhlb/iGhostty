@@ -13,13 +13,13 @@ struct KeyboardSettingsSection: View {
             NavigationLink {
                 ShortcutsSettingsView()
             } label: {
-                Label("Shortcuts", systemImage: "command")
+                Text("Shortcuts")
             }
             #if !targetEnvironment(macCatalyst)
                 NavigationLink {
                     KeyboardBarSettingsView()
                 } label: {
-                    Label("Accessory Keys", systemImage: "keyboard")
+                    Text("Accessory Keys")
                 }
             #endif
         } header: {

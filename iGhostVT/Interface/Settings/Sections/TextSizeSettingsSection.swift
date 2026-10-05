@@ -22,7 +22,6 @@ struct TextSizeSettingsSection: View {
             Stepper(value: $terminalFontSize, in: TerminalFontSize.range) {
                 SettingsValueRow(
                     title: "Terminal",
-                    icon: "terminal",
                     value: String.localizedStringWithFormat(
                         NSLocalizedString("%lld pt", comment: "A font size in points"),
                         terminalFontSize,
@@ -35,7 +34,7 @@ struct TextSizeSettingsSection: View {
                 terminalFontSize,
             ))
             Stepper(value: $interfaceTextStep, in: InterfaceTextSize.steps) {
-                SettingsValueRow(title: "Interface", icon: "textformat.size", value: interfaceScaleDescription)
+                SettingsValueRow(title: "Interface", value: interfaceScaleDescription)
             }
             .accessibilityLabel("Interface")
             .accessibilityValue(interfaceScaleDescription)

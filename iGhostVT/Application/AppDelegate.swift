@@ -31,11 +31,39 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         // and relaunch. The lines go where every other line goes — the
         // journal file is what to read on the device, where the unified
         // log's relay drops most of a busy launch's lines.
-        if UserDefaults.standard.bool(forKey: "Debug.verboseTerminalLog") {
+        if UserDefaults.standard.bool(forKey: DetailedTerminalLog.key) {
             TerminalDebugLog.enable(.standard)
         }
         return true
     }
+
+    /// Every terminal window is the default configuration. The Mac's
+    /// settings window asks for its own (`SettingsWindow`).
+    func application(
+        _: UIApplication,
+        configurationForConnecting session: UISceneSession,
+        options: UIScene.ConnectionOptions,
+    ) -> UISceneConfiguration {
+        #if targetEnvironment(macCatalyst)
+            if SettingsWindow.isRequested(in: options.userActivities) {
+                return UISceneConfiguration(name: SettingsWindow.configurationName, sessionRole: session.role)
+            }
+        #endif
+        return UISceneConfiguration(name: "Default Configuration", sessionRole: session.role)
+    }
+
+    #if targetEnvironment(macCatalyst)
+        /// The end of every window's responder chain, the settings window's
+        /// included: Settings… and New Window still work with no terminal
+        /// window in front. A terminal window answers both itself first.
+        @objc func showSettings(_: Any?) {
+            SettingsWindow.open()
+        }
+
+        @objc func newWindow(_: Any?) {
+            TerminalWindow.requestNewWindow()
+        }
+    #endif
 
     /// The system menu bar (the Mac, an iPad with a keyboard — where it is
     /// also the hold-⌘ shortcut overlay). The Format menu goes: its ⌘T is

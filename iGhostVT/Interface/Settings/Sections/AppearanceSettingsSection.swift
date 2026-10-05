@@ -16,23 +16,21 @@ struct AppearanceSettingsSection: View {
             } label: {
                 SettingsValueRow(
                     title: "Light Theme",
-                    icon: "sun.max.fill",
-                    value: theme.selection.lightName ?? Self.defaultLabel(AppTheme.defaultLightName),
+                    value: ThemeSlot.light.label(in: theme.selection),
                 )
             }
             .accessibilityLabel("Light Theme")
-            .accessibilityValue(theme.selection.lightName ?? Self.defaultLabel(AppTheme.defaultLightName))
+            .accessibilityValue(ThemeSlot.light.label(in: theme.selection))
             NavigationLink {
                 ThemeListView(slot: .dark)
             } label: {
                 SettingsValueRow(
                     title: "Dark Theme",
-                    icon: "moon.fill",
-                    value: theme.selection.darkName ?? Self.defaultLabel(AppTheme.defaultDarkName),
+                    value: ThemeSlot.dark.label(in: theme.selection),
                 )
             }
             .accessibilityLabel("Dark Theme")
-            .accessibilityValue(theme.selection.darkName ?? Self.defaultLabel(AppTheme.defaultDarkName))
+            .accessibilityValue(ThemeSlot.dark.label(in: theme.selection))
         } header: {
             Text("Appearance")
                 .font(DS.Font.caption)
@@ -41,12 +39,21 @@ struct AppearanceSettingsSection: View {
                 .font(DS.Font.detail)
         }
     }
+}
 
-    /// Theme names are catalog data, so only the marker gets translated.
-    private static func defaultLabel(_ name: String) -> String {
-        String(
+extension ThemeSlot {
+    /// What a settings row shows for the slot: the chosen theme's name, or
+    /// the default's with a marker. Theme names are catalog data, so only
+    /// the marker gets translated.
+    @MainActor
+    func label(in selection: AppTheme.Selection) -> String {
+        let chosen = self == .light ? selection.lightName : selection.darkName
+        if let chosen {
+            return chosen
+        }
+        return String(
             format: NSLocalizedString("%@ (Default)", comment: "Theme name plus the default marker"),
-            name,
+            self == .light ? AppTheme.defaultLightName : AppTheme.defaultDarkName,
         )
     }
 }

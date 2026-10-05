@@ -60,7 +60,7 @@ enum GhosttyAppConfiguration {
 
     // MARK: - The user's own lines
 
-    /// What Settings ▸ Advanced ▸ Custom Configuration holds, verbatim.
+    /// What Settings ▸ Ghostty Configuration holds, verbatim.
     static let customConfigurationKey = "Terminal.customConfiguration"
 
     static var customConfiguration: String {

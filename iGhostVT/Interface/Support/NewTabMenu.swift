@@ -51,7 +51,7 @@ struct NewTabMenu<Label: View>: View {
 ///
 /// Home, then where this window's own tabs are, then where sessions have
 /// been before. Each group is sorted — the open tabs by path, the recent
-/// ones by the order chosen in Settings ▸ Advanced — so a row keeps its
+/// ones by the order chosen in Settings — so a row keeps its
 /// place between two openings of the same menu.
 struct NewTabMenuContent: View {
     let tabManager: TabManager

@@ -62,7 +62,11 @@ import UIKit
                 // AppKit runs its scene hook on the main thread; the window
                 // scene and the metrics both want the main actor.
                 MainActor.assumeIsolated {
-                    guard let nsWindow = hostWindow(for: scene) else { return }
+                    // The settings window keeps AppKit's own title bar and
+                    // its toolbar of panes.
+                    guard !SettingsWindow.isSettings(scene.session),
+                          let nsWindow = hostWindow(for: scene)
+                    else { return }
                     dress(nsWindow)
                     // The visual-effect views are not always in the theme
                     // frame at the scene hook; one extra pass after AppKit

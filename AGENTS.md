@@ -115,7 +115,22 @@ that receive no termination callback. Controllers still remove their own
 files on replacement and destruction; old loose configs in shared tmp are
 left alone.
 
-Settings ▸ Advanced ▸ Custom Configuration is the user's own ghostty lines
+Settings is a sheet on iPhone and iPad and a window of its own on the
+Mac (`Interface/Settings/Mac/`): a second scene configuration
+(`Settings`, `SettingsSceneDelegate`, chosen by `AppDelegate` when the
+activation carries `wiki.qaq.ighostvt.settings`) with a `.preference`
+toolbar of panes. `CatalystWindowChrome` leaves that window alone, a
+restored one closes itself at launch, and ⌘W closes it. Each pane is a
+child `UIHostingController` laid out at the window's width and pinned
+under the toolbar by Auto Layout; its preferred content size is the
+window's height, set straight away (a spring was tried and read as
+sluggish) and never from inside a layout pass — resizing there made
+AppKit throw on the layout loop. No SwiftUI frame reader decides the
+size. The app runs in the iPad idiom, so the system checkbox is out of
+reach: `UISwitch.preferredStyle = .checkbox` and its `title` throw
+outside the Mac idiom, and `MacCheckbox` draws AppKit's instead.
+
+Settings ▸ Ghostty Configuration is the user's own ghostty lines
 (`GhosttyAppConfiguration.customConfigurationKey`). They ride on the
 *theme* (`GhosttyAppConfiguration.theme(custom:)`), not the overlay: the
 library writes the theme after the overlay and a later line wins, so a
@@ -473,8 +488,7 @@ its shell starts, so the control opens a menu of directories instead of a
 tab. Three inline groups, in this order — the home; the directories this
 window's own tabs are in, deduplicated and sorted by path, each naming a
 live session (`inheritDirectoryFrom`) so the daemon re-reads it as the tab
-opens; and the recent list, sorted by the order chosen in Settings ▸
-Advanced. Neither of the last two ever repeats the home (`isHome`) or a
+opens; and the recent list, sorted by the order chosen in Settings. Neither of the last two ever repeats the home (`isHome`) or a
 directory the other already offers — three rows opening the same shell in
 the same place is two too many. `NewTabDirectoryChoices` works all of that out once, because the
 same answer decides whether there is anything to choose at all: with
@@ -493,7 +507,7 @@ came from event 102 — never from a shell's own OSC 7, which under roothide
 is not a path anything can `chdir` to. Forty are kept, the least recently
 visited evicted first whatever the sort order; eight reach the menu, minus
 any directory an open tab is already offering and minus the home, which is
-the first row anyway. Settings ▸ Advanced ▸ Recent Directories is the whole
+the first row anyway. Settings ▸ Recent Directories is the whole
 of its configuration: Remember Directories both hides the group *and* stops
 recording — a switch that says the app is not keeping this has to mean it —
 Sort By is Last Visited or Most Visited, and Clear is the only thing that
@@ -512,8 +526,10 @@ clears it, and the `isLocked` / `isKeyboardLocked` flags the menus toggle
 are views of that. `TabAttributes` is the tab's one home for what the user
 sets on it, observed apart from the tab (above); `TerminalTab.lock` and
 its flags forward to it. Every presentation wears a `TabLockBadge` off the
-same lock — the filled padlock for both kinds; the overlay caption still
-names which freeze is on. A sidebar row spends the close slot on that
+same lock — the filled padlock for both kinds, the phone's title capsule
+included. Which freeze is on is said once, as the lock changes: a caption
+over the surface that fades after a second and a half — one left there
+for as long as the tab was locked covered the terminal's first rows. A sidebar row spends the close slot on that
 padlock while locked (the × is gone, not a second glyph); close stays on
 the context menu.
 Both locks live on

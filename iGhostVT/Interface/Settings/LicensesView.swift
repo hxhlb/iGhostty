@@ -29,6 +29,18 @@ struct LicenseEntry: Decodable, Identifiable {
     var summary: String {
         [license, version].compactMap(\.self).joined(separator: " · ")
     }
+
+    /// `summary` for a list row: a commit pin (Ghostty is versioned by
+    /// one) shortened to the seven characters git itself abbreviates to, so
+    /// one row's forty hex digits do not set it apart from the rest. The
+    /// license's own page keeps the full commit.
+    var shortSummary: String {
+        guard let version,
+              version.count == 40,
+              version.allSatisfy(\.isHexDigit)
+        else { return summary }
+        return [license, String(version.prefix(7))].joined(separator: " · ")
+    }
 }
 
 enum LicenseCatalog {
@@ -63,10 +75,9 @@ struct LicensesView: View {
                     // Component names and license identifiers are catalog
                     // data, so the label is the row's own text, verbatim.
                     .accessibilityLabel(Text(verbatim: entry.name))
-                    .accessibilityValue(entry.summary)
+                    .accessibilityValue(entry.shortSummary)
                 }
             }
-            SettingsFormSpacer()
         }
         .navigationTitle("Licenses")
         .navigationBarTitleDisplayMode(.inline)
@@ -80,7 +91,7 @@ private struct LicenseRow: View {
         HStack {
             Text(verbatim: entry.name)
             Spacer()
-            Text(verbatim: entry.summary)
+            Text(verbatim: entry.shortSummary)
                 .font(DS.Font.detail)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
@@ -92,7 +103,7 @@ private struct LicenseRow: View {
 /// homepage, the text beneath in monospace and selectable. Lines wrap at
 /// the screen's edge rather than scrolling sideways — a license is quoted
 /// whole, and a phone is narrower than the 80 columns most are wrapped at.
-private struct LicenseTextView: View {
+struct LicenseTextView: View {
     let entry: LicenseEntry
 
     var body: some View {

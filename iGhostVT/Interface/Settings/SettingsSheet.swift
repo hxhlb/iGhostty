@@ -5,14 +5,11 @@
 
 import SwiftUI
 
-/// The settings page: one section per file under `Sections/`, stacked in a
-/// Form. The sheet itself only owns navigation and the Done control.
-///
-/// Presented through `settingsPresentation` — a sheet on iOS, the flat
-/// panel on the Mac. The panel is a UIKit presentation, so it hands in its
-/// own `onDone`; a sheet leaves it nil and Done is the environment's dismiss.
+/// The settings page on iPhone and iPad: one section per file under
+/// `Sections/`, stacked in a Form. The sheet itself only owns navigation
+/// and the Done control. The Mac has a settings window instead
+/// (`SettingsWindow`).
 struct SettingsSheet: View {
-    var onDone: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -20,20 +17,18 @@ struct SettingsSheet: View {
             Form {
                 AppearanceSettingsSection()
                 TextSizeSettingsSection()
+                ShellSettingsSection()
+                SessionsSettingsSection()
+                RecentDirectoriesSettingsSection()
                 KeyboardSettingsSection()
                 AboutSettingsSection()
-                SettingsFormSpacer()
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        if let onDone {
-                            onDone()
-                        } else {
-                            dismiss()
-                        }
+                        dismiss()
                     } label: {
                         Image(systemName: "checkmark")
                     }

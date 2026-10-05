@@ -21,7 +21,7 @@ import UIKit
 final class TerminalTab: ObservableObject, Identifiable {
     let id = UUID()
     let terminal: TerminalViewState
-    /// Settings ▸ Advanced ▸ Custom Configuration as it read when this tab
+    /// Settings ▸ Ghostty Configuration as it read when this tab
     /// was made; a theme change re-applies these lines, not newer ones.
     let customConfiguration: String
     let store: TerminalSessionStore

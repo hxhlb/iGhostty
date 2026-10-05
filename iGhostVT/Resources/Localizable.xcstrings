@@ -8109,6 +8109,89 @@
         }
       }
     },
+    "General" : {
+      "comment" : "The Mac settings window's first pane",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عام"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allgemein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Général"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generali"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일반"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geral"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основные"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cài đặt chung"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般"
+          }
+        }
+      }
+    },
     "Get Terminal Directory" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8524,85 +8607,167 @@
         }
       }
     },
-    "Ghostty settings, one key = value per line, applied after the settings above. New tabs use them; open tabs keep the configuration they were opened with." : {
-      "extractionState" : "manual",
+    "Ghostty Configuration" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إعدادات Ghostty، سطر لكل key = value، تُطبَّق بعد الإعدادات أعلاه. تستخدمها علامات التبويب الجديدة، وتحتفظ علامات التبويب المفتوحة بالإعداد الذي فُتحت به."
+            "value" : "إعداد Ghostty"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ghostty-Einstellungen, eine key = value pro Zeile, angewendet nach den Einstellungen oben. Neue Tabs verwenden sie; offene Tabs behalten die Konfiguration, mit der sie geöffnet wurden."
+            "value" : "Ghostty-Konfiguration"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ghostty settings, one key = value per line, applied after the settings above. New tabs use them; open tabs keep the configuration they were opened with."
+            "value" : "Ghostty Configuration"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajustes de Ghostty, un key = value por línea, aplicados después de los ajustes anteriores. Las pestañas nuevas los usan; las abiertas conservan la configuración con la que se abrieron."
+            "value" : "Configuración de Ghostty"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réglages Ghostty, un key = value par ligne, appliqués après les réglages ci-dessus. Les nouveaux onglets les utilisent ; les onglets ouverts conservent la configuration avec laquelle ils ont été ouverts."
+            "value" : "Configuration Ghostty"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impostazioni di Ghostty, una key = value per riga, applicate dopo le impostazioni sopra. Le nuove schede le usano; quelle aperte mantengono la configurazione con cui sono state aperte."
+            "value" : "Configurazione di Ghostty"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ghostty の設定を 1 行に 1 つ、key = value の形で書きます。上の設定のあとに適用されます。新しいタブで使われ、開いているタブは開いたときの設定を保ちます。"
+            "value" : "Ghostty の設定"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "한 줄에 하나씩 key = value 형식으로 쓰는 Ghostty 설정으로, 위의 설정 다음에 적용됩니다. 새 탭에 사용되며, 열려 있는 탭은 열 때의 구성을 유지합니다."
+            "value" : "Ghostty 구성"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ajustes do Ghostty, um key = value por linha, aplicados depois dos ajustes acima. As novas abas os usam; as abas abertas mantêm a configuração com que foram abertas."
+            "value" : "Configuração do Ghostty"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Настройки Ghostty, по одной key = value в строке, применяются после настроек выше. Новые вкладки используют их; открытые вкладки сохраняют конфигурацию, с которой были открыты."
+            "value" : "Конфигурация Ghostty"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cài đặt Ghostty, mỗi dòng một key = value, được áp dụng sau các cài đặt ở trên. Tab mới sẽ dùng chúng; tab đang mở vẫn giữ cấu hình lúc nó được mở."
+            "value" : "Cấu hình Ghostty"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ghostty 设置，每行一条 key = value，在上方的设置之后应用。新标签页会使用；已打开的标签页保留打开时的配置。"
+            "value" : "Ghostty 配置"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ghostty 設定，每行一條 key = value，在上方的設定之後套用。新分頁會使用；已開啟的分頁保留開啟時的設定。"
+            "value" : "Ghostty 設定"
+          }
+        }
+      }
+    },
+    "Ghostty settings, one key = value per line, applied after iGhostVT's own. New tabs use them; open tabs keep the configuration they were opened with." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إعدادات Ghostty، سطر لكل key = value، تُطبَّق بعد إعدادات iGhostVT نفسه. تستخدمها علامات التبويب الجديدة، وتحتفظ علامات التبويب المفتوحة بالإعداد الذي فُتحت به."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghostty-Einstellungen, eine key = value pro Zeile, angewendet nach denen von iGhostVT. Neue Tabs verwenden sie; offene Tabs behalten die Konfiguration, mit der sie geöffnet wurden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghostty settings, one key = value per line, applied after iGhostVT's own. New tabs use them; open tabs keep the configuration they were opened with."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes de Ghostty, un key = value por línea, aplicados después de los de iGhostVT. Las pestañas nuevas los usan; las abiertas conservan la configuración con la que se abrieron."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages Ghostty, un key = value par ligne, appliqués après ceux d’iGhostVT. Les nouveaux onglets les utilisent ; les onglets ouverts conservent la configuration avec laquelle ils ont été ouverts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni di Ghostty, una key = value per riga, applicate dopo quelle di iGhostVT. Le nuove schede le usano; quelle aperte mantengono la configurazione con cui sono state aperte."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghostty の設定を 1 行に 1 つ、key = value の形で書きます。iGhostVT 自身の設定のあとに適用されます。新しいタブで使われ、開いているタブは開いたときの設定を保ちます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "한 줄에 하나씩 key = value 형식으로 쓰는 Ghostty 설정으로, iGhostVT 자체 설정 다음에 적용됩니다. 새 탭에 사용되며, 열려 있는 탭은 열 때의 구성을 유지합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes do Ghostty, um key = value por linha, aplicados depois dos do iGhostVT. As novas abas os usam; as abas abertas mantêm a configuração com que foram abertas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки Ghostty, по одной key = value в строке, применяются после настроек самого iGhostVT. Новые вкладки используют их; открытые вкладки сохраняют конфигурацию, с которой были открыты."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cài đặt Ghostty, mỗi dòng một key = value, được áp dụng sau cài đặt của chính iGhostVT. Tab mới sẽ dùng chúng; tab đang mở vẫn giữ cấu hình lúc nó được mở."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghostty 设置，每行一条 key = value，在 iGhostVT 自身的设置之后应用。新标签页会使用；已打开的标签页保留打开时的配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghostty 設定，每行一條 key = value，在 iGhostVT 本身的設定之後套用。新分頁會使用；已開啟的分頁保留開啟時的設定。"
           }
         }
       }
@@ -12335,6 +12500,89 @@
         }
       }
     },
+    "Logs open in Console." : {
+      "comment" : "Mac settings: where the log buttons open the files",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تُفتح السجلات في تطبيق Console."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protokolle werden in der Konsole geöffnet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logs open in Console."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los registros se abren en Consola."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les journaux s’ouvrent dans Console."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I log si aprono in Console."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログは“コンソール”で開きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그는 콘솔에서 열립니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os registros abrem no Console."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Журналы открываются в приложении «Консоль»."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhật ký sẽ mở trong Console."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日志会在“控制台”中打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記錄會在「主控台」中打開。"
+          }
+        }
+      }
+    },
     "More Keys" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14478,6 +14726,172 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 ${applicationName} 中開啟終端機工作階段"
+          }
+        }
+      }
+    },
+    "Open App Log" : {
+      "comment" : "Mac settings: opens the app's log file in Console",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فتح سجل التطبيق"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Protokoll öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open App Log"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir registro de la app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir le journal de l’app"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri log dell’app"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App のログを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱 로그 열기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir registro do app"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть журнал приложения"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở nhật ký ứng dụng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 App 日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開 App 記錄"
+          }
+        }
+      }
+    },
+    "Open Helper Log" : {
+      "comment" : "Mac settings: opens the terminal helper's log file in Console",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فتح سجل المساعد"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helfer-Protokoll öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Helper Log"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir registro del asistente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir le journal de l’assistant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri log dell’helper"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ヘルパーのログを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도우미 로그 열기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir registro do assistente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть журнал помощника"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở nhật ký trình trợ giúp"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开辅助程序日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開輔助程式記錄"
           }
         }
       }
@@ -22436,84 +22850,84 @@
         }
       }
     },
-    "The Ghostty configuration every new terminal opens with, generated from the settings above. Open tabs keep the configuration they were opened with." : {
+    "The Ghostty configuration every new terminal opens with: your settings, then the lines above." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إعداد Ghostty الذي تُفتح به كل طرفية جديدة، وهو مُولَّد من الإعدادات أعلاه. وتحتفظ علامات التبويب المفتوحة بالإعداد الذي فُتحت به."
+            "value" : "إعداد Ghostty الذي تُفتح به كل طرفية جديدة: إعداداتك، ثم الأسطر أعلاه."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Ghostty-Konfiguration, mit der jedes neue Terminal geöffnet wird, erzeugt aus den Einstellungen oben. Offene Tabs behalten die Konfiguration, mit der sie geöffnet wurden."
+            "value" : "Die Ghostty-Konfiguration, mit der jedes neue Terminal geöffnet wird: deine Einstellungen, dann die Zeilen oben."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The Ghostty configuration every new terminal opens with, generated from the settings above. Open tabs keep the configuration they were opened with."
+            "value" : "The Ghostty configuration every new terminal opens with: your settings, then the lines above."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La configuración de Ghostty con la que se abre cada terminal nuevo, generada a partir de los ajustes anteriores. Las pestañas abiertas conservan la configuración con la que se abrieron."
+            "value" : "La configuración de Ghostty con la que se abre cada terminal nuevo: tus ajustes y, después, las líneas anteriores."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La configuration Ghostty avec laquelle chaque nouveau terminal s’ouvre, générée à partir des réglages ci-dessus. Les onglets ouverts conservent la configuration avec laquelle ils ont été ouverts."
+            "value" : "La configuration Ghostty avec laquelle chaque nouveau terminal s’ouvre : vos réglages, puis les lignes ci-dessus."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La configurazione di Ghostty con cui si apre ogni nuovo terminale, generata dalle impostazioni sopra. Le schede aperte mantengono la configurazione con cui sono state aperte."
+            "value" : "La configurazione di Ghostty con cui si apre ogni nuovo terminale: le tue impostazioni, poi le righe sopra."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新しいターミナルを開くときに使われる Ghostty の設定ファイルです。上の設定から生成されます。開いているタブは、開いたときの設定を保ちます。"
+            "value" : "新しいターミナルを開くときに使われる Ghostty の設定ファイルです。あなたの設定のあとに、上の行が続きます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "새 터미널을 열 때 사용되는 Ghostty 구성으로, 위의 설정에서 생성됩니다. 열려 있는 탭은 열 때의 구성을 유지합니다."
+            "value" : "새 터미널을 열 때 사용되는 Ghostty 구성으로, 사용자의 설정 다음에 위의 줄이 이어집니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A configuração do Ghostty com que cada novo terminal é aberto, gerada a partir dos ajustes acima. As abas abertas mantêm a configuração com que foram abertas."
+            "value" : "A configuração do Ghostty com que cada novo terminal é aberto: seus ajustes e, depois, as linhas acima."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Конфигурация Ghostty, с которой открывается каждый новый терминал, сформированная из настроек выше. Открытые вкладки сохраняют конфигурацию, с которой были открыты."
+            "value" : "Конфигурация Ghostty, с которой открывается каждый новый терминал: ваши настройки, затем строки выше."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cấu hình Ghostty mà mọi Terminal mới sẽ dùng khi mở, được tạo từ các cài đặt ở trên. Tab đang mở vẫn giữ cấu hình lúc nó được mở."
+            "value" : "Cấu hình Ghostty mà mọi Terminal mới sẽ dùng khi mở: cài đặt của bạn, rồi đến các dòng ở trên."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每个新终端打开时使用的 Ghostty 配置，由上方的设置生成。已打开的标签页保留打开时的配置。"
+            "value" : "每个新终端打开时使用的 Ghostty 配置：先是你的设置，再是上方的这些行。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每個新終端機開啟時使用的 Ghostty 設定，由上方的設定產生。已開啟的分頁保留開啟時的設定。"
+            "value" : "每個新終端機開啟時使用的 Ghostty 設定：先是你的設定，再是上方的這些行。"
           }
         }
       }

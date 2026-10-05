@@ -5,10 +5,10 @@
 
 import SwiftUI
 
-/// Version, the licenses, and the way into Advanced. Advanced sits here, at
-/// the end, and not among the everyday sections: the shell path, the Mac
-/// helper, and the keystroke log are settings most people never need, and
-/// the ones who do will look past Version.
+/// Version, the licenses, and the ways into the two pages most people
+/// never open: the raw Ghostty configuration, and Advanced — the Mac
+/// helper and the keystroke log. They sit here, at the end, because the
+/// people who need them will look past Version.
 struct AboutSettingsSection: View {
     var body: some View {
         Section {
@@ -27,6 +27,11 @@ struct AboutSettingsSection: View {
                 Text("Licenses")
             }
             NavigationLink {
+                GhosttyConfigurationView()
+            } label: {
+                Text("Ghostty Configuration")
+            }
+            NavigationLink {
                 AdvancedSettingsView()
             } label: {
                 Text("Advanced")
@@ -37,7 +42,8 @@ struct AboutSettingsSection: View {
         }
     }
 
-    private static var versionDescription: String {
+    /// "1.1.0 (87)", shared with the Mac's About pane.
+    static var versionDescription: String {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build = info?["CFBundleVersion"] as? String ?? "?"
