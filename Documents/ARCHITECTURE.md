@@ -135,13 +135,18 @@ iGhostVT.app                          ighostvtd  (LaunchDaemon, root)
   daemon never reads — the tab's lock, which is how it survives the app —
   returned with every attach and `listSessions` row and gone with the
   session.
-- **The daemon stays resident.** It used to idle-exit after thirty seconds
-  with no peers and no sessions, relying on launchd to demand-launch it again.
-  Demand launch does work on device, but the exit cannot be made atomic
-  against launchd routing a new connection — and the window is exactly where
-  the app lives, since the last shell exiting is what empties the registry and
-  opening a new tab is what happens next. `RunAtLoad` + `KeepAlive` instead,
-  which also covers the crash that demand launch cannot.
+- **The daemon is demand-launched, and leaves by itself.** With no peer
+  connected for thirty seconds, the proxy asks the child for `shutdown`;
+  the child refuses while it holds a session and grants it otherwise, and
+  the proxy follows its exit. That exit cannot be made atomic against
+  launchd routing a new connection — the reason the daemon was once kept
+  resident — so the race is handled instead: a peer that registers while
+  the answer is in flight takes the exit back (a fresh child, the proxy
+  stays), and the client it cut reconnects as after any interruption.
+  `RunAtLoad` + `KeepAlive = {SuccessfulExit = false}` + `MachServices`:
+  the idle exit stands, a crash comes back, and the next lookup launches
+  it. With remote access on, `ighostvtd-remote` holds a connection for as
+  long as it runs, which keeps the daemon up.
 - **Resize works here.** `updateViewport` becomes `TIOCSWINSZ` on the master
   fd, so the shell always lays out at the grid actually on screen.
 - The shell is chosen by the app (`Shell.path` in `UserDefaults`, empty means
