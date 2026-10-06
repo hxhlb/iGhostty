@@ -219,7 +219,7 @@ final class ZmodemEngine: @unchecked Sendable {
         }
         teardown(notify: false)
         guard let confirmation else {
-            onState(nil)
+            self.onState(nil)
             return
         }
         info = confirmation
@@ -227,8 +227,8 @@ final class ZmodemEngine: @unchecked Sendable {
         dismissGeneration &+= 1
         let generation = dismissGeneration
         queue.asyncAfter(deadline: .now() + Self.confirmationLinger) { [weak self] in
-            guard let self, dismissGeneration == generation else { return }
-            info = nil
+            guard let self, self.dismissGeneration == generation else { return }
+            self.info = nil
             onState(nil)
         }
     }
