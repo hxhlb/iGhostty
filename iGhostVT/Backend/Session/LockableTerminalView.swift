@@ -170,6 +170,12 @@ final class LockableTerminalView: TerminalView {
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         var remaining = presses
         for press in presses {
+            if let key = press.key, isRemotePaste(key) {
+                remaining.remove(press)
+                interceptedPresses.insert(press)
+                pasteThroughUpload()
+                continue
+            }
             guard let key = press.key, let shortcut = KeyShortcuts.shortcut(for: key) else { continue }
             remaining.remove(press)
             interceptedPresses.insert(press)
@@ -196,6 +202,68 @@ final class LockableTerminalView: TerminalView {
             super.pressesCancelled(remaining, with: event)
         }
     }
+
+    // MARK: - Paste on a remote tab
+
+    /// A paste whose pasteboard holds a file — a screenshot, a photo, a
+    /// file copied in Finder or Files — goes the way a drop does on a remote
+    /// tab: copied to that device on the transfer pill, its path there
+    /// pasted when it lands. The library would stage it here and paste a
+    /// path on this device, which the shell over there cannot open. Text
+    /// stays the library's paste.
+    override func paste(_ sender: Any?) {
+        guard uploadDroppedFiles != nil, TerminalDropDelegate.pasteNeedsUpload() else {
+            super.paste(sender)
+            return
+        }
+        pasteThroughUpload()
+    }
+
+    private func pasteThroughUpload() {
+        AppLog.info(.drop, "paste on a remote tab: copying the pasteboard's files over")
+        TerminalDropDelegate.deliver(UIPasteboard.general.itemProviders, to: self)
+    }
+
+    /// ⌘V reaches ghostty's paste binding, which reads text only — an image
+    /// on the pasteboard pasted nothing, a copied file pasted its path here.
+    private func isRemotePaste(_ key: UIKey) -> Bool {
+        uploadDroppedFiles != nil
+            && key.modifierFlags.intersection([.command, .control, .alternate, .shift]) == .command
+            && key.charactersIgnoringModifiers.lowercased() == "v"
+            && TerminalDropDelegate.pasteNeedsUpload()
+    }
+
+    #if !targetEnvironment(macCatalyst)
+        /// The touch menu's Paste calls the library's paste directly, past
+        /// `paste(_:)`; on a remote tab it is swapped for one that goes
+        /// through the override.
+        override func touchMenuItems(for context: TerminalTouchMenuContext) -> [UIMenuElement] {
+            routingPaste(super.touchMenuItems(for: context))
+        }
+
+        override func touchSelectionMenuItems(for context: TerminalTouchSelectionMenuContext) -> [UIMenuElement] {
+            routingPaste(super.touchSelectionMenuItems(for: context))
+        }
+
+        private func routingPaste(_ items: [UIMenuElement]) -> [UIMenuElement] {
+            guard uploadDroppedFiles != nil else { return items }
+            return items.map { element in
+                if let menu = element as? UIMenu {
+                    return menu.replacingChildren(routingPaste(menu.children))
+                }
+                guard let action = element as? UIAction,
+                      action.identifier.rawValue == "terminal.paste"
+                else { return element }
+                return UIAction(
+                    title: action.title,
+                    image: action.image,
+                    identifier: action.identifier,
+                ) { [weak self] _ in
+                    self?.paste(nil)
+                }
+            }
+        }
+    #endif
 
     #if !targetEnvironment(macCatalyst)
         /// The library's tap path calls this after the tap's click has been

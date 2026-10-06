@@ -75,6 +75,9 @@ final class TerminalTab: ObservableObject, Identifiable {
     /// next attach then sends the tab's lock instead of adopting the
     /// session's, which is older.
     private var isLockUnsent = false
+    /// The title the daemon's session holds, as far as this tab knows.
+    private var sessionTitle: String?
+    private var titleSyncObservation: AnyCancellable?
 
     /// The paired device this tab's shell runs on (remote access), `nil`
     /// for this device's own daemon.
@@ -248,6 +251,19 @@ final class TerminalTab: ObservableObject, Identifiable {
         .sink { [weak self] in
             self?.publishRetitle()
         }
+        // The title goes into the session too, for the new-tab menu of a
+        // paired device listing this device's terminals. A program can
+        // retitle many times a second (a spinner), and each store is a
+        // message to the daemon: the newest, at most once a second.
+        titleSyncObservation = Publishers.Merge(
+            terminal.$title.removeDuplicates().map { _ in () },
+            store.$inferredTitle.removeDuplicates().map { _ in () },
+        )
+        .throttle(for: .seconds(1), scheduler: DispatchQueue.main, latest: true)
+        .sink { [weak self] in
+            guard let self else { return }
+            storeTitleInSession()
+        }
         statusObservation = store.$status.sink { [weak self] status in
             guard status == .connected else { return }
             Task { @MainActor [weak self] in
@@ -311,13 +327,37 @@ final class TerminalTab: ObservableObject, Identifiable {
     /// changes — hence the value handed in rather than `self.lock`.
     private func storeLockInSession(_ lock: TabLock?) {
         guard lock != sessionLock || isLockUnsent else { return }
-        let attributes = lock.map { [iGhostVTSessionAttribute.lock: $0.sessionAttribute] } ?? [:]
-        guard store.setSessionAttributes(attributes) else {
+        let title = titleForSession
+        guard store.setSessionAttributes(Self.sessionAttributes(lock: lock, title: title)) else {
             isLockUnsent = true
             return
         }
         sessionLock = lock
+        sessionTitle = title
         isLockUnsent = false
+    }
+
+    /// Sends the tab's title to the session unless it already holds it. A
+    /// request replaces the whole dictionary, so the lock rides along.
+    private func storeTitleInSession() {
+        let title = titleForSession
+        guard title != sessionTitle, !isLockUnsent else { return }
+        guard store.setSessionAttributes(Self.sessionAttributes(lock: sessionLock, title: title)) else { return }
+        sessionTitle = title
+    }
+
+    /// The reported title, as the tab shows it, cut well inside the
+    /// daemon's 4 KiB for the whole dictionary.
+    private var titleForSession: String? {
+        let title = reportedTitle
+        return title.isEmpty ? nil : String(title.prefix(256))
+    }
+
+    private static func sessionAttributes(lock: TabLock?, title: String?) -> [String: String] {
+        var attributes: [String: String] = [:]
+        attributes[iGhostVTSessionAttribute.lock] = lock?.sessionAttribute
+        attributes[iGhostVTSessionAttribute.title] = title
+        return attributes
     }
 
     /// A reattached session hands back the lock it kept, and the tab takes
@@ -327,6 +367,8 @@ final class TerminalTab: ObservableObject, Identifiable {
     private func adoptSessionAttributes(_ attributes: [String: String], isResumed: Bool) {
         let held = TabLock(sessionAttribute: attributes[iGhostVTSessionAttribute.lock])
         sessionLock = held
+        sessionTitle = attributes[iGhostVTSessionAttribute.title]
+        defer { storeTitleInSession() }
         guard isResumed, !isLockUnsent else {
             storeLockInSession(lock)
             return

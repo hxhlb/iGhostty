@@ -260,7 +260,10 @@ and with an io crash, since every session does. The proxy forwards it like
 any other op and did not change. A daemon older than the op answers
 `invalidRequest` and sends no `attrs` in its replies; the app takes either
 as "keep it in memory" and stops sending on that transport. The CLI's `list`
-shows the `lock` key as a LOCK column.
+shows the `lock` key as a LOCK column. The `title` key is the title the tab
+shows (its reported part, at most once a second, newest wins), so a paired
+device's new-tab menu names the terminal word for word as this one does,
+with the process as its second line.
 
 `uploadFile` (op 15) puts a file on the daemon's device for a shell there
 to read: what a drop on a *remote* tab pastes, since no path on the app's
@@ -546,7 +549,13 @@ after the active tab, as a browser's does; one that arrives from outside
 
 Every `+` is a `NewTabMenu`: the only decision a new terminal has is where
 its shell starts, so the control opens a menu of directories instead of a
-tab. Three inline groups, in this order — the home; the directories this
+tab. The menu is UIKit's, a `UIDeferredMenuElement.uncached`
+built as it opens (`NewTabMenuElements`, over the SwiftUI label): it asks
+the paired devices for their terminals first, waits at most 1.5 s, and
+lists what is true then — a SwiftUI `Menu` listed what its view knew at
+its last render, a device's terminals from the last poll and checkmarks
+for tabs closed since. Only the ⋯ menu's entry (`NewTabSubmenu`, a menu
+inside a SwiftUI menu) still renders from the catalog. Three inline groups, in this order — the home; the directories this
 window's own tabs are in, deduplicated and sorted by path, each naming a
 live session (`inheritDirectoryFrom`) so the daemon re-reads it as the tab
 opens; and the recent list, sorted by the order chosen in Settings. Neither of the last two ever repeats the home (`isHome`) or a
@@ -563,9 +572,8 @@ dashed card and that entry are the four.
 
 Paired devices (remote access) follow, each with New Terminal, the
 directories this app's tabs were in on that device, and the terminals it has
-open. Fewer than three devices are listed inline, each in a section under
-its name; three or more get a submenu each
-(`NewTabDirectoryChoices.remoteSubmenuThreshold`). The Mac's File ▸ New Tab
+open — a submenu each, however few there are (listed inline, a device's
+terminals made the menu long and read as this device's own). The Mac's File ▸ New Tab
 on Device is the same list built in UIKit from an `uncached`
 `UIDeferredMenuElement` — but the Mac's menu bar keeps a deferred element's
 first answer regardless, so `RemoteSessionCatalog` calls
@@ -912,7 +920,12 @@ Gotchas that bit us:
   the directory and the stale sweep are shared with pastes. On a **remote**
   tab every resolved file is then copied to the other device
   (`uploadFile`, above) and *that* path is pasted, the transfer pill showing
-  progress and cancel; a folder is left out.
+  progress and cancel; a folder is left out. A *paste* there goes the same
+  way when the pasteboard holds a file (a screenshot, a copied file):
+  `LockableTerminalView` takes `paste(_:)`, ⌘V and the touch menu's Paste
+  and hands the pasteboard's providers to `TerminalDropDelegate.deliver`;
+  text stays ghostty's paste. The accessory bar's Paste key calls the
+  library's internal paste directly and still stages locally.
 - **The Mac window's chrome is AppKit's, reached through the ObjC runtime.**
   `CatalystWindowChrome.install()` (called from `main.swift`, before any
   scene) hooks `UINSApplicationDelegate didCreateUIScene:`. The sidebar has
@@ -945,6 +958,14 @@ Gotchas that bit us:
   window) while the sidebar uses `onDrag`/`onDrop`. A `ScrollView` in that band draws Tahoe's scroll
   edge effect over its own content — the chips came up frosted — so the
   strip's scroller hides it (`scrollEdgeEffectHidden`).
+- **A windowed iPad's red, yellow and green buttons sit over the content,
+  outside the safe area.** `WindowControlsInsetReader` reads iOS 26's
+  corner-adapted safe area (`.safeArea(cornerAdaptation:)`) off a view that
+  spans the window: the phone layout starts *under* them (vertical), the
+  sidebar layout's top row moves *past* them (horizontal, the sidebar title
+  or the strip's toggle), so a maximized window, whose controls hide until
+  asked for, keeps its full height. Zero on the Mac, which places its own
+  traffic lights, and before iOS 26.
 - `SMAppService` is `macCatalyst(16.0)`, above this app's iOS 15 deployment
   target, so every call sits behind `#available`. The packager raises the
   staged bundle's `LSMinimumSystemVersion` to 13.0, since a Catalyst app built

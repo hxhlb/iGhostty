@@ -183,15 +183,15 @@ struct SessionStatusOverlay: View {
             if let transfer = store.zmodemTransfer {
                 // The pane ends above the keyboard and its accessory bar
                 // (nothing here ignores the keyboard's safe area), so either
-                // place clears them. A phone's foot is its tab bar: there the
-                // transfer sits in the middle of the terminal and grows into
-                // place; beside a sidebar, shown or collapsed, it keeps to the
-                // corner.
+                // place clears them. Over a bottom bar — a phone, a narrow
+                // iPad window — the transfer sits centred just above it, the
+                // way a toast does, and grows into place; beside a sidebar,
+                // shown or collapsed, it keeps to the corner.
                 ZmodemTransferPill(info: transfer) { store.cancelZmodemTransfer() }
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity,
-                        alignment: isCompactWidth ? .center : .bottomTrailing,
+                        alignment: isCompactWidth ? .bottom : .bottomTrailing,
                     )
                     .padding(DS.Padding.l)
                     .transition(isCompactWidth ? .scale(scale: 0.85).combined(with: .opacity) : .opacity)

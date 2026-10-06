@@ -111,8 +111,8 @@ enum AppMenus {
     /// are listed inline under their names, more each get a submenu. With
     /// none nearby it says so and points at the settings that pair one.
     ///
-    /// Worked out each time the menu opens (`uncached`), from what the
-    /// directory and the catalog know — and the Mac's menu bar keeps a
+    /// Worked out each time the menu opens (`uncached`), after asking the
+    /// devices — and the Mac's menu bar keeps a
     /// deferred element's first answer whatever it was told, so
     /// `RemoteSessionCatalog` also rebuilds the main menu whenever that
     /// knowledge changes (`setNeedsRebuild`). Without that the first
@@ -120,12 +120,12 @@ enum AppMenus {
     /// Devices for the rest of the run.
     private static func remoteTabMenu() -> UIMenu {
         let devices = UIDeferredMenuElement.uncached { completion in
-            RemoteHostDirectory.shared.start()
-            completion(remoteTabMenuItems())
+            // The devices are asked as the menu opens, as the window's own
+            // new-tab menu does (`NewTabMenuElements`), so what it lists is
+            // what they hold now rather than at the last poll.
             Task { @MainActor in
-                // Fresh lists for the next opening; the rebuild that
-                // follows a change brings them in.
-                await RemoteSessionCatalog.shared.refresh()
+                await NewTabMenuElements.refreshRemoteSessions()
+                completion(remoteTabMenuItems())
             }
         }
         return UIMenu(
@@ -157,50 +157,26 @@ enum AppMenus {
                 },
             ]
         }
-        let sessions = RemoteSessionCatalog.shared.sessions
-        let flattened = hosts.count < NewTabDirectoryChoices.remoteSubmenuThreshold
-        return hosts.map { host in
-            let fresh = UIAction(
-                title: String(localized: "New Terminal", comment: "Menu item: a fresh shell on another device"),
-                image: UIImage(systemName: "plus"),
-            ) { _ in
+        let tabManagers = ShortcutBridge.tabManagers()
+        return NewTabMenuElements.remoteHostElements(
+            hosts: hosts,
+            sessions: RemoteSessionCatalog.shared.sessions,
+            isOpenHere: { host, session in
+                tabManagers.contains { manager in
+                    manager.tabs.contains { $0.remoteHostID == host.id && $0.remoteSessionID == session.id }
+                }
+            },
+            openFresh: { hostID, directory in
                 Task { @MainActor in
-                    _ = try? await ShortcutBridge.openRemoteTab(hostID: host.id)
+                    _ = try? await ShortcutBridge.openRemoteTab(hostID: hostID, directory: directory)
                 }
-            }
-            let recents = RecentDirectoryStore.shared.menuDirectories(onHost: host.id).map { directory in
-                UIAction(title: directory.label, image: UIImage(systemName: "clock")) { _ in
-                    Task { @MainActor in
-                        _ = try? await ShortcutBridge.openRemoteTab(hostID: host.id, directory: directory)
-                    }
+            },
+            attach: { hostID, sessionID in
+                Task { @MainActor in
+                    _ = try? await ShortcutBridge.openRemoteTab(hostID: hostID, attachingTo: sessionID)
                 }
-            }
-            let open = (sessions[host.id] ?? []).map { session in
-                UIAction(
-                    title: session.label.isEmpty ? String(localized: "Terminal") : session.label,
-                    image: UIImage(systemName: "terminal"),
-                ) { _ in
-                    Task { @MainActor in
-                        _ = try? await ShortcutBridge.openRemoteTab(hostID: host.id, attachingTo: session.id)
-                    }
-                }
-            }
-            if flattened {
-                return UIMenu(
-                    title: host.displayName,
-                    options: .displayInline,
-                    children: [fresh] + recents + open,
-                )
-            }
-            var children: [UIMenuElement] = [fresh]
-            if !recents.isEmpty {
-                children.append(UIMenu(title: String(localized: "Recent"), options: .displayInline, children: recents))
-            }
-            if !open.isEmpty {
-                children.append(UIMenu(title: String(localized: "Open Terminals"), options: .displayInline, children: open))
-            }
-            return UIMenu(title: host.displayName, image: UIImage(systemName: "network"), children: children)
-        }
+            },
+        )
     }
 
     // MARK: - Settings

@@ -43,12 +43,41 @@ struct NewTabMenu<Label: View>: View {
             }
             .accessibilityLabel("New Tab")
         } else {
+            // UIKit's menu, built as it opens (`NewTabMenuElements`), over
+            // the label; a SwiftUI menu would list what it knew at its last
+            // render.
+            label()
+                .accessibilityHidden(true)
+                .overlay(NewTabMenuAnchor(tabManager: tabManager, onOpen: onOpen))
+        }
+    }
+}
+
+/// New Tab as an entry inside another SwiftUI menu — the ⋯ menu's — where
+/// a UIKit button cannot go: the same rows, from the catalog's last answer.
+struct NewTabSubmenu<Label: View>: View {
+    @ObservedObject var tabManager: TabManager
+    @ViewBuilder var label: () -> Label
+
+    @ObservedObject private var recents = RecentDirectoryStore.shared
+    @ObservedObject private var remoteHosts = RemoteHostDirectory.shared
+    @ObservedObject private var remoteSessions = RemoteSessionCatalog.shared
+
+    var body: some View {
+        let choices = NewTabDirectoryChoices(
+            tabManager: tabManager,
+            recents: recents,
+            remoteHosts: remoteHosts,
+            remoteSessions: remoteSessions,
+        )
+        if choices.isEmpty {
+            Button(action: { tabManager.newTab() }, label: label)
+        } else {
             Menu {
-                NewTabMenuContent(tabManager: tabManager, choices: choices, onOpen: onOpen)
+                NewTabMenuContent(tabManager: tabManager, choices: choices)
             } label: {
                 label()
             }
-            .accessibilityLabel("New Tab")
         }
     }
 }
@@ -99,21 +128,13 @@ struct NewTabMenuContent: View {
                 Text("Recent")
             }
         }
-        if choices.isRemoteFlattened {
-            // Two devices or fewer: each one's rows are right here, under
-            // its name, rather than a submenu away.
-            ForEach(choices.remoteHosts) { host in
-                Section {
-                    remoteHostRows(host, grouped: false)
-                } header: {
-                    Text(verbatim: host.displayName)
-                }
-            }
-        } else if !choices.remoteHosts.isEmpty {
+        if !choices.remoteHosts.isEmpty {
+            // A submenu each: a device's rows inline made the menu as long
+            // as its terminals were many, and read as this device's own.
             Section {
                 ForEach(choices.remoteHosts) { host in
                     Menu {
-                        remoteHostRows(host, grouped: true)
+                        remoteHostRows(host)
                     } label: {
                         SwiftUI.Label(host.displayName, systemImage: "network")
                     }
@@ -126,11 +147,9 @@ struct NewTabMenuContent: View {
 
     /// A paired device: a fresh shell there — in its home or in a directory
     /// a tab here was in on it — or one of the terminals it has open, which
-    /// then opens here and is taken from where it was. `grouped` when the
-    /// rows have a submenu to themselves and can be sectioned; inline they
-    /// already sit in the device's own section.
+    /// then opens here and is taken from where it was.
     @ViewBuilder
-    private func remoteHostRows(_ host: PairedRemoteHost, grouped: Bool) -> some View {
+    private func remoteHostRows(_ host: PairedRemoteHost) -> some View {
         row(
             String(localized: "New Terminal", comment: "Menu item: a fresh shell on another device"),
             systemImage: "plus",
@@ -138,24 +157,19 @@ struct NewTabMenuContent: View {
         )
         let recents = choices.remoteRecents[host.id] ?? []
         let sessions = choices.remoteSessions[host.id] ?? []
-        if grouped {
-            if !recents.isEmpty {
-                Section {
-                    remoteRecentRows(recents, on: host)
-                } header: {
-                    Text("Recent")
-                }
+        if !recents.isEmpty {
+            Section {
+                remoteRecentRows(recents, on: host)
+            } header: {
+                Text("Recent")
             }
-            if !sessions.isEmpty {
-                Section {
-                    remoteSessionRows(sessions, on: host)
-                } header: {
-                    Text("Open Terminals")
-                }
+        }
+        if !sessions.isEmpty {
+            Section {
+                remoteSessionRows(sessions, on: host)
+            } header: {
+                Text("Open Terminals")
             }
-        } else {
-            remoteRecentRows(recents, on: host)
-            remoteSessionRows(sessions, on: host)
         }
     }
 
@@ -174,10 +188,14 @@ struct NewTabMenuContent: View {
                 tabManager.openRemoteTab(attachingTo: session.id, hostID: host.id)
                 onOpen()
             } label: {
-                SwiftUI.Label(
-                    session.label.isEmpty ? String(localized: "Terminal") : session.label,
-                    systemImage: isOpenHere(session, on: host) ? "checkmark" : "terminal",
-                )
+                SwiftUI.Label {
+                    Text(verbatim: session.menuTitle)
+                    if let subtitle = session.menuSubtitle {
+                        Text(verbatim: subtitle)
+                    }
+                } icon: {
+                    Image(systemName: isOpenHere(session, on: host) ? "checkmark" : "terminal")
+                }
             }
         }
     }
@@ -227,14 +245,6 @@ struct NewTabDirectoryChoices {
     var remoteSessions: [String: [XPCDaemonTransport.SessionSummary]]
     /// Where tabs here have been on each of those, by host id.
     var remoteRecents: [String: [TerminalDirectory]]
-
-    /// Fewer devices than this are listed inline, each under its own name;
-    /// from this many on, each is a submenu, or the menu runs off the screen.
-    static let remoteSubmenuThreshold = 3
-
-    var isRemoteFlattened: Bool {
-        !remoteHosts.isEmpty && remoteHosts.count < Self.remoteSubmenuThreshold
-    }
 
     /// Home is not counted: it is always offered, and a menu that holds
     /// nothing else is not worth opening.

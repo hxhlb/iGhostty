@@ -55,11 +55,20 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
     }
 
     func dropInteraction(_: UIDropInteraction, performDrop session: UIDropSession) {
-        let payloads = session.items.compactMap { Payload(provider: $0.itemProvider) }
+        guard let terminal else { return }
+        Self.deliver(session.items.map(\.itemProvider), to: terminal)
+    }
+
+    /// Pastes what `providers` hold, the way a drop does — and the way a
+    /// paste on a remote tab does too (`LockableTerminalView.paste`), since
+    /// a screenshot or a copied file pasted there needs the same copy to
+    /// the other device before its path means anything.
+    static func deliver(_ providers: [NSItemProvider], to terminal: LockableTerminalView) {
+        let payloads = providers.compactMap(Payload.init(provider:))
         guard !payloads.isEmpty else { return }
         let directory = TerminalFileStaging.directory
         TerminalFileStaging.removeStaleFiles()
-        Task { [weak self] in
+        Task { [weak terminal] in
             // Resolved together, pasted in drop order.
             var resolved = await withTaskGroup(of: (Int, Resolved?).self) { group in
                 for (index, payload) in payloads.enumerated() {
@@ -75,7 +84,7 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
                 }
                 return results.compactMap(\.self)
             }
-            guard let terminal = self?.terminal, !resolved.isEmpty else {
+            guard let terminal, !resolved.isEmpty else {
                 AppLog.info(.drop, "drop skipped: nothing resolved from \(payloads.count) item(s)")
                 return
             }
@@ -87,6 +96,23 @@ final class TerminalDropDelegate: NSObject, UIDropInteractionDelegate {
             let trailer = resolved.last?.isPath == true ? " " : ""
             AppLog.info(.drop, "drop pasting \(resolved.count) of \(payloads.count) item(s)")
             terminal.paste(text: text + trailer)
+        }
+    }
+
+    /// Whether a paste of `pasteboard` on a remote tab has a file to carry
+    /// over: a file URL, an image, or data with no text beside it. Asked
+    /// through the detection API only, which reads no contents and so
+    /// raises no paste prompt. Plain text — rich text included, which also
+    /// registers file-shaped types — stays ghostty's own paste, with its
+    /// bracketing and paste protection.
+    static func pasteNeedsUpload(_ pasteboard: UIPasteboard = .general) -> Bool {
+        if pasteboard.contains(pasteboardTypes: [UTType.fileURL.identifier]) || pasteboard.hasImages {
+            return true
+        }
+        guard !pasteboard.hasStrings, !pasteboard.hasURLs else { return false }
+        return pasteboard.types.contains { identifier in
+            guard let type = UTType(identifier), !type.isDynamic else { return false }
+            return type.conforms(to: .data) && !type.conforms(to: .text) && !type.conforms(to: .url)
         }
     }
 

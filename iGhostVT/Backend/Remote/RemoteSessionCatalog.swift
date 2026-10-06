@@ -117,9 +117,4 @@ final class RemoteSessionCatalog: ObservableObject {
     }
 }
 
-extension XPCDaemonTransport.SessionSummary: Identifiable {
-    /// How a menu names the terminal: what is running in it, and where.
-    var label: String {
-        [processName, directory?.label].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
-    }
-}
+extension XPCDaemonTransport.SessionSummary: Identifiable {}

@@ -20,7 +20,7 @@ struct AccentColorPicker: View {
     /// instead of clipping the last swatches.
     private static let preferredWidth: CGFloat = {
         let count = CGFloat(AccentColorPreference.allCases.count)
-        return count * (side + 2 * (ring + gap)) + (count - 1) * 10
+        return count * side + 2 * (ring + gap) + (count - 1) * 10
     }()
 
     private var selection: AccentColorPreference {
@@ -40,6 +40,7 @@ struct AccentColorPicker: View {
             }
         }
         .frame(maxWidth: Self.preferredWidth)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: rawValue)
     }
 
     private func swatch(_ choice: AccentColorPreference) -> some View {
@@ -52,12 +53,16 @@ struct AccentColorPicker: View {
                 .overlay {
                     Circle().strokeBorder(Color.primary.opacity(0.15), lineWidth: 0.5)
                 }
-                .padding(Self.ring + Self.gap)
+                // Only the chosen swatch makes room for its ring. Room kept
+                // around every swatch inset the row's last circle from the
+                // trailing edge the label above it ends on, by exactly the
+                // ring nobody was wearing; now the ring opens out of the
+                // swatch as it is picked and closes back into it.
+                .padding(isSelected ? Self.ring + Self.gap : 0)
                 .overlay {
-                    if isSelected {
-                        Circle()
-                            .strokeBorder(ringColor(for: choice), lineWidth: Self.ring)
-                    }
+                    Circle()
+                        .strokeBorder(ringColor(for: choice), lineWidth: Self.ring)
+                        .opacity(isSelected ? 1 : 0)
                 }
                 .contentShape(Circle())
         }

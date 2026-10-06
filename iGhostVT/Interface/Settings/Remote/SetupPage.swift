@@ -55,30 +55,12 @@ struct SetupPage<Content: View, Footer: View>: View {
 
     private var regular: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: DS.Padding.l) {
-                    Image(systemName: symbol)
-                        .font(.system(size: 64, weight: .regular))
-                        .foregroundColor(tint)
-                        .frame(height: 76)
-                        .padding(.top, DS.Padding.xl)
-                        .accessibilityHidden(true)
-                    Text(title)
-                        .font(DS.Font.heroTitle)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                    Text(message)
-                        .font(DS.Font.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                    content()
-                        .padding(.top, DS.Padding.l)
+            // Centred in the height above the buttons, the way the
+            // system's setup steps sit; a step taller than that scrolls.
+            GeometryReader { proxy in
+                ScrollView {
+                    centredColumn(minHeight: proxy.size.height)
                 }
-                .padding(.horizontal, DS.Padding.xl)
-                .frame(maxWidth: Self.columnWidth)
-                .frame(maxWidth: .infinity)
             }
             VStack(spacing: DS.Padding.m) {
                 footer()
@@ -88,6 +70,32 @@ struct SetupPage<Content: View, Footer: View>: View {
             .padding(.bottom, DS.Padding.l)
             .frame(maxWidth: Self.columnWidth)
         }
+    }
+
+    private func centredColumn(minHeight: CGFloat) -> some View {
+        VStack(spacing: DS.Padding.l) {
+            Image(systemName: symbol)
+                .font(.system(size: 64, weight: .regular))
+                .foregroundColor(tint)
+                .frame(height: 76)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(DS.Font.heroTitle)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            Text(message)
+                .font(DS.Font.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            content()
+                .padding(.top, DS.Padding.l)
+        }
+        .padding(.horizontal, DS.Padding.xl)
+        .padding(.vertical, DS.Padding.xl)
+        .frame(maxWidth: Self.columnWidth)
+        .frame(maxWidth: .infinity, minHeight: minHeight)
     }
 }
 

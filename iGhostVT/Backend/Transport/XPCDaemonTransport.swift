@@ -397,6 +397,10 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
         /// What is in front of the shell now ("zsh", "vim").
         var processName: String?
         var directory: TerminalDirectory?
+        /// The title the tab holding it shows, as that app stored it
+        /// (`iGhostVTSessionAttribute.title`); nil from an app or daemon
+        /// that keeps none.
+        var title: String?
     }
 
     /// Ask the daemon what it is holding, over a one-shot connection of its
@@ -515,6 +519,9 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
                 directory: string(iGhostVTWireKey.currentDirectory, in: entry).map {
                     TerminalDirectory(path: $0, display: string(iGhostVTWireKey.displayDirectory, in: entry))
                 },
+                title: xpc_dictionary_get_value(entry, iGhostVTWireKey.attributes)
+                    .flatMap { string(iGhostVTSessionAttribute.title, in: $0) }
+                    .flatMap { $0.isEmpty ? nil : $0 },
             ))
         }
         return rows

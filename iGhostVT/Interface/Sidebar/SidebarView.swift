@@ -13,6 +13,7 @@ struct SidebarView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var window: UIWindow?
     @StateObject private var reorderPacing = TabReorderPacing()
+    @Environment(\.windowControlsLeading) private var windowControlsLeading
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,6 +29,7 @@ struct SidebarView: View {
                     }
             #else
                 header
+                    .padding(.leading, windowControlsLeading)
             #endif
 
             ScrollView {

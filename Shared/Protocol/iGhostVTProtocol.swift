@@ -245,6 +245,10 @@ enum iGhostVTSessionAttribute {
     static let lock = "lock"
     static let interactionLock = "interaction"
     static let keyboardLock = "keyboard"
+    /// The title the tab shows (`TerminalTab.displayTitle`'s reported
+    /// part), so another device's new-tab menu names the terminal the way
+    /// this one does; absent while the session has reported none.
+    static let title = "title"
 }
 
 /// Daemon-initiated pushes on an attached connection. These carry no reply.

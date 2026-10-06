@@ -20,6 +20,7 @@ struct TabStripBar: View {
     @ObservedObject var tabManager: TabManager
     @Binding var showsSidebar: Bool
     @State private var window: UIWindow?
+    @Environment(\.windowControlsLeading) private var windowControlsLeading
     /// The chip strip's width, for `reveal` to tell whether it scrolls.
     @State private var stripWidth: CGFloat = 0
     /// The chip lifted by a long press, if any.
@@ -89,7 +90,8 @@ struct TabStripBar: View {
         #if targetEnvironment(macCatalyst)
             showsSidebar ? 0 : CatalystWindowChrome.windowControlsEnd
         #else
-            0
+            // A windowed iPad's own controls, the same way.
+            showsSidebar ? 0 : windowControlsLeading
         #endif
     }
 
@@ -544,31 +546,25 @@ private struct TabChip: View {
     let onSelect: () -> Void
     let onClose: () -> Void
 
-    /// The floor keeps room for a title beside the close button — a tap on
-    /// the chip's leading half must select, not close; the ceiling keeps
-    /// one long title from owning the bar.
-    static let widthRange: ClosedRange<CGFloat> = 120 ... 240
+    /// The narrowest a chip gets: wide enough for a window-title's worth of
+    /// text beside the close button, so a tap on the chip's leading half
+    /// selects rather than closes. Below it the strip scrolls; above it the
+    /// chips split the capsule.
+    static let minimumWidth: CGFloat = 200
 
-    /// The Mac's chip: wide enough for a window-title's worth of text.
-    /// Below it the strip scrolls; above it the chips split the capsule.
-    static let macWidth: CGFloat = 200
-
-    /// Each chip's width when `count` chips share `available` points. On
-    /// the Mac the chips fill the capsule whatever the count — one tab is
-    /// one full-width chip, as in Safari — until a share falls under
-    /// ``macWidth``, where they stop shrinking and the strip scrolls. The
-    /// share is rounded *down* to a 64th of a point: the row then never
-    /// comes out a hair wider than its scroller, which would make a strip
-    /// that fits scroll by a fraction of a pixel. Elsewhere the share is
-    /// clamped to ``widthRange``.
+    /// Each chip's width when `count` chips share `available` points: the
+    /// chips fill the capsule whatever the count — one tab is one
+    /// full-width chip, as in Safari — until a share falls under
+    /// ``minimumWidth``, where they stop shrinking and the strip scrolls.
+    /// The same on the Mac and the iPad: the iPad's chips used to stop at
+    /// 240pt and leave the rest of the capsule bare. The share is rounded
+    /// *down* to a 64th of a point: the row then never comes out a hair
+    /// wider than its scroller, which would make a strip that fits scroll
+    /// by a fraction of a pixel.
     static func width(sharing available: CGFloat, among count: CGFloat) -> CGFloat {
         let share = available / count
-        #if targetEnvironment(macCatalyst)
-            guard share >= macWidth else { return macWidth }
-            return (share * 64).rounded(.down) / 64
-        #else
-            return min(widthRange.upperBound, max(widthRange.lowerBound, share))
-        #endif
+        guard share >= minimumWidth else { return minimumWidth }
+        return (share * 64).rounded(.down) / 64
     }
 
     var body: some View {
@@ -665,7 +661,13 @@ private struct ChipScroller<Content: View>: View {
                 ScrollView(.horizontal, showsIndicators: false, content: wheelScrolledContent)
             }
         #else
-            if #available(iOS 16.0, *) {
+            // A strip that fits holds still under a swipe, as the Mac's
+            // does, instead of rubber-banding a row that has nowhere to go.
+            if #available(iOS 16.4, *) {
+                ScrollView(.horizontal, showsIndicators: false, content: content)
+                    .scrollDisabled(isScrollDisabled)
+                    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            } else if #available(iOS 16.0, *) {
                 ScrollView(.horizontal, showsIndicators: false, content: content)
                     .scrollDisabled(isScrollDisabled)
             } else {

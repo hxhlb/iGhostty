@@ -33,6 +33,9 @@ struct RootView: View {
     /// User-dragged sidebar width, remembered like the visibility. The
     /// resize handle clamps it, so a stored value is always presentable.
     @AppStorage("Sidebar.width") private var sidebarWidth = 300.0
+    /// The strip an iPadOS window's own controls take at its top edge
+    /// (`WindowControlsInsetReader`); zero everywhere else.
+    @State private var windowControls = WindowControlsInset()
     /// Whether this window shows the regular presentation — sidebar, top
     /// strip — as opposed to the phone's bottom bar. Hard-true on the Mac:
     /// a narrow Catalyst window reports a compact width class, and the
@@ -53,6 +56,7 @@ struct RootView: View {
             // sidebar paints nothing of its own, on the Mac or the iPad).
             theme.background(for: colorScheme)
                 .ignoresSafeArea()
+                .background(WindowControlsInsetReader(inset: $windowControls).ignoresSafeArea())
 
             HStack(spacing: 0) {
                 if isRegularWidth, showsSidebar {
@@ -74,6 +78,11 @@ struct RootView: View {
             // does not reliably land inside a `withAnimation` transaction, so
             // wrapping the setter leaves the transition unanimated.
             .animation(DS.Motion.smooth, value: showsSidebar)
+            // A windowed iPad's red, yellow and green buttons, which the
+            // safe area does not keep clear: the phone layout starts under
+            // them; the sidebar layout's top row moves past them instead.
+            .padding(.top, isRegularWidth ? 0 : windowControls.top)
+            .environment(\.windowControlsLeading, isRegularWidth ? windowControls.leading : 0)
             // The title bar is hidden and its strip is ours: the top bar
             // rides the window's edge, the sidebar clears the traffic lights
             // itself.
@@ -203,6 +212,7 @@ struct RootView: View {
     /// A tap on the new terminal still toggles it. Catalyst always hands
     /// focus over — there is no software keyboard.
     private func refocusAfterTabSwitch(softwareKeyboardWasVisible: Bool) {
+        guard !isCoveredByPresentation else { return }
         #if targetEnvironment(macCatalyst)
             refocus()
         #else
@@ -247,7 +257,17 @@ struct RootView: View {
         }
     }
 
+    /// The settings sheet or the switcher is up, and focus is theirs: a
+    /// remote tab reconnecting behind the sheet changes its status, and
+    /// handing the terminal first responder then took the keyboard away
+    /// from the field being typed in — a device name could not be edited.
+    /// Each presentation hands focus back as it is dismissed.
+    private var isCoveredByPresentation: Bool {
+        interface.showsSettingsSheet || interface.showsSwitcher
+    }
+
     private func refocus() {
+        guard !isCoveredByPresentation else { return }
         // A locked tab must not hold keyboard focus: its surface ignores
         // touches, and hardware keys reaching it anyway would defeat the
         // lock. An overlay or modal alert owns first responder instead;

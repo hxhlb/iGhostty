@@ -172,8 +172,8 @@ struct TabContextMenu: View {
 }
 
 /// Move to New Window (`TabWindowMove`). Its own view because it is the
-/// one item that changes while the menu could be open: it waits for the
-/// tab's session and for a second tab in the window, and it observes those
+/// one item that changes while the menu could be open: it appears once the
+/// tab has a session and the window a second tab, and it observes those
 /// two things alone — the session id on `TabAttributes`, and the tab list,
 /// which changes when a tab comes or goes, never with output.
 private struct TabMoveButton: View {
@@ -187,11 +187,14 @@ private struct TabMoveButton: View {
         attributes = tab.attributes
     }
 
+    /// Left out, not greyed, when it cannot act: a disabled row for the
+    /// window's only tab is an item the user can never use from here.
     var body: some View {
-        Button(action: { TabWindowMove.moveToNewWindow(tab, from: tabManager) }) {
-            Label("Move to New Window", systemImage: "macwindow.on.rectangle")
+        if attributes.sessionID != nil, tabManager.tabs.count >= 2 {
+            Button(action: { TabWindowMove.moveToNewWindow(tab, from: tabManager) }) {
+                Label("Move to New Window", systemImage: "macwindow.on.rectangle")
+            }
         }
-        .disabled(attributes.sessionID == nil || tabManager.tabs.count < 2)
     }
 }
 
@@ -211,7 +214,7 @@ struct TabOverflowMenuContent: View {
         #if DEBUG
             let _ = BodyTrace.note("TabOverflowMenuContent")
         #endif
-        NewTabMenu(tabManager: tabManager) {
+        NewTabSubmenu(tabManager: tabManager) {
             Label("New Tab", systemImage: "plus")
         }
         // A phone runs one scene; the request would do nothing there.
