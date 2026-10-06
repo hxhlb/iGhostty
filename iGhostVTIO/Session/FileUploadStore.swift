@@ -236,7 +236,9 @@ final class FileUploadStore {
                     off_t(offset) + off_t(done),
                 )
                 if result < 0 {
-                    if errno == EINTR { continue }
+                    if errno == EINTR {
+                        continue
+                    }
                     return false
                 }
                 done += result

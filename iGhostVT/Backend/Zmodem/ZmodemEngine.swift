@@ -27,8 +27,8 @@ struct ZmodemTransferInfo: Equatable {
     var phase: ZmodemTransferPhase = .active
 }
 
-// Every mutable field is touched only on `queue`; the public entry points hop
-// onto it. That invariant is what `@unchecked Sendable` asserts.
+/// Every mutable field is touched only on `queue`; the public entry points hop
+/// onto it. That invariant is what `@unchecked Sendable` asserts.
 final class ZmodemEngine: @unchecked Sendable {
     private let queue = DispatchQueue(label: "wiki.qaq.ighostvt.zmodem")
 
@@ -227,9 +227,9 @@ final class ZmodemEngine: @unchecked Sendable {
         dismissGeneration &+= 1
         let generation = dismissGeneration
         queue.asyncAfter(deadline: .now() + Self.confirmationLinger) { [weak self] in
-            guard let self, self.dismissGeneration == generation else { return }
-            self.info = nil
-            self.onState(nil)
+            guard let self, dismissGeneration == generation else { return }
+            info = nil
+            onState(nil)
         }
     }
 
@@ -238,9 +238,13 @@ final class ZmodemEngine: @unchecked Sendable {
         AppLog.warning(.zmodem, "abort mode=\(mode) direction=\(direction)")
         switch direction {
         case .download:
-            if receiver != nil { receiver?.cancel(); return } // cancel() tears down via onFinished
+            if receiver != nil {
+                receiver?.cancel(); return
+            } // cancel() tears down via onFinished
         case .upload:
-            if sender != nil { sender?.cancel(); return }
+            if sender != nil {
+                sender?.cancel(); return
+            }
         }
         emit(ZmodemEncoder.cancelSequence())
         teardown(notify: true)

@@ -137,14 +137,7 @@ struct SetupPrimaryButton: View {
     }
 }
 
-private struct SetupPageIsCompactKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
 extension EnvironmentValues {
-    /// Draws a `SetupPage` at popover size.
-    var setupPageIsCompact: Bool {
-        get { self[SetupPageIsCompactKey.self] }
-        set { self[SetupPageIsCompactKey.self] = newValue }
-    }
+    // Draws a `SetupPage` at popover size.
+    @Entry var setupPageIsCompact: Bool = false
 }

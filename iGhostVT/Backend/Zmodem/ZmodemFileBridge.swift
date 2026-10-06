@@ -41,8 +41,12 @@ private final class ZmodemReceiveWriter: ZmodemFileWriter, @unchecked Sendable {
 
     deinit {
         try? handle?.close()
-        for url in received { try? FileManager.default.removeItem(at: url) }
-        if let currentURL { try? FileManager.default.removeItem(at: currentURL) }
+        for url in received {
+            try? FileManager.default.removeItem(at: url)
+        }
+        if let currentURL {
+            try? FileManager.default.removeItem(at: currentURL)
+        }
     }
 
     func beginFile(name: String, size _: UInt64?) -> Bool {
@@ -77,8 +81,12 @@ private final class ZmodemReceiveWriter: ZmodemFileWriter, @unchecked Sendable {
         let urls = received
         received = []
         guard completed, !urls.isEmpty else {
-            for url in urls { try? FileManager.default.removeItem(at: url) }
-            if let currentURL { try? FileManager.default.removeItem(at: currentURL) }
+            for url in urls {
+                try? FileManager.default.removeItem(at: url)
+            }
+            if let currentURL {
+                try? FileManager.default.removeItem(at: currentURL)
+            }
             return
         }
         let onSaved = onSaved
@@ -86,7 +94,9 @@ private final class ZmodemReceiveWriter: ZmodemFileWriter, @unchecked Sendable {
         let count = urls.count
         DispatchQueue.main.async {
             ZmodemPickerPresenter.presentExport(urls) { saved in
-                for url in urls { try? FileManager.default.removeItem(at: url) }
+                for url in urls {
+                    try? FileManager.default.removeItem(at: url)
+                }
                 if !saved.isEmpty {
                     onSaved(firstName, count)
                 }
@@ -219,7 +229,9 @@ private enum ZmodemPickerPresenter {
         guard let windowScene = active as? UIWindowScene else { return nil }
         let window = windowScene.keyWindow ?? windowScene.windows.first(where: \.isKeyWindow) ?? windowScene.windows.first
         guard var top = window?.rootViewController else { return nil }
-        while let presented = top.presentedViewController { top = presented }
+        while let presented = top.presentedViewController {
+            top = presented
+        }
         return top
     }
 }

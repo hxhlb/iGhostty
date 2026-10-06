@@ -154,7 +154,9 @@ final class DaemonFileUpload: @unchecked Sendable {
                 mustAsk = false
                 AppLog.info(.drop, "upload \(name): resuming at \(held) of \(size), \(window) part(s) in flight")
                 progress(held)
-                if held >= size { break }
+                if held >= size {
+                    break
+                }
             }
             let before = held
             let outcome = try await pump(from: held, handle: handle, over: link)
@@ -526,7 +528,9 @@ private final class PendingReply: @unchecked Sendable {
         let box: MessageBox? = await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 let ready: Bool = lock.withLock {
-                    if resolved { return true }
+                    if resolved {
+                        return true
+                    }
                     waiter = continuation
                     return false
                 }

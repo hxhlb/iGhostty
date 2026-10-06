@@ -1430,7 +1430,6 @@ func runSpawnPacingTest() {
     _ = waitUntil { harnessQueue.sync { !supervisor.isRunning } }
 }
 
-
 /// `uploadFile`: a file copied in parts, refused out of order, resumed
 /// from another peer as a link that dropped would, and given up.
 func runUploadTests(_ supervisor: IOSupervisor, first: HarnessPeer, second: HarnessPeer) {

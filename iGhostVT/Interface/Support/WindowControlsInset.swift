@@ -79,15 +79,8 @@ struct WindowControlsInsetReader: UIViewRepresentable {
     }
 }
 
-private struct WindowControlsLeadingKey: EnvironmentKey {
-    static let defaultValue: CGFloat = 0
-}
-
 extension EnvironmentValues {
-    /// Room a windowed iPad's controls take at the window's leading edge,
-    /// for the row that runs along the top of the sidebar layout.
-    var windowControlsLeading: CGFloat {
-        get { self[WindowControlsLeadingKey.self] }
-        set { self[WindowControlsLeadingKey.self] = newValue }
-    }
+    // Room a windowed iPad's controls take at the window's leading edge,
+    // for the row that runs along the top of the sidebar layout.
+    @Entry var windowControlsLeading: CGFloat = 0
 }

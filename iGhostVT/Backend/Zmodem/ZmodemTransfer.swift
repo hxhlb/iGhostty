@@ -167,7 +167,7 @@ final class ZmodemReceiver {
 
 final class ZmodemSender {
     private let send: ([UInt8]) -> Void
-    // Strong, same reason as ZmodemReceiver's writer.
+    /// Strong, same reason as ZmodemReceiver's writer.
     private let source: ZmodemFileSource
 
     var onProgress: (String, UInt64, UInt64?) -> Void = { _, _, _ in }

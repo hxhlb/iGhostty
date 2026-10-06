@@ -5,8 +5,8 @@ enum AppLog {
         case zmodem
     }
 
-    static func verbose(_ category: Category, _ message: @autoclosure () -> String) {}
-    static func info(_ category: Category, _ message: @autoclosure () -> String) {}
-    static func warning(_ category: Category, _ message: @autoclosure () -> String) {}
-    static func error(_ category: Category, _ message: @autoclosure () -> String) {}
+    static func verbose(_: Category, _: @autoclosure () -> String) {}
+    static func info(_: Category, _: @autoclosure () -> String) {}
+    static func warning(_: Category, _: @autoclosure () -> String) {}
+    static func error(_: Category, _: @autoclosure () -> String) {}
 }

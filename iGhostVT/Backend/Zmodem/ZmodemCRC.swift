@@ -23,9 +23,11 @@ enum ZmodemCRC {
         (crc << 8) ^ table16[Int((crc >> 8) ^ UInt16(byte)) & 0xFF]
     }
 
-    static func crc16<S: Sequence>(_ bytes: S) -> UInt16 where S.Element == UInt8 {
+    static func crc16(_ bytes: some Sequence<UInt8>) -> UInt16 {
         var crc: UInt16 = 0
-        for byte in bytes { crc = update16(crc, byte) }
+        for byte in bytes {
+            crc = update16(crc, byte)
+        }
         return crc
     }
 
@@ -46,9 +48,11 @@ enum ZmodemCRC {
         (crc >> 8) ^ table32[Int((crc ^ UInt32(byte)) & 0xFF)]
     }
 
-    static func crc32<S: Sequence>(_ bytes: S) -> UInt32 where S.Element == UInt8 {
+    static func crc32(_ bytes: some Sequence<UInt8>) -> UInt32 {
         var crc: UInt32 = 0xFFFF_FFFF
-        for byte in bytes { crc = update32(crc, byte) }
+        for byte in bytes {
+            crc = update32(crc, byte)
+        }
         return crc ^ 0xFFFF_FFFF
     }
 }

@@ -90,10 +90,10 @@ import Foundation
         }
     }
 
-    extension CatalystAccentColor {
+    fileprivate extension CatalystAccentColor {
         /// `NSApp._setAccentColor:` with the chosen AppKit colour, or nil
         /// for the app's own; a selector that is gone is left alone.
-        fileprivate static func setApplicationAccent(_ chosen: Selector?) {
+        static func setApplicationAccent(_ chosen: Selector?) {
             guard let applicationClass = NSClassFromString("NSApplication") as? NSObject.Type,
                   let colorClass = NSClassFromString("NSColor") as? NSObject.Type,
                   let application = applicationClass.value(forKey: "sharedApplication") as? NSObject

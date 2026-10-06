@@ -54,8 +54,13 @@ enum ZSubpacketEnd: UInt8 {
     case query = 0x6A
     case wait = 0x6B
 
-    var continues: Bool { self == .go || self == .query }
-    var wantsAck: Bool { self == .query || self == .wait }
+    var continues: Bool {
+        self == .go || self == .query
+    }
+
+    var wantsAck: Bool {
+        self == .query || self == .wait
+    }
 }
 
 struct ZHeader {
@@ -86,8 +91,8 @@ struct ZmodemEncoder {
         out.append(byte)
     }
 
-    // Escape every control byte, not just the required set: a raw one gets
-    // mangled by the PTY's line discipline and corrupts a binary block.
+    /// Escape every control byte, not just the required set: a raw one gets
+    /// mangled by the PTY's line discipline and corrupts a binary block.
     private mutating func escaped(_ byte: UInt8) {
         if (byte & 0x60) == 0 {
             raw(Zmodem.ZDLE)
@@ -112,7 +117,9 @@ struct ZmodemEncoder {
         enc.raw(Zmodem.ZHEX)
         let body: [UInt8] = [type.rawValue, p0, p1, p2, p3]
         let crc = ZmodemCRC.crc16(body)
-        for byte in body { enc.hex(byte) }
+        for byte in body {
+            enc.hex(byte)
+        }
         enc.hex(UInt8(crc >> 8))
         enc.hex(UInt8(crc & 0xFF))
         enc.raw(0x0D)
@@ -129,7 +136,9 @@ struct ZmodemEncoder {
         enc.raw(Zmodem.ZDLE)
         enc.raw(Zmodem.ZBIN32)
         let body: [UInt8] = [type.rawValue, p0, p1, p2, p3]
-        for byte in body { enc.escaped(byte) }
+        for byte in body {
+            enc.escaped(byte)
+        }
         var crc = ZmodemCRC.crc32(body)
         for _ in 0 ..< 4 {
             enc.escaped(UInt8(crc & 0xFF))
@@ -140,7 +149,9 @@ struct ZmodemEncoder {
 
     static func dataSubpacket32(_ data: [UInt8], end: ZSubpacketEnd) -> [UInt8] {
         var enc = ZmodemEncoder()
-        for byte in data { enc.escaped(byte) }
+        for byte in data {
+            enc.escaped(byte)
+        }
         enc.raw(Zmodem.ZDLE)
         enc.raw(end.rawValue)
         var crc = ZmodemCRC.crc32(data + [end.rawValue])
@@ -200,11 +211,15 @@ final class ZmodemParser {
     private var crcNeeded = 0
 
     func feed(_ data: [UInt8]) {
-        for byte in data { consume(byte) }
+        for byte in data {
+            consume(byte)
+        }
     }
 
     func feed(_ data: Data) {
-        for byte in data { consume(byte) }
+        for byte in data {
+            consume(byte)
+        }
     }
 
     func reset() {
@@ -430,7 +445,9 @@ final class ZmodemParser {
         let ok: Bool
         if subpacketCRC32 {
             var received: UInt32 = 0
-            for index in 0 ..< 4 { received |= UInt32(crcBytes[index]) << (8 * index) }
+            for index in 0 ..< 4 {
+                received |= UInt32(crcBytes[index]) << (8 * index)
+            }
             ok = ZmodemCRC.crc32(payload) == received
         } else {
             let received = (UInt16(crcBytes[0]) << 8) | UInt16(crcBytes[1])

@@ -55,6 +55,7 @@ do {
         check(false, "hex ZRINIT header round-trips with its capability byte")
     }
 }
+
 do {
     let events = parseOne(ZmodemEncoder.hexHeader(.rpos, 0x34, 0x12, 0, 0))
     if case let .header(header)? = events.first, header.type == .rpos, header.position == 0x1234 {
@@ -63,12 +64,14 @@ do {
         check(false, "hex ZRPOS carries a little-endian position")
     }
 }
+
 do {
     // A ZDATA bin32 header whose position bytes include control values that
     // must be ZDLE-escaped on the wire (0x18, 0x11).
     let events = parseOne(ZmodemEncoder.bin32Header(.data, 0x18, 0x11, 0x13, 0x10))
     if case let .header(header)? = events.first, header.type == .data,
-       header.p0 == 0x18, header.p1 == 0x11, header.p2 == 0x13, header.p3 == 0x10 {
+       header.p0 == 0x18, header.p1 == 0x11, header.p2 == 0x13, header.p3 == 0x10
+    {
         check(true, "bin32 ZDATA header survives ZDLE escaping of its bytes")
     } else {
         check(false, "bin32 ZDATA header survives ZDLE escaping of its bytes")
@@ -87,10 +90,13 @@ do {
     let events = parseOne(stream)
     var recovered: [UInt8]?
     for event in events {
-        if case let .data(bytes, end) = event, end == .end { recovered = bytes }
+        if case let .data(bytes, end) = event, end == .end {
+            recovered = bytes
+        }
     }
     check(recovered == payload, "every byte value survives a subpacket round-trip")
 }
+
 do {
     // Bare XON/XOFF that a flow-controlled link might inject mid-frame must be
     // ignored by the parser, not taken as data (which would fail the CRC).
@@ -103,7 +109,11 @@ do {
     stream += sub
     let events = parseOne(stream)
     var recovered: [UInt8]?
-    for event in events { if case let .data(bytes, _) = event { recovered = bytes } }
+    for event in events {
+        if case let .data(bytes, _) = event {
+            recovered = bytes
+        }
+    }
     check(recovered == payload, "bare XON/XOFF injected mid-subpacket are ignored")
 }
 
@@ -119,6 +129,7 @@ do {
     check(result.parserBytes == [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x30, 0x41],
           "the trigger and trailing bytes are handed to the parser")
 }
+
 do {
     var detector = ZmodemDetector()
     let first = detector.feed([0x2A, 0x2A, 0x18])
@@ -129,6 +140,7 @@ do {
     check(second.parserBytes == [0x2A, 0x2A, 0x18, 0x42, 0x30, 0x31],
           "a split trigger is reassembled across chunks for the parser")
 }
+
 do {
     var detector = ZmodemDetector()
     let input = Array("a ** b ***".utf8)
@@ -156,7 +168,9 @@ final class MemoryWriter: ZmodemFileWriter, @unchecked Sendable {
     }
 
     func finishFile() {
-        if let current { files.append(current) }
+        if let current {
+            files.append(current)
+        }
         current = nil
     }
 
@@ -169,7 +183,9 @@ final class MemorySource: ZmodemFileSource, @unchecked Sendable {
     private var queue: [(name: String, data: [UInt8])]
     var completed: Bool?
 
-    init(_ files: [(name: String, data: [UInt8])]) { queue = files }
+    init(_ files: [(name: String, data: [UInt8])]) {
+        queue = files
+    }
 
     func nextFile() -> ZmodemOutgoingFile? {
         guard !queue.isEmpty else { return nil }
@@ -210,7 +226,9 @@ func loopback(_ files: [(name: String, data: [UInt8])]) -> (MemoryWriter, Memory
     var guardCount = 0
     while !usToPeer.isEmpty || !peerToUs.isEmpty {
         guardCount += 1
-        if guardCount > 1_000_000 { break }
+        if guardCount > 1_000_000 {
+            break
+        }
         if !usToPeer.isEmpty {
             let bytes = usToPeer
             usToPeer.removeAll(keepingCapacity: true)
@@ -227,7 +245,9 @@ func loopback(_ files: [(name: String, data: [UInt8])]) -> (MemoryWriter, Memory
 
 func randomBytes(_ count: Int) -> [UInt8] {
     var bytes = [UInt8](repeating: 0, count: count)
-    for index in 0 ..< count { bytes[index] = UInt8.random(in: 0 ... 255) }
+    for index in 0 ..< count {
+        bytes[index] = UInt8.random(in: 0 ... 255)
+    }
     return bytes
 }
 
@@ -239,6 +259,7 @@ do {
     check(writer.completed == true, "receiver reports completion")
     check(source.completed == true, "sender reports completion")
 }
+
 do {
     // Binary data with control bytes, spanning several 8192-byte blocks and
     // not a clean multiple of the block size.
@@ -246,16 +267,19 @@ do {
     let (writer, _) = loopback([("blob.bin", payload)])
     check(writer.files.first?.data == payload, "loopback transfers a multi-block binary file intact")
 }
+
 do {
     let payload = randomBytes(8192) // exactly one block
     let (writer, _) = loopback([("exact.bin", payload)])
     check(writer.files.first?.data == payload, "loopback handles an exact-block-size file")
 }
+
 do {
     let (writer, _) = loopback([("empty.bin", [])])
     check(writer.files.first?.name == "empty.bin" && writer.files.first?.data.isEmpty == true,
           "loopback handles an empty file")
 }
+
 do {
     let a = randomBytes(5000)
     let b = Array("second file\n".utf8)
@@ -271,6 +295,8 @@ if failures.isEmpty {
     exit(0)
 } else {
     print("\nzmodem: \(failures.count) FAILURE(S)")
-    for failure in failures { print("  - \(failure)") }
+    for failure in failures {
+        print("  - \(failure)")
+    }
     exit(1)
 }

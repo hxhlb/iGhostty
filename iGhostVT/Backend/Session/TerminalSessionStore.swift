@@ -482,12 +482,14 @@ final class TerminalSessionStore: ObservableObject {
         let notice = info
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: phase == .done ? 2_000_000_000 : 5_000_000_000)
-            if self?.zmodemTransfer == notice { self?.zmodemTransfer = nil }
+            if self?.zmodemTransfer == notice {
+                self?.zmodemTransfer = nil
+            }
         }
     }
 
-    // The engine suppresses its own confirmation for a download, so this one —
-    // posted after the save picker — is what the user sees.
+    /// The engine suppresses its own confirmation for a download, so this one —
+    /// posted after the save picker — is what the user sees.
     private func showZmodemSaved(name: String, count: Int) {
         guard zmodemTransfer == nil else { return }
         let display = count > 1 ? String(localized: "\(count) files") : name
@@ -495,7 +497,9 @@ final class TerminalSessionStore: ObservableObject {
         zmodemTransfer = notice
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            if self?.zmodemTransfer == notice { self?.zmodemTransfer = nil }
+            if self?.zmodemTransfer == notice {
+                self?.zmodemTransfer = nil
+            }
         }
     }
 
