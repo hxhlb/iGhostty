@@ -1,0 +1,6 @@
+# The build needs go.mod, cmd/ and internal/; nothing else goes in the context.
+*
+!go.mod
+!cmd
+!internal
+internal/**/testdata

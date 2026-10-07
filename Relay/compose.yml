@@ -1,0 +1,21 @@
+# iGhostVT relay. Put this file (and a .env beside it, if you need one) on a
+# server clients can reach, then:
+#
+#   docker compose up -d
+#   docker compose exec relay ighostvt-relay config > relay.vtrpsc
+#
+# and import relay.vtrpsc into iGhostVT. See the README for every variable.
+services:
+  relay:
+    # The major tag is the relay protocol's version, not the app's: it moves
+    # only when the protocol does.
+    image: ghcr.io/owngoal-dev/ighostvt-relay:1
+    restart: unless-stopped
+    ports: ["${RELAY_PUBLIC_PORT:-46405}:46405"]
+    environment:
+      RELAY_PUBLIC_HOST: ${RELAY_PUBLIC_HOST:-}   # domain or IP; empty finds the public IP
+      RELAY_PUBLIC_PORT: ${RELAY_PUBLIC_PORT:-46405}
+      RELAY_NAME: ${RELAY_NAME:-}
+    volumes: ["relay-data:/data"]
+volumes:
+  relay-data:
