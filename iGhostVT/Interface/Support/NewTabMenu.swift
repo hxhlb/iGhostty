@@ -155,9 +155,9 @@ struct NewTabMenuContent: View {
         }
     }
 
-    /// A paired device: a fresh shell there — in its home or in a directory
-    /// a tab here was in on it — or one of the terminals it has open, which
-    /// then opens here and is taken from where it was.
+    /// A paired device: a fresh shell there, one of the terminals it has
+    /// open — which then opens here and is taken from where it was — or a
+    /// fresh shell in a directory a tab here was in on it.
     @ViewBuilder
     private func remoteHostRows(_ host: PairedRemoteHost) -> some View {
         row(
@@ -167,18 +167,18 @@ struct NewTabMenuContent: View {
         )
         let recents = choices.remoteRecents[host.id] ?? []
         let sessions = choices.remoteSessions[host.id] ?? []
-        if !recents.isEmpty {
-            Section {
-                remoteRecentRows(recents, on: host)
-            } header: {
-                Text("Recent")
-            }
-        }
         if !sessions.isEmpty {
             Section {
                 remoteSessionRows(sessions, on: host)
             } header: {
                 Text("Open Terminals")
+            }
+        }
+        if !recents.isEmpty {
+            Section {
+                remoteRecentRows(recents, on: host)
+            } header: {
+                Text("Recent")
             }
         }
     }

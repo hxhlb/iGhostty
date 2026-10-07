@@ -663,8 +663,8 @@ control on screen. The sidebar row, the compact bar's `+`, the switcher's
 dashed card and that entry are the four.
 
 Paired devices (remote access) follow, each with New Terminal, the
-directories this app's tabs were in on that device, and the terminals it has
-open — a submenu each, however few there are (listed inline, a device's
+terminals it has open, and the directories this app's tabs were in on that
+device — the same order as this device's own rows — a submenu each, however few there are (listed inline, a device's
 terminals made the menu long and read as this device's own). The Mac's File ▸ New Tab
 on Device is the same list built in UIKit from an `uncached`
 `UIDeferredMenuElement` — but the Mac's menu bar keeps a deferred element's

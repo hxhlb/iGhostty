@@ -134,8 +134,8 @@ enum NewTabMenuElements {
         return elements
     }
 
-    /// One submenu per paired device: a fresh shell and the directories
-    /// tabs here were in on it at once, its open terminals as it answers.
+    /// One submenu per paired device: a fresh shell, its open terminals as
+    /// it answers, and the directories tabs here were in on it.
     /// Shared with the Mac's File ▸ New Tab on Device.
     static func remoteHostElements(
         hosts: [PairedRemoteHost],
@@ -162,11 +162,12 @@ enum NewTabMenuElements {
                     openFresh(host.id, directory)
                 }
             }
-            var children: [UIMenuElement] = [fresh]
+            // The same order as this device's own rows: what is open
+            // before where one was.
+            var children: [UIMenuElement] = [fresh, openTerminals(of: host, isOpenHere: isOpenHere, attach: attach)]
             if !recents.isEmpty {
                 children.append(UIMenu(title: String(localized: "Recent"), options: .displayInline, children: recents))
             }
-            children.append(openTerminals(of: host, isOpenHere: isOpenHere, attach: attach))
             return UIMenu(title: host.displayName, image: UIImage(systemName: "network"), children: children)
         }
     }
