@@ -140,8 +140,10 @@ private struct SessionRow: View {
                 .fill(session.status.color)
                 .frame(width: 8, height: 8)
                 .accessibilityHidden(true)
+            // Every name at one weight: a bold one read as a heading, not
+            // as the tab in front.
             Text(verbatim: session.name)
-                .font(.subheadline.weight(session.isActive ? .semibold : .regular))
+                .font(.subheadline)
                 .lineLimit(1)
                 .layoutPriority(1)
             Spacer(minLength: Spacing.line)
@@ -154,6 +156,7 @@ private struct SessionRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(session.isActive ? .isSelected : [])
     }
 }
 
