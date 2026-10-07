@@ -44,6 +44,7 @@ xattr -dr com.apple.quarantine /Applications/iGhostVT.app
 - **Shortcuts**: Run a command, open a tab, or read terminal output from the Shortcuts app. Use `ighostvt://session/<id>` to open a specific session from another app.
 - **Live Activities**: View session status on the Lock Screen on supported devices with iOS 16.2 or later, and in the Dynamic Island on supported iPhone models.
 - **Command line**: `ighostvt-cli` talks to the same sessions the app is showing, without taking them over.
+- **Remote access**: Pair your devices with a six-digit code and open terminals on each other — on the same network, or from anywhere through a relay you run yourself (`docker compose up -d`, then import the `.vtrpsc` file it writes; see [Relay](Relay/README.md)). Both devices need the same version of iGhostVT.
 
 ## Command Line
 

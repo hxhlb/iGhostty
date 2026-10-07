@@ -147,6 +147,16 @@ iGhostVT.app                          ighostvtd  (LaunchDaemon, root)
   the idle exit stands, a crash comes back, and the next lookup launches
   it. With remote access on, `ighostvtd-remote` holds a connection for as
   long as it runs, which keeps the daemon up.
+- **Remote access beyond the local network goes through a relay** the user
+  runs (`Relay/`, `Relay/PROTOCOL.md`). The relay splices TCP and nothing
+  else: an app reaches a host with the same TLS-PSK it uses on the LAN, plus
+  an SNI naming the host; the relay asks the host's `ighostvtd-remote` to
+  call back over its registration, and the helper splices the call back
+  into a loopback TLS listener of its own, so the device is served exactly
+  as a local one. Membership is a P-256 key in the imported `.vtrpsc` file,
+  of which the relay holds only the public half; each host also binds its
+  id to a key of its own. The app tries the direct path first and the relay
+  a moment later, and keeps whichever handshakes first.
 - **Resize works here.** `updateViewport` becomes `TIOCSWINSZ` on the master
   fd, so the shell always lays out at the grid actually on screen.
 - The shell is chosen by the app (`Shell.path` in `UserDefaults`, empty means

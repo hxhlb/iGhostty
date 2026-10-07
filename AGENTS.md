@@ -98,8 +98,22 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   verified. Never rebuild at tag time: a second build is a different build
   number, a different runner image and bytes no test ever ran against. The
   workflow stays named `Release` — `pages.yml` watches for it, and
-  `Scripts/release.sh` finds the run by that name and then checks all eight
-  assets by name, so an asset that is renamed breaks the cut.
+  `Scripts/release.sh` finds the run by that name and then checks all ten
+  assets by name, so an asset that is renamed breaks the cut. The relay's
+  container image follows the same rule: CI pushes
+  `ghcr.io/<owner>/ighostvt-relay:sha-<commit>` (every event but a pull
+  request), and the Release run only gives that digest its release tags
+  (`x.y.z`, the relay protocol's version, `latest`), records it in
+  `relay-image.txt`, and attaches the `compose.yml` CI handed over.
+  `release.sh` checks the version tag names the digest CI built.
+- **The relay never terminates TLS, and two devices talk only at the same
+  version.** The relay (`Relay/`) splices TCP and reads nothing but a
+  ClientHello's SNI; the remote-access TLS-PSK runs end to end. The app and
+  the helper stay on system frameworks only (Network.framework, CryptoKit,
+  Security) — no Noise, no NIO, nothing that grows the bundle. A remote
+  `hello` or `pairStart` whose `appVersion` differs from the host's is
+  refused (`unsupportedVersion`), so a new operation needs no compatibility
+  path; the build number is not part of the version.
 - **The release note is a file in the repo**, `Documents/Releases/<version>.md`,
   written before the tag: one headline sentence, one bullet per user-visible
   change with the symptom first, and a closing line naming which package to
@@ -330,7 +344,11 @@ is trimmed from the front, so its first bytes are routinely a fragment).
 `Tests/CLIRenderer` is its own harness, run by `make test`.
 
 Quitting is the app's decision, made in `applicationWillTerminate` from the
-tabs of every connected scene: a tab whose shell is at its prompt
+tabs of every connected scene (which is why the Mac app opts out of
+automatic and sudden termination — `NSSupportsAutomaticTermination` and
+`NSSupportsSuddenTermination` false in `Info.plist`: a quit that skipped the
+callback would leave every idle shell behind, and one AppKit chose to
+reclaim memory would do it without anyone asking): a tab whose shell is at its prompt
 (`!hasRunningProgram`, the same test that lets its × close without asking)
 is killed, a tab with a program running is left in the daemon for the next
 launch, and with Keep Alive off everything goes. The kills travel over one
@@ -356,6 +374,62 @@ crash restarts, the idle exit stands, the next lookup demand-launches, and
 daemon is resident exactly as long as the switch is on — the daemon itself
 knows nothing about it. `shutdown` stays in the protocol for any client
 that wants the same exit sooner.
+
+**The relay** reaches a host that is not on the local network
+(`Relay/PROTOCOL.md` is the wire contract; the server is Go, standard
+library only, in a scratch image). Its server generates a P-256 key and keeps
+only the public half; the private half goes into the `.vtrpsc` file
+(`RelayConfiguration`) people import — Settings ▸ Remote Access ▸ Relay, or
+opening the file (`RelayImport`, the `wiki.qaq.ighostvt.relay-config`
+document type). The app keeps the file (`RelayConfigurationStore`) and is
+its one truth: it sends it to its own helper (`setRelayConfiguration`, op 26
+— the payload holds the key, so nothing may log it) whenever the helper's
+`relayFingerprint` in `remoteStatus` differs. The helper registers over a
+plaintext control connection (`RelayLink`), signing with the relay key and
+with a host key of its own that the relay binds the host id to on first
+sight. An app connects to the relay with the same TLS it uses directly plus
+an SNI of the host id (`RemoteTLS.parameters(serverName:)`, sent on the
+direct path too); the relay asks the host to call back, and the helper
+splices that call back into a second TLS listener on the loopback address,
+so `RemoteClient` serves it like any other — counted apart from the local
+network's unauthenticated slots, and refusing pairing unless the window was
+opened with Allow Pairing Through Relay. `RemoteDaemonLink` races the paths:
+direct first, the relay a moment later (1 s when Bonjour sees the host,
+300 ms on a remembered address, at once when the direct one fails), first
+TLS handshake wins, and a recent winner goes first for five minutes. Things
+that bit:
+
+- **A relayed connection must never touch `lastAddress`.** The address
+  that answered is the relay's; remembered as the host's it sent every later
+  direct attempt there. `noteReached(viaRelay:)` records only the time.
+- **Relay hosts are not Bonjour hosts.** `RemoteHostDirectory.relayHosts`
+  is kept apart from `hosts`/`endpoints`, or the direct path dials the relay
+  without an SNI and the relay's hosts show up as "nearby".
+- **A splice ends with `forceCancel`, never `cancel`.** A graceful close
+  waits for its queued bytes to leave; when the side they are queued for is
+  itself stuck writing back (a host echoing a flood), neither drains and
+  the host's connection stays open for good. The stress run reproduced it
+  one time in six before the change, never in a dozen after.
+- **TCP keepalive proves a leg, not the path.** A proxy on the way — a
+  published container port is one — answers keepalive for a relay that is
+  gone. So a relayed link has an end-to-end heartbeat: the app pings a quiet
+  link (`ping`, op 32, answered by the helper itself) and gives it up after
+  45 s without a byte; the helper drops a relayed device silent for 60 s and
+  a splice idle for 75 s; the host's control connection pings every minute
+  and registers again when no pong comes back in 20 s. The direct path is
+  unchanged.
+- **The relay rate-limits data connections per address** (60 per 10 s,
+  `RELAY_RATE_PER_IP`, 0 off): a window restoring a dozen tabs, or several
+  devices behind one NAT, must stay under it. The helper sets up at most
+  four call backs at once and queues up to 32 more, matching the relay's 32
+  pending tickets per host.
+
+`make relay-harness` (part of `make test` where Go is installed) spawns the
+real relay and drives the helper's own `RelayLink` against it;
+`RELAY_HARNESS_FLAGS=--stress` adds bulk, parallel, churn, slow-reader,
+vanishing-client and relay-death runs, and `make relay-weak-network` repeats
+them over `tc netem` links (lossy, awful, flapping) with the relay in a
+container.
 
 The open request has two shapes and two keys. `cmd` is an argv run
 verbatim — an absolute, executable path plus arguments, up to
@@ -735,7 +809,8 @@ the catalog's generated symbols, which is why the menu's entry is keyed
 - `make check` — project/packaging validation
 - `make build` bumps `CURRENT_PROJECT_VERSION` before xcodebuild, so
   `Version.xcconfig` comes out of a build dirty by design
-- `make test` — the PTY harness *and* the CLI's screen-renderer tests
+- `make test` — the PTY harness, the CLI's screen-renderer tests, the
+  remote and ZMODEM harnesses, and the relay harness where Go is installed
   (`make harness` builds `ighostvtd-io` and
   spawns it as the proxy's child over a real socket, then drives the whole
   stack — the codec, a session's lifecycle, output routing, the flow-control

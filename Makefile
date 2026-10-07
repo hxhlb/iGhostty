@@ -99,7 +99,7 @@ ifeq ($(BUILD_NUMBER),)
 $(error CURRENT_PROJECT_VERSION is missing from Configuration/Version.xcconfig)
 endif
 
-.PHONY: all help print-version print-build-number print-deb-path print-mac-zip-path set-version bump-build check test harness build deb deb-roothide deb-rootless mac-app mac-daemon mac-daemon-uninstall mac-run mac-zip-check mac-zip mac-update-from-github release clean
+.PHONY: all help print-version print-build-number print-deb-path print-mac-zip-path set-version bump-build check test harness relay-harness relay-weak-network build deb deb-roothide deb-rootless mac-app mac-daemon mac-daemon-uninstall mac-run mac-zip-check mac-zip mac-update-from-github release clean
 
 all: deb
 
@@ -111,6 +111,8 @@ help:
 	@echo "  deb-rootless  Package for a rootless bootstrap (/var/jb, iphoneos-arm64)"
 	@echo "  test        Run the PTY harness"
 	@echo "  harness     Run the daemon on macOS: proxy, ighostvtd-io, and the PTY spawn tests"
+	@echo "  relay-harness       The relay end to end (needs go; RELAY_HARNESS_FLAGS=--stress for the long runs)"
+	@echo "  relay-weak-network  The relay stress runs over netem-degraded links (needs docker)"
 	@echo "  check       Validate the project and packaging inputs"
 	@echo "  mac-run     Build the Mac Catalyst app, load ighostvtd as a LaunchAgent, open the app"
 	@echo "  mac-app     Build the Mac Catalyst app only"
@@ -277,7 +279,46 @@ harness:
 		"$(ROOT_DIR)/iGhostVT/Backend/Zmodem/ZmodemEngine.swift" \
 		$$(find "$(ROOT_DIR)/Tests/Zmodem" -name '*.swift' | sort) \
 		-o "$$harness_dir/zmodem" && \
-	"$$harness_dir/zmodem"
+	"$$harness_dir/zmodem" && \
+	$(MAKE) --no-print-directory relay-harness
+
+# The relay end to end (Tests/RelayHarness): the Go server under Relay/ built
+# and spawned on loopback, the helper's own RelayLink registering a stand-in
+# host, clients reaching it by SNI. Skipped, saying so, where there is no Go
+# toolchain; CI always has one. RELAY_HARNESS_FLAGS=--stress adds the long
+# runs (bulk, parallel, churn, a slow reader, vanishing clients, the relay
+# dying under load).
+RELAY_HARNESS_FLAGS ?=
+
+relay-harness:
+	@command -v go >/dev/null || { echo "relay harness skipped: no go toolchain"; exit 0; }; \
+	harness_dir="$$(mktemp -d /tmp/ighostvt-relay-harness.XXXXXX)"; \
+	trap 'rm -rf "$$harness_dir"' EXIT; \
+	(cd "$(ROOT_DIR)/Relay" && go build -o "$$harness_dir/ighostvt-relay" ./cmd/ighostvt-relay) && \
+	xcrun --sdk macosx swiftc -swift-version 5 -I "$(XPC_SHIM_DIR)" -I "$(CORECRYPTO_SHIM_DIR)" \
+		"$(ROOT_DIR)/Shared/Protocol/iGhostVTProtocol.swift" \
+		"$(ROOT_DIR)/Shared/Protocol/iGhostVTXPC.swift" \
+		$$(find "$(ROOT_DIR)/Shared/Wire" "$(ROOT_DIR)/Shared/Remote" "$(ROOT_DIR)/Tests/RelayHarness" -name '*.swift' | sort) \
+		"$(ROOT_DIR)/iGhostVTRemote/RelayLink.swift" \
+		"$(ROOT_DIR)/iGhostVTRemote/RemoteLog.swift" \
+		-o "$$harness_dir/relay-harness" && \
+	"$$harness_dir/relay-harness" "$$harness_dir/ighostvt-relay" $(RELAY_HARNESS_FLAGS)
+
+# The same harness with --stress against a relay in a container whose link
+# is degraded with tc netem: lossy, awful, and flapping. Needs docker.
+relay-weak-network:
+	@command -v docker >/dev/null || { echo "error: docker is required" >&2; exit 69; }
+	@docker build -q -t ighostvt-relay:dev "$(ROOT_DIR)/Relay" >/dev/null
+	@harness_dir="$$(mktemp -d /tmp/ighostvt-relay-harness.XXXXXX)"; \
+	trap 'rm -rf "$$harness_dir"' EXIT; \
+	xcrun --sdk macosx swiftc -swift-version 5 -I "$(XPC_SHIM_DIR)" -I "$(CORECRYPTO_SHIM_DIR)" \
+		"$(ROOT_DIR)/Shared/Protocol/iGhostVTProtocol.swift" \
+		"$(ROOT_DIR)/Shared/Protocol/iGhostVTXPC.swift" \
+		$$(find "$(ROOT_DIR)/Shared/Wire" "$(ROOT_DIR)/Shared/Remote" "$(ROOT_DIR)/Tests/RelayHarness" -name '*.swift' | sort) \
+		"$(ROOT_DIR)/iGhostVTRemote/RelayLink.swift" \
+		"$(ROOT_DIR)/iGhostVTRemote/RemoteLog.swift" \
+		-o "$$harness_dir/relay-harness" && \
+	"$(ROOT_DIR)/Scripts/relay-weak-network.sh" "$$harness_dir/relay-harness"
 
 build: check test bump-build
 	XCBUILD_LABEL=build-ios $(DEVICE_XCODEBUILD) \

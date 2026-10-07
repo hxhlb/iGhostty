@@ -1,6 +1,7 @@
 #!/bin/bash
 # One-command release: version bump → commit → tag → GitHub Release run →
-# asset check → APT repository build → the repo actually serving it.
+# asset check → relay image check → APT repository build → the repo actually
+# serving it.
 #
 #   release.sh <x.y.z> [build]
 #
@@ -17,6 +18,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 apt_repo="owngoal-dev/owngoal-packages"
 apt_workflow="Build and Deploy APT Repository"
 apt_index="https://apt.owngoal.dev/Packages"
+relay_repo="owngoal-dev/ighostvt-relay"
 
 die() {
     echo "error: $*" >&2
@@ -83,11 +85,51 @@ for want in \
     "iGhostVT-$version-roothide-dSYMs.zip" \
     "iGhostVT-$version-rootless-dSYMs.zip" \
     "iGhostVT-$version-macos-dSYMs.zip" \
+    "compose.yml" \
+    "relay-image.txt" \
     "SHA256SUMS" \
     "SHA256SUMS.macos"; do
     grep -qxF "$want" <<<"$assets" || die "release v$version is missing $want"
 done
 echo "    all release assets present"
+
+# The Release run retagged the image CI built for this commit; the version
+# tag has to name that very digest. Asked of the registry's HTTP API with an
+# anonymous pull token (the package is public), so neither docker nor a
+# registry login is needed; gh's token is the fallback for a private one.
+echo "==> verifying ghcr.io/$relay_repo:$version"
+relay_digest() {
+    local tag="$1" token
+    token="$(curl -fsSL "https://ghcr.io/token?scope=repository:$relay_repo:pull" 2>/dev/null \
+        | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' || true)"
+    if [[ -z "$token" ]]; then
+        token="$(curl -fsSL -u "x:$(gh auth token 2>/dev/null)" \
+            "https://ghcr.io/token?scope=repository:$relay_repo:pull" 2>/dev/null \
+            | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' || true)"
+    fi
+    [[ -n "$token" ]] || return 1
+    curl -fsSI \
+        -H "Authorization: Bearer $token" \
+        -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+        "https://ghcr.io/v2/$relay_repo/manifests/$tag" 2>/dev/null \
+        | tr -d '\r' | awk 'tolower($1) == "docker-content-digest:" { print $2 }'
+}
+commit="$(git rev-parse HEAD)"
+built="$(relay_digest "sha-$commit" || true)"
+tagged="$(relay_digest "$version" || true)"
+recorded="$(gh release download "v$version" --pattern relay-image.txt --output - 2>/dev/null || true)"
+if [[ -z "$built" || -z "$tagged" ]]; then
+    # Not a reason to stop: the release is out, and the Release run already
+    # compared the tags itself. Say what could not be checked.
+    echo "    warning: could not read the image from ghcr.io (is the package public?);" >&2
+    echo "    check by hand: docker buildx imagetools inspect ghcr.io/$relay_repo:$version" >&2
+else
+    [[ "$tagged" == "$built" ]] \
+        || die "ghcr.io/$relay_repo:$version is $tagged, but CI built $built for $commit"
+    [[ "$recorded" == "ghcr.io/$relay_repo@$built" ]] \
+        || die "relay-image.txt says '$recorded', not ghcr.io/$relay_repo@$built"
+    echo "    $version is $built, the image CI built"
+fi
 
 echo "==> dispatching the APT repository build"
 gh -R "$apt_repo" workflow run "$apt_workflow"

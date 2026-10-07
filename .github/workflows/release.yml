@@ -19,6 +19,12 @@
 # vX.Y.Z`), which is also the way back once the artifact is past its thirty
 # days, and re-run this. Publishing by hand, when the files arrived some
 # other way, is `Scripts/publish-release.sh`.
+#
+# The relay image is the same: CI pushed `ighostvt-relay:sha-<commit>`, and
+# the release only gives that digest its release tags — the version, the
+# relay protocol's major tag (`1`, which `compose.yml` pulls), and `latest`.
+# `relay-image.txt` records the digest, and `compose.yml` is the file CI
+# handed over in the artifact, not the checkout's.
 
 name: Release
 
@@ -42,6 +48,7 @@ jobs:
     permissions:
       contents: write
       actions: read
+      packages: write
 
     steps:
       - name: Check out iGhostVT
@@ -83,6 +90,33 @@ jobs:
           run-id: ${{ steps.ci.outputs.run }}
           github-token: ${{ github.token }}
 
+      # A new tag on a manifest that already exists: the digest the release
+      # names is the one CI built and pushed, byte for byte. The major tag is
+      # the relay protocol's version, read from the tagged source (not
+      # compiled) — it moves only when the protocol does, never with the app.
+      - name: Tag the relay image CI built
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          owner="$(tr '[:upper:]' '[:lower:]' <<<"$GITHUB_REPOSITORY_OWNER")"
+          image="ghcr.io/$owner/ighostvt-relay"
+          protocol="$(sed -n 's/^const Version = \([0-9][0-9]*\)$/\1/p' Relay/internal/protocol/protocol.go)"
+          [[ "$protocol" =~ ^[0-9]+$ ]] || { echo "::error::cannot read the relay protocol version"; exit 1; }
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          digest="$(docker buildx imagetools inspect "$image:sha-$GITHUB_SHA" --format '{{json .Manifest}}' | jq -r .digest)"
+          [[ "$digest" == sha256:* ]] || { echo "::error::CI pushed no $image:sha-$GITHUB_SHA"; exit 1; }
+          docker buildx imagetools create \
+            -t "$image:$version" -t "$image:$protocol" -t "$image:latest" \
+            "$image@$digest"
+          for tag in "$version" "$protocol" latest; do
+            got="$(docker buildx imagetools inspect "$image:$tag" --format '{{json .Manifest}}' | jq -r .digest)"
+            [ "$got" = "$digest" ] || { echo "::error::$image:$tag is $got, not $digest"; exit 1; }
+          done
+          echo "$image@$digest" > build/Packages/relay-image.txt
+          cat build/Packages/relay-image.txt
+
       # CI's lists prove the transfer. The release's own lists are written for
       # exactly the files it carries, named for the tag, and a missing one
       # fails here. The macOS zip keeps its own list, as previous releases
@@ -98,7 +132,8 @@ jobs:
             "wiki.qaq.ighostvt_${version}_iphoneos-arm64e.deb" \
             "wiki.qaq.ighostvt_${version}_iphoneos-arm64.deb" \
             "iGhostVT-${version}-roothide-dSYMs.zip" \
-            "iGhostVT-${version}-rootless-dSYMs.zip" > SHA256SUMS
+            "iGhostVT-${version}-rootless-dSYMs.zip" \
+            compose.yml > SHA256SUMS
           sha256sum \
             "iGhostVT-${version}-macos.zip" \
             "iGhostVT-${version}-macos-dSYMs.zip" > SHA256SUMS.macos
@@ -128,9 +163,11 @@ jobs:
                  "build/Packages/iGhostVT-${version}-roothide-dSYMs.zip"
                  "build/Packages/iGhostVT-${version}-rootless-dSYMs.zip"
                  "build/Packages/iGhostVT-${version}-macos-dSYMs.zip"
+                 "build/Packages/compose.yml"
+                 "build/Packages/relay-image.txt"
                  "build/Packages/SHA256SUMS"
                  "build/Packages/SHA256SUMS.macos")
-          # Eight assets, and the dSYM zips are not small: a 5xx from the
+          # Ten assets, and the dSYM zips are not small: a 5xx from the
           # upload API must not end a release that already has a verified
           # set of bytes in hand. `Scripts/publish-release.sh` retried for
           # exactly this reason, and the retry comes across with it.

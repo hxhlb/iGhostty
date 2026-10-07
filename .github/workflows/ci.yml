@@ -26,6 +26,15 @@
 # (resolved by xcodebuild from Package.resolved), so this checkout is all
 # the build needs.
 #
+# The relay (`Relay/`, Go, standard library only) is the fourth job. It
+# vets and tests the server, builds its image for linux/amd64 and
+# linux/arm64, and — on every event but a pull request, a tag dispatch
+# included — pushes it to GHCR as `ighostvt-relay:sha-<commit>`. That tag is
+# the only image ever built for the commit: `release.yml` gives the same
+# digest its release tags and builds nothing. Its `compose.yml` rides into
+# `ighostvt-<sha>` beside the packages, so the release attaches the file CI
+# handed over rather than whatever the checkout holds at tag time.
+#
 # The macOS zip is ad-hoc signed. A runner has no Developer ID certificate
 # and nothing here should invent one, so the artifact is exactly what
 # `make mac-zip` produces on a checkout with no signing identity: a
@@ -292,12 +301,97 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # The relay server and its image. Not a platform package, so a
+  # single-platform dispatch skips it along with the merge below. A pull
+  # request builds the image but pushes nothing: its run is never published,
+  # and a fork's token cannot write packages anyway.
+  relay:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    defaults:
+      run:
+        working-directory: Relay
+
+    steps:
+      - name: Check out iGhostVT
+        uses: actions/checkout@v7
+
+      # The go directive in go.mod is the oldest toolchain the relay claims
+      # to build with, so that is the one the tests run on; the image's
+      # builder stage is newer.
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: Relay/go.mod
+          cache: false
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -count=1 ./...
+
+      # The same version the packages are named for, so `ighostvt-relay
+      # version` inside the image says which release it shipped in.
+      - name: Read the version
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^MARKETING_VERSION = //p' ../Configuration/Version.xcconfig)"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          [ -n "$version" ] || { echo "no version in Version.xcconfig" >&2; exit 1; }
+          owner="$(tr '[:upper:]' '[:lower:]' <<<"$GITHUB_REPOSITORY_OWNER")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$owner/ighostvt-relay" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The Dockerfile cross-compiles on the build platform, so neither
+      # architecture needs QEMU.
+      - name: Build and push the image
+        uses: docker/build-push-action@v6
+        with:
+          context: Relay
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ steps.meta.outputs.version }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ighostvt-relay
+          path: Relay/compose.yml
+          if-no-files-found: error
+          retention-days: 1
+
   # Merge. Needs every platform job; a skipped sibling (a single-platform
   # dispatch) skips this too, which is what we want — a partial set of
   # artifacts is not a release. Tag pushes and pushes to main run all three,
   # then this, and its artifact is what `release.yml` downloads.
   packages:
-    needs: [package-roothide, package-rootless, package-macos]
+    needs: [package-roothide, package-rootless, package-macos, relay]
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -313,15 +407,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/Packages
-          find artifacts -type f \( -name '*.deb' -o -name '*.zip' -o -name 'SHA256SUMS*' \) -exec cp {} build/Packages/ \;
+          find artifacts -type f \( -name '*.deb' -o -name '*.zip' -o -name 'SHA256SUMS*' -o -name 'compose.yml' \) -exec cp {} build/Packages/ \;
           cd build/Packages
           ls -l
           test -f SHA256SUMS.roothide || { echo "roothide checksums missing" >&2; exit 1; }
           test -f SHA256SUMS.rootless || { echo "rootless checksums missing" >&2; exit 1; }
           test -f SHA256SUMS.macos || { echo "macos checksums missing" >&2; exit 1; }
+          test -f compose.yml || { echo "the relay's compose.yml is missing" >&2; exit 1; }
           # One file for every .deb, matching the layout previous releases
-          # attached, plus the macOS checksums beside the zip.
-          cat SHA256SUMS.roothide SHA256SUMS.rootless > SHA256SUMS
+          # attached, plus the relay's compose.yml; the macOS checksums stay
+          # beside the zip.
+          { cat SHA256SUMS.roothide SHA256SUMS.rootless; sha256sum compose.yml; } > SHA256SUMS
           rm -f SHA256SUMS.roothide SHA256SUMS.rootless
           shopt -s nullglob
           debs=(*.deb)
@@ -350,6 +446,7 @@ jobs:
           path: |
             build/Packages/*.deb
             build/Packages/*.zip
+            build/Packages/compose.yml
             build/Packages/SHA256SUMS
             build/Packages/SHA256SUMS.macos
           if-no-files-found: error

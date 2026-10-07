@@ -44,6 +44,7 @@ xattr -dr com.apple.quarantine /Applications/iGhostVT.app
 - **快捷指令**：通过「快捷指令」运行命令、打开标签页或读取终端输出。使用 `ighostvt://session/<id>` 可从其他应用打开指定会话。
 - **实时活动**：在支持此功能且运行 iOS 16.2 或更高版本的设备上，于锁定屏幕查看会话状态；支持灵动岛的 iPhone 机型也可在灵动岛中显示。
 - **命令行**：`ighostvt-cli` 操作应用正在显示的同一批会话，不会接管它们。
+- **远程访问**：用 6 位配对码把设备配对，互相打开对方的终端。同一网络内直接连接，不在同一网络时可经过你自己部署的中继（`docker compose up -d`，再导入它生成的 `.vtrpsc` 文件，详见 [Relay](Relay/README.md)）。两台设备需要运行相同版本的 iGhostVT。
 
 ## 命令行
 
