@@ -324,7 +324,8 @@ private struct TerminalPane: View {
                     onCloseTab: onCloseTab,
                 )
             }
-            // Said once, as the lock changes: the padlock on the tab's own
+            // Said as the lock changes, and again when a touch lands on the
+            // locked surface (`lockedTouches`): the padlock on the tab's own
             // label (strip chip, title capsule, sidebar row) is what stays.
             // A caption left over the surface covered the terminal's first
             // rows for as long as the tab was locked.
@@ -356,6 +357,12 @@ private struct TerminalPane: View {
             .onChange(of: attributes.lock) { lock in
                 announce(lock)
                 onLockChange()
+            }
+            // A touch the lock swallowed says why it did nothing.
+            .onReceive(tab.lockedTouches) {
+                if isActive, let lock = attributes.lock {
+                    announce(lock)
+                }
             }
             // The active pane's only: a background tab's shell exiting
             // would otherwise hand the front tab's terminal first responder

@@ -131,8 +131,32 @@ final class LockableTerminalView: TerminalView {
         }
     }
 
+    /// A touch landed on a locked terminal — a tap or drag under the
+    /// interaction lock, a tap that will raise no keyboard under the
+    /// keyboard lock. The pane shows the lock's caption again, so a touch
+    /// that does nothing says why. Hardware keys pass both locks and never
+    /// call this.
+    var onLockedTouch: (() -> Void)?
+    /// UIKit hit-tests one touch several times; one notice per touch. Only
+    /// a touch (or, under the interaction lock, a scroll) counts — a
+    /// pointer hovering, a drag passing over, or an accessibility query
+    /// hit-tests too, with another event type or none.
+    private var lastLockedTouch: TimeInterval = 0
+
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        isInteractionLocked ? nil : super.hitTest(point, with: event)
+        if isInteractionLocked || isSoftwareKeyboardLocked, let event,
+           event.type == .touches || (isInteractionLocked && event.type == .scroll),
+           self.point(inside: point, with: event),
+           event.timestamp - lastLockedTouch > 0.3
+        {
+            lastLockedTouch = event.timestamp
+            // Never from inside hit testing: the caption is SwiftUI state,
+            // and UIKit is midway through routing this very touch.
+            DispatchQueue.main.async { [weak self] in
+                self?.onLockedTouch?()
+            }
+        }
+        return isInteractionLocked ? nil : super.hitTest(point, with: event)
     }
 
     // MARK: - Accessibility

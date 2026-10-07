@@ -30,6 +30,10 @@ final class TerminalTab: ObservableObject, Identifiable {
     /// its own (`TabAttributes`), so the views that show or change it are
     /// not re-evaluated on every retitle the way views of the tab are.
     let attributes = TabAttributes()
+    /// A touch landed on the locked surface (`LockableTerminalView.onLockedTouch`):
+    /// the pane shows the lock's caption again. Not published state — a
+    /// stream of moments — so nothing re-renders for it.
+    let lockedTouches = PassthroughSubject<Void, Never>()
 
     /// The tab's lock (`TabAttributes.lock`).
     var lock: TabLock? {
@@ -312,6 +316,9 @@ final class TerminalTab: ObservableObject, Identifiable {
             let view = LockableTerminalView(frame: .zero)
             view.isInteractionLocked = self?.isLocked ?? false
             view.isSoftwareKeyboardLocked = self?.isKeyboardLocked ?? false
+            view.onLockedTouch = { [weak self] in
+                self?.lockedTouches.send()
+            }
             if let hostID = self?.remoteHostID {
                 view.uploadDroppedFiles = { [weak self] files in
                     guard let self else { return files.map { _ in nil } }
