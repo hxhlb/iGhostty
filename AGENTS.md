@@ -408,9 +408,18 @@ window the app opened while it has a relay (it always asks for that; there
 is no switch). `RemoteDaemonLink` races the paths:
 direct first, the relay a moment later (1 s when Bonjour sees the host,
 300 ms on a remembered address, at once when the direct one fails), first
-TLS handshake wins, and a recent winner goes first for five minutes. Things
+TLS handshake wins, and the relay goes first only for five minutes after a
+direct attempt *failed*, and never while Bonjour sees the host. Things
 that bit:
 
+- **A relay win is no evidence the local network is gone.** The race once
+  remembered whichever path won and put it first for five minutes; a relay
+  that went first won again, renewed the memory, and — with the list and
+  the menus connecting every half minute — held a host on the local network
+  behind the relay for good. `RemotePathMemory` now records only a direct
+  attempt that failed on its own (a loser closed by the race does not
+  count), a direct link clears it, and Bonjour seeing the host overrides it.
+  A link already up stays on its path until it reconnects.
 - **A relayed connection must never touch `lastAddress`.** The address
   that answered is the relay's; remembered as the host's it sent every later
   direct attempt there. `noteReached(viaRelay:)` records only the time.

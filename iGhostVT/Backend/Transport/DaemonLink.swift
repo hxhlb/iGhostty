@@ -183,9 +183,16 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     /// before it. Bonjour seeing the host makes the direct path all but
     /// certain, so the relay waits a second (it can still see a host that
     /// left, or an access point that keeps clients apart); a remembered
-    /// address is a guess, and the relay waits 300 ms. A path that won a
-    /// few minutes ago goes first, so the list and the menus, which connect
-    /// every half minute, do not race every time.
+    /// address is a guess, and the relay waits 300 ms.
+    ///
+    /// The relay goes first only while the direct path is known not to
+    /// answer — it failed in the last few minutes — so the list and the
+    /// menus, which connect every half minute away from home, do not dial
+    /// a dead address every time. Never because the relay merely won: that
+    /// was remembered once, and a relay that went first kept winning, kept
+    /// the memory fresh, and held a host on the local network behind the
+    /// relay for as long as anything connected. And never while Bonjour
+    /// sees the host here.
     private static func plan(hostID: String, host: PairedRemoteHost) -> [(path: Path, delay: TimeInterval)] {
         let bonjour = RemoteHostDirectory.endpoint(forHostID: hostID)
         var paths: [(path: Path, delay: TimeInterval)] = []
@@ -195,7 +202,7 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
         if let relay = RelayConfigurationStore.current {
             paths.append((.relay(relay), paths.isEmpty ? 0 : (bonjour != nil ? 1 : 0.3)))
         }
-        if RemotePathMemory.lastWinner(forHostID: hostID) == true, paths.count == 2 {
+        if bonjour == nil, paths.count == 2, RemotePathMemory.directFailedRecently(forHostID: hostID) {
             paths = [(paths[1].path, 0), (paths[0].path, 1)]
         }
         return paths
@@ -249,7 +256,9 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
             attempt.close(reason: "another path answered first")
         }
         attempts.removeAll()
-        RemotePathMemory.note(viaRelay: path.isRelay, forHostID: hostID)
+        if !path.isRelay {
+            RemotePathMemory.noteDirectAnswered(forHostID: hostID)
+        }
         AppLog.info(.transport, "remote link to \(host.name) \(path.isRelay ? "through the relay" : "direct")")
         ready()
         if path.isRelay {
@@ -266,6 +275,11 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
         }
         attempts.removeAll { $0 === attempt }
         AppLog.info(.transport, "remote link to \(host.name) \(path.isRelay ? "through the relay" : "direct") failed: \(reason)")
+        // Only a direct attempt that failed on its own counts: one that lost
+        // the race was closed without this callback.
+        if !path.isRelay {
+            RemotePathMemory.noteDirectFailed(forHostID: hostID)
+        }
         guard frames == nil else { return }
         if !untried.isEmpty {
             // No point waiting out the head start of a path that is gone.
@@ -429,22 +443,28 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     }
 }
 
-/// Which path reached each host last, for a few minutes: a link opened
-/// soon after takes it first instead of racing again.
+/// When the direct path to each host last failed, for a few minutes: a link
+/// opened soon after puts the relay first instead of waiting on an address
+/// that did not answer. Only a failure sets it and a direct link clears it,
+/// so it lapses on its own — a relay that keeps winning is no evidence the
+/// local network is gone.
 enum RemotePathMemory {
     private static let lock = NSLock()
-    private nonisolated(unsafe) static var winners: [String: (viaRelay: Bool, at: Date)] = [:]
+    private nonisolated(unsafe) static var directFailures: [String: Date] = [:]
     private static let lifetime: TimeInterval = 300
 
-    static func note(viaRelay: Bool, forHostID id: String) {
-        lock.withLock { winners[id] = (viaRelay, Date()) }
+    static func noteDirectFailed(forHostID id: String) {
+        lock.withLock { directFailures[id] = Date() }
     }
 
-    /// True for the relay, false for direct, nil when nothing recent.
-    static func lastWinner(forHostID id: String) -> Bool? {
+    static func noteDirectAnswered(forHostID id: String) {
+        lock.withLock { _ = directFailures.removeValue(forKey: id) }
+    }
+
+    static func directFailedRecently(forHostID id: String) -> Bool {
         lock.withLock {
-            guard let winner = winners[id], Date().timeIntervalSince(winner.at) < lifetime else { return nil }
-            return winner.viaRelay
+            guard let failed = directFailures[id] else { return false }
+            return Date().timeIntervalSince(failed) < lifetime
         }
     }
 }
