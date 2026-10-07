@@ -120,13 +120,15 @@ enum AppMenus {
     /// are listed inline under their names, more each get a submenu. With
     /// none nearby it says so and points at the settings that pair one.
     ///
-    /// Worked out each time the menu opens (`uncached`), each device's
-    /// terminals once it has answered — and the Mac's menu bar keeps a
-    /// deferred element's first answer whatever it was told, so
-    /// `RemoteSessionCatalog` also rebuilds the main menu whenever that
-    /// knowledge changes (`setNeedsRebuild`). Without that the first
-    /// opening, made before Bonjour had found anything, said No Paired
-    /// Devices for the rest of the run.
+    /// Worked out each time the menu opens (`uncached`), from what the
+    /// catalog holds then — nothing here is fulfilled late, which is what
+    /// crashed 1.4.1 (`NewTabMenuElements.openTerminals`) — and the Mac's
+    /// menu bar keeps a deferred element's first answer whatever it was
+    /// told, so `RemoteSessionCatalog` also rebuilds the main menu whenever
+    /// that knowledge changes (`setNeedsRebuild`), the answers the opening
+    /// asked for included. Without that the first opening, made before
+    /// Bonjour had found anything, said No Paired Devices for the rest of
+    /// the run.
     private static func remoteTabMenu() -> UIMenu {
         let devices = UIDeferredMenuElement.uncached { completion in
             // The devices are asked as the menu opens, as the window's own

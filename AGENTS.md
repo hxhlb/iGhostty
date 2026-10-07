@@ -671,7 +671,15 @@ on Device is the same list built in UIKit from an `uncached`
 first answer regardless, so `RemoteSessionCatalog` calls
 `UIMenuSystem.main.setNeedsRebuild()` whenever hosts, sessions or the
 remote recents change; without it the first opening, made before Bonjour
-answered, said No Paired Devices for the rest of the run. The catalog also
+answered, said No Paired Devices for the rest of the run. **On the Mac no
+menu element is fulfilled late.** AppKit draws every UIKit menu as an
+NSMenu, and a deferred element whose completion runs after that NSMenu was
+rebuilt or closed crashes in UIKitMacHelper (`-[UINSMenuController
+rebuildMenu:]`, a dangling `objc_retain`): 1.4.1 waited for each device's
+answer inside its submenu, one device's answer rebuilt the menu bar, and a
+slower one's landed on the thrown-away menu. So on Catalyst a device's
+Open Terminals is the catalog's last answer, given as the menu opens — the
+ask still goes out, and the rebuild brings its answer in. The catalog also
 asks a device for its terminals the moment the browser finds it, not at the
 next 30 s poll.
 

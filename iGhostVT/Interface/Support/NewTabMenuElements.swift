@@ -13,7 +13,9 @@ import UIKit
 /// rows marked open here for tabs closed since. This one lists what is
 /// true as it opens: this device's own rows at once, and each paired
 /// device's terminals once that device has answered — its submenu shows
-/// Loading… until then, or until a short wait runs out. The standalone `+`
+/// Loading… until then, or until a short wait runs out. On the Mac a
+/// device's terminals are what the catalog holds as the menu opens (see
+/// `openTerminals`). The standalone `+`
 /// controls (`NewTabMenu`) and the Mac's File ▸ New Tab on Device are built
 /// from it; only the ⋯ menu's submenu, a SwiftUI menu inside a SwiftUI
 /// menu, still renders from the catalog's last answer.
@@ -134,8 +136,9 @@ enum NewTabMenuElements {
         return elements
     }
 
-    /// One submenu per paired device: a fresh shell, its open terminals as
-    /// it answers, and the directories tabs here were in on it.
+    /// One submenu per paired device: a fresh shell, its open terminals
+    /// (as it answers; on the Mac as last known), and the directories tabs
+    /// here were in on it.
     /// Shared with the Mac's File ▸ New Tab on Device.
     static func remoteHostElements(
         hosts: [PairedRemoteHost],
@@ -164,7 +167,8 @@ enum NewTabMenuElements {
             }
             // The same order as this device's own rows: what is open
             // before where one was.
-            var children: [UIMenuElement] = [fresh, openTerminals(of: host, isOpenHere: isOpenHere, attach: attach)]
+            var children: [UIMenuElement] = [fresh]
+            children += openTerminals(of: host, isOpenHere: isOpenHere, attach: attach)
             if !recents.isEmpty {
                 children.append(UIMenu(title: String(localized: "Recent"), options: .displayInline, children: recents))
             }
@@ -174,31 +178,53 @@ enum NewTabMenuElements {
 
     /// The terminals the device has open, listed once it has answered:
     /// what it holds now, and checkmarks for what is open here now.
+    ///
+    /// Not on the Mac. AppKit draws every UIKit menu there as an NSMenu,
+    /// and a deferred element fulfilled after its NSMenu was rebuilt or
+    /// closed crashes the app inside UIKitMacHelper
+    /// (`-[UINSMenuController rebuildMenu:]`): in 1.4.1 one device's answer
+    /// rebuilt the menu bar (`RemoteSessionCatalog`), and a slower device's
+    /// answer, a moment later, landed on the menu that rebuild had thrown
+    /// away. So the Mac lists what the catalog holds as the menu opens and
+    /// fulfils nothing late; the answer the opening asked for reaches the
+    /// menu bar through that rebuild, and a window's menu at its next
+    /// opening.
     private static func openTerminals(
         of host: PairedRemoteHost,
         isOpenHere: @escaping (PairedRemoteHost, XPCDaemonTransport.SessionSummary) -> Bool,
         attach: @escaping (String, UInt64) -> Void,
-    ) -> UIMenuElement {
-        UIDeferredMenuElement.uncached { completion in
-            Task { @MainActor in
-                await awaitAnswer(fromHostID: host.id)
-                let open = (RemoteSessionCatalog.shared.sessions[host.id] ?? []).map { session in
-                    let action = UIAction(
-                        title: session.menuTitle,
-                        image: UIImage(systemName: isOpenHere(host, session) ? "checkmark" : "terminal"),
-                    ) { _ in attach(host.id, session.id) }
-                    if #available(iOS 16.0, *) {
-                        action.subtitle = session.menuSubtitle
-                    }
-                    return action
+    ) -> [UIMenuElement] {
+        #if targetEnvironment(macCatalyst)
+            return openTerminalGroup(of: host, isOpenHere: isOpenHere, attach: attach)
+        #else
+            return [UIDeferredMenuElement.uncached { completion in
+                Task { @MainActor in
+                    await awaitAnswer(fromHostID: host.id)
+                    completion(openTerminalGroup(of: host, isOpenHere: isOpenHere, attach: attach))
                 }
-                guard !open.isEmpty else {
-                    completion([])
-                    return
-                }
-                completion([UIMenu(title: String(localized: "Open Terminals"), options: .displayInline, children: open)])
+            }]
+        #endif
+    }
+
+    /// The Open Terminals group as the catalog knows it now, or nothing
+    /// when the device holds none.
+    private static func openTerminalGroup(
+        of host: PairedRemoteHost,
+        isOpenHere: (PairedRemoteHost, XPCDaemonTransport.SessionSummary) -> Bool,
+        attach: @escaping (String, UInt64) -> Void,
+    ) -> [UIMenuElement] {
+        let open = (RemoteSessionCatalog.shared.sessions[host.id] ?? []).map { session in
+            let action = UIAction(
+                title: session.menuTitle,
+                image: UIImage(systemName: isOpenHere(host, session) ? "checkmark" : "terminal"),
+            ) { _ in attach(host.id, session.id) }
+            if #available(iOS 16.0, *) {
+                action.subtitle = session.menuSubtitle
             }
+            return action
         }
+        guard !open.isEmpty else { return [] }
+        return [UIMenu(title: String(localized: "Open Terminals"), options: .displayInline, children: open)]
     }
 }
 
