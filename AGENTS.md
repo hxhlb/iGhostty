@@ -41,7 +41,7 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   for exactly this reason.
 - Depends on the **released**
   [libghostty-spm](https://github.com/Lakr233/libghostty-spm) package
-  (`upToNextMajor` from 2.2.2026100702, Ghostty 35a81a98 on Zig 0.16). 2.x
+  (`upToNextMajor` from 2.2.2026100703, Ghostty 35a81a98 on Zig 0.16). 2.x
   selects text inline on iOS — a long press puts handles and the edit menu
   on the terminal itself — and removed the long-press hand-off
   (`onTextSelectionRequest`) the app's own selection sheet hung off, so the
@@ -59,7 +59,11 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   switching light and dark) no longer snaps an open tab to the config's
   `font-size` — which, after Settings ▸ Text Size changed, resized tabs
   that should keep theirs — and reports the size back
-  (`TerminalViewState.fontSize`). 1.6.20261003 makes
+  (`TerminalViewState.fontSize`). 2.2.2026100703 keeps
+  `TerminalViewState.backgroundColor` following the color scheme when a
+  view whose delegate is not the state switches it through the controller;
+  the app's views always have the state as delegate and read no background
+  from it, so nothing here changed. 1.6.20261003 makes
   a tap below the cursor row, when nothing has mouse
   capture, click the cursor's cell, so raising the keyboard no longer
   pushes the top lines into scrollback; 1.6.20261002 bounds the main-queue
