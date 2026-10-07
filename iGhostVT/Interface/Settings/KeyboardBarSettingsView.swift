@@ -151,7 +151,13 @@ import SwiftUI
             Section {
                 Toggle("Hide with Hardware Keyboard", isOn: $hidesWithHardwareKeyboard)
             } footer: {
-                Text("The bar stays down while a hardware keyboard is connected.")
+                Text(
+                    """
+                    The bar stays down while you type on a hardware keyboard. It \
+                    comes back with the onscreen keyboard, such as when a \
+                    keyboard case is folded back.
+                    """,
+                )
                     .font(DS.Font.detail)
             }
         }

@@ -29983,85 +29983,85 @@
         }
       }
     },
-    "The bar stays down while a hardware keyboard is connected." : {
+    "The bar stays down while you type on a hardware keyboard. It comes back with the onscreen keyboard, such as when a keyboard case is folded back." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يظل الشريط مخفياً أثناء توصيل لوحة مفاتيح خارجية."
+            "value" : "يظل الشريط مخفياً أثناء الكتابة على لوحة مفاتيح خارجية، ويعود مع لوحة المفاتيح على الشاشة، كما عند طي غطاء لوحة المفاتيح إلى الخلف."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Leiste bleibt ausgeblendet, solange eine Hardwaretastatur verbunden ist."
+            "value" : "Die Leiste bleibt ausgeblendet, während Sie auf einer Hardwaretastatur tippen. Mit der Bildschirmtastatur kehrt sie zurück, etwa wenn eine Tastaturhülle nach hinten geklappt ist."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The bar stays down while a hardware keyboard is connected."
+            "value" : "The bar stays down while you type on a hardware keyboard. It comes back with the onscreen keyboard, such as when a keyboard case is folded back."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La barra permanece oculta mientras haya un teclado físico conectado."
+            "value" : "La barra permanece oculta mientras escribe en un teclado físico. Vuelve con el teclado en pantalla, por ejemplo, cuando una funda con teclado está plegada hacia atrás."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La barre reste masquée tant qu’un clavier physique est connecté."
+            "value" : "La barre reste masquée pendant que vous tapez sur un clavier physique. Elle revient avec le clavier à l’écran, par exemple lorsqu’un étui-clavier est replié derrière l’appareil."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La barra resta nascosta finché è collegata una tastiera fisica."
+            "value" : "La barra resta nascosta mentre scrivi su una tastiera fisica. Torna con la tastiera su schermo, ad esempio quando una custodia con tastiera è ripiegata dietro."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ハードウェアキーボードの接続中はバーを表示しません。"
+            "value" : "ハードウェアキーボードで入力している間はバーを表示しません。キーボードケースを背面に折りたたんだときなど、画面上のキーボードが表示されると再び表示されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "하드웨어 키보드가 연결된 동안에는 막대를 표시하지 않습니다."
+            "value" : "하드웨어 키보드로 입력하는 동안에는 막대를 표시하지 않습니다. 키보드 케이스를 뒤로 접었을 때처럼 화면 키보드가 나타나면 다시 표시됩니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A barra fica oculta enquanto um teclado físico estiver conectado."
+            "value" : "A barra fica oculta enquanto você digita em um teclado físico. Ela volta com o teclado na tela, por exemplo, quando uma capa com teclado está dobrada para trás."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Панель остаётся скрытой, пока подключена аппаратная клавиатура."
+            "value" : "Панель остаётся скрытой, пока вы печатаете на аппаратной клавиатуре. Она возвращается вместе с экранной клавиатурой — например, когда чехол-клавиатура сложен назад."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thanh phím sẽ ẩn khi có bàn phím vật lý được kết nối."
+            "value" : "Thanh phím sẽ ẩn khi bạn gõ trên bàn phím vật lý. Thanh sẽ hiện lại cùng bàn phím ảo, chẳng hạn khi bao da bàn phím được gập ra sau."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "连接物理键盘时不显示辅助键栏。"
+            "value" : "使用物理键盘打字时不显示辅助键栏；屏幕键盘出现时（例如把键盘保护套折到背面）会重新显示。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "連接實體鍵盤時不顯示輔助鍵列。"
+            "value" : "使用實體鍵盤打字時不顯示輔助鍵列；螢幕鍵盤出現時（例如將鍵盤保護套折到背面）會重新顯示。"
           }
         }
       }

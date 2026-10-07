@@ -119,8 +119,9 @@ final class KeyboardBarStore: ObservableObject {
     static let shared = KeyboardBarStore()
 
     /// Settings ▸ Accessory Keys ▸ Hide with Hardware Keyboard: the bar
-    /// stays down while a hardware keyboard is connected
-    /// (`LockableTerminalView.inputAccessoryView`).
+    /// stays down while a hardware keyboard is connected and the onscreen
+    /// keys are not up (`LockableTerminalView.inputAccessoryView`) — a
+    /// folio folded back is connected, and its owner types on the screen.
     static let hidesWithHardwareKeyboardKey = "KeyboardBar.hidesWithHardwareKeyboard"
 
     static var hidesWithHardwareKeyboard: Bool {
