@@ -1,0 +1,70 @@
+# A published release → its Mac zip signed with Developer ID, notarized, and
+# attached beside it as iGhostVT-<version>-macos-notarized.zip.
+#
+# Nothing is compiled. Release published the zip CI built; this downloads that
+# file, checks it against the release's SHA256SUMS.macos, and changes only its
+# signatures (Scripts/notarize-mac-release.sh): the code that ships is the code
+# CI verified. The ad-hoc zip stays as it was; the notarized one opens without
+# clearing a quarantine bit.
+#
+# The identity and the notarytool credentials are one keychain, kept as two
+# secrets: NOTARY_TOOLBOX_ZIP_BASE64 (a zip holding the .keychain-db, base64)
+# and NOTARY_TOOLBOX_PASSWORD. Secrets never reach a pull request from a fork,
+# and nothing here runs for one: only a Release run that published a tag, or a
+# maintainer's dispatch naming one.
+
+name: Notarize
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release to notarize (vX.Y.Z)
+        required: true
+
+# One notarization per tag, never cancelled halfway through an upload.
+concurrency:
+  group: notarize-${{ github.event.workflow_run.head_branch || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  notarize:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      # A Release run on a tag carries the tag as its head branch; a dispatch
+      # of Release with no tag publishes nothing and is passed over.
+      - name: Resolve the release
+        id: release
+        env:
+          RUN_REF: ${{ github.event.workflow_run.head_branch }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          tag="${INPUT_TAG:-$RUN_REF}"
+          if [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "tag=v${tag#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "No release tag in '${tag}'; nothing to notarize." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # The script from main: a tag cut before notarization existed is
+      # notarized the same way as one cut after.
+      - name: Check out iGhostVT
+        if: steps.release.outputs.tag != ''
+        uses: actions/checkout@v7
+
+      - name: Sign, notarize and attach
+        if: steps.release.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NOTARY_TOOLBOX_ZIP_BASE64: ${{ secrets.NOTARY_TOOLBOX_ZIP_BASE64 }}
+          NOTARY_TOOLBOX_PASSWORD: ${{ secrets.NOTARY_TOOLBOX_PASSWORD }}
+        run: Scripts/notarize-mac-release.sh "${{ steps.release.outputs.tag }}"

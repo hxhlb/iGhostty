@@ -113,6 +113,19 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   (`x.y.z`, the relay protocol's version, `latest`), records it in
   `relay-image.txt`, and attaches the `compose.yml` CI handed over.
   `release.sh` checks the version tag names the digest CI built.
+  Notarization follows the same rule: `notarize.yml` (Notarize) runs when a
+  Release run succeeds, downloads the macOS zip that run published, checks
+  it against `SHA256SUMS.macos`, and changes only its signatures
+  (`Scripts/notarize-mac-release.sh`: Developer ID inside out with the
+  identifiers and empty entitlements kept, hardened runtime, notarytool,
+  staple) before attaching `iGhostVT-x.y.z-macos-notarized.zip` beside the
+  ad-hoc one. It compiles nothing. The identity and the notarytool profile
+  are one keychain held in two secrets, `NOTARY_TOOLBOX_ZIP_BASE64` (a zip
+  holding the `.keychain-db`) and `NOTARY_TOOLBOX_PASSWORD`; the script reads
+  the identity and the profile out of it and names neither. A release cut
+  before this existed is notarized by dispatching Notarize with its tag, and
+  the script runs on a Mac too (`KEYCHAIN_DB`, `KEYCHAIN_PASSWORD`,
+  `NOTARIZE_UPLOAD=0` to keep the zip).
 - **The relay never terminates TLS, and two devices talk only on the same
   release line.** The relay (`Relay/`) splices TCP and reads nothing but a
   ClientHello's SNI; the remote-access TLS-PSK runs end to end. The app and
