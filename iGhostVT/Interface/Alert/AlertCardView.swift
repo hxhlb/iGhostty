@@ -38,14 +38,12 @@ struct AlertAction: Identifiable {
 
 extension [AlertAction] {
     /// Return's target: the only action when there is one, otherwise the
-    /// filled button the card already emphasizes — destructive if any,
-    /// otherwise accent.
+    /// highlighted one.
     var defaultAction: AlertAction? {
         if count == 1 {
             return first
         }
-        return last { $0.kind == .destructive }
-            ?? last { $0.kind == .accent }
+        return first { $0.kind == .highlighted }
     }
 }
 
@@ -68,7 +66,11 @@ struct AlertCardView: View {
     var claimsFirstResponder = true
 
     var body: some View {
-        VStack(spacing: DS.Padding.l) {
+        // Two looks and no more: one highlighted answer at most, every
+        // other button plain. Three buttons in three colours read as three
+        // equally urgent choices.
+        assert(actions.filter { $0.kind == .highlighted }.count <= 1, "an alert highlights one action at most")
+        return VStack(spacing: DS.Padding.l) {
             Image("AlertIcon")
                 .resizable()
                 .scaledToFill()
@@ -299,24 +301,20 @@ private struct AlertFirstResponder: UIViewRepresentable {
 }
 
 /// AlertController's button, translated: full-width rounded rectangle with a
-/// 1pt border; the emphasized kinds fill with their tint and speak semibold,
-/// the normal one stays clear with accent-colored text. Destructive is the
-/// accent treatment in red, standing in for `UIAlertAction`'s `.destructive`.
+/// 1pt accent border. The highlighted kind fills with the accent and speaks
+/// semibold; the normal one stays clear with accent-colored text. There is
+/// no third look — a destructive answer is said by its title, not a red
+/// fill, so an alert never shows more than these two.
 struct AlertButtonStyle: ButtonStyle {
     enum Kind {
         case normal
-        case accent
-        case destructive
+        case highlighted
     }
 
     let kind: Kind
 
-    private var tint: Color {
-        kind == .destructive ? .red : .accentColor
-    }
-
     private var isFilled: Bool {
-        kind != .normal
+        kind == .highlighted
     }
 
     func makeBody(configuration: Configuration) -> some View {
@@ -325,11 +323,11 @@ struct AlertButtonStyle: ButtonStyle {
             .foregroundColor(isFilled ? .white : .accentColor)
             .padding(DS.Padding.s)
             .frame(maxWidth: .infinity)
-            .background(isFilled ? tint : Color.clear)
+            .background(isFilled ? Color.accentColor : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.m, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: DS.Radius.m, style: .continuous)
-                    .strokeBorder(tint, lineWidth: 1),
+                    .strokeBorder(Color.accentColor, lineWidth: 1),
             )
             // The unfilled kind is text, a 1pt stroke, and clear in between,
             // and clear does not hit-test: without this the button answers

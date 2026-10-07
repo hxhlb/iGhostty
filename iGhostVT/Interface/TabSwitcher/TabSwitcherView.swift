@@ -149,7 +149,7 @@ struct TabSwitcherView: View {
             message: "This closes all tabs and stops everything running in them.",
             actions: [
                 AlertAction("Cancel"),
-                AlertAction("Close All", kind: .destructive) {
+                AlertAction("Close All", kind: .highlighted) {
                     tabManager.closeAll()
                 },
             ],

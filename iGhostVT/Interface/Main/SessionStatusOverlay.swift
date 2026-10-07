@@ -89,7 +89,7 @@ struct SessionStatusOverlay: View {
                     off. Turn it back on to open a terminal.
                     """,
                 ),
-                actions: [AlertAction("Turn On Helper", kind: .accent) { agent.activate() }],
+                actions: [AlertAction("Turn On Helper", kind: .highlighted) { agent.activate() }],
                 claimsFirstResponder: isActive,
             )
         case .needsApproval:
@@ -104,7 +104,7 @@ struct SessionStatusOverlay: View {
                 ),
                 actions: [
                     AlertAction("Check Again") { agent.refresh() },
-                    AlertAction("Open Login Items", kind: .accent) {
+                    AlertAction("Open Login Items", kind: .highlighted) {
                         agent.openLoginItemsSettings()
                     },
                 ],
@@ -124,7 +124,7 @@ struct SessionStatusOverlay: View {
                 ),
                 actions: [
                     AlertAction("Quit") { agent.quit() },
-                    AlertAction("Download", kind: .accent) {
+                    AlertAction("Download", kind: .highlighted) {
                         UIApplication.shared.open(MacLaunchAgent.downloadPageURL)
                     },
                 ],
@@ -136,7 +136,7 @@ struct SessionStatusOverlay: View {
                 message: reason,
                 actions: [
                     AlertAction("Check Again") { agent.refresh() },
-                    AlertAction("Turn On Helper", kind: .accent) { agent.activate() },
+                    AlertAction("Turn On Helper", kind: .highlighted) { agent.activate() },
                 ],
                 claimsFirstResponder: isActive,
             )
@@ -272,7 +272,7 @@ struct SessionStatusOverlay: View {
                 AlertAction("Close Tab") {
                     onCloseTab()
                 },
-                AlertAction("Use Here", kind: .accent) {
+                AlertAction("Use Here", kind: .highlighted) {
                     store.takeOver()
                 },
             ],
@@ -288,7 +288,7 @@ struct SessionStatusOverlay: View {
                 AlertAction("Close Tab") {
                     onCloseTab()
                 },
-                AlertAction("Retry", kind: .accent) {
+                AlertAction("Retry", kind: .highlighted) {
                     store.connect()
                 },
             ],

@@ -25,7 +25,7 @@ enum ClipboardConfirmation {
                     request.respond(allow: false)
                     finish()
                 },
-                AlertAction("Allow", kind: .accent) {
+                AlertAction("Allow", kind: .highlighted) {
                     request.respond(allow: true)
                     finish()
                 },

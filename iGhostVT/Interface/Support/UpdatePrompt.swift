@@ -21,7 +21,7 @@ extension View {
                     message: "This is still the old version. Quit iGhostVT and open it again to use the new one.",
                     actions: [
                         AlertAction("Later", handler: finish),
-                        AlertAction("Quit", kind: .accent) {
+                        AlertAction("Quit", kind: .highlighted) {
                             finish()
                             AppTermination.terminate()
                         },

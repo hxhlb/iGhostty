@@ -24,8 +24,9 @@ final class AlertViewController: OverlayPanelController {
     /// Runs when something other than a button takes the alert down — the
     /// cover it was presented on dismissed under it (⇧⌘\ under a
     /// confirmation), or its window closed. Without it no action runs and
-    /// the presenter's slot stays busy for the window's life. The plain
-    /// action by default, which is the cancel in every confirmation; an
+    /// the presenter's slot stays busy for the window's life. The last
+    /// plain action by default, which is the cancel in every confirmation
+    /// (a remote tab's close has a plain End Session before it); an
     /// alert whose plain answer does something (the relocation prompt's
     /// Quit) sets its own.
     var onDismissUnanswered: (() -> Void)?
@@ -38,7 +39,7 @@ final class AlertViewController: OverlayPanelController {
         alertTitle = String(localized: title)
         alertMessage = String(localized: message)
         self.actions = actions
-        onDismissUnanswered = actions.first { $0.kind == .normal }?.handler
+        onDismissUnanswered = actions.last { $0.kind == .normal }?.handler
         super.init()
     }
 

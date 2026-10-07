@@ -26,7 +26,7 @@ extension View {
                             finish()
                             agent.quit()
                         },
-                        AlertAction("Move", kind: .accent) {
+                        AlertAction("Move", kind: .highlighted) {
                             finish()
                             agent.moveToApplications()
                         },

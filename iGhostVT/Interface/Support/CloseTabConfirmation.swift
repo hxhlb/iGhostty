@@ -20,15 +20,15 @@ extension View {
                         title: "Close “\(tab.displayTitle)”?",
                         message: "The terminal can keep running on “\(hostName)”.",
                         // The two answers first, the one that keeps the
-                        // work leading; Cancel last, and still what a
-                        // dismissal without an answer means (the first
-                        // `.normal` action).
+                        // work leading and highlighted; Cancel last, and
+                        // still what a dismissal without an answer means
+                        // (the last `.normal` action).
                         actions: [
-                            AlertAction("Keep Running", kind: .accent) {
+                            AlertAction("Keep Running", kind: .highlighted) {
                                 tabManager.detach(tab)
                                 finish()
                             },
-                            AlertAction("End Session", kind: .destructive) {
+                            AlertAction("End Session") {
                                 tabManager.close(tab, from: .confirmation)
                                 finish()
                             },
@@ -47,7 +47,7 @@ extension View {
                             AlertAction("Cancel") {
                                 finish()
                             },
-                            AlertAction("Close Tab", kind: .destructive) {
+                            AlertAction("Close Tab", kind: .highlighted) {
                                 tabManager.close(tab, from: .confirmation)
                                 finish()
                             },
@@ -61,7 +61,7 @@ extension View {
                         AlertAction("Cancel") {
                             finish()
                         },
-                        AlertAction("Close Tab", kind: .destructive) {
+                        AlertAction("Close Tab", kind: .highlighted) {
                             tabManager.close(tab, from: .confirmation)
                             finish()
                         },
