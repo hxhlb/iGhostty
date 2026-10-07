@@ -54,7 +54,7 @@ enum RemotePairingClient {
         xpc_dictionary_set_uint64(start, iGhostVTWireKey.operation, iGhostVTOperation.pairStart.rawValue)
         xpc_dictionary_set_string(start, iGhostVTWireKey.deviceID, deviceID)
         xpc_dictionary_set_string(start, iGhostVTWireKey.deviceName, deviceName)
-        xpc_dictionary_set_string(start, iGhostVTWireKey.appVersion, RemoteAccess.appVersion)
+        xpc_dictionary_set_string(start, iGhostVTWireKey.appVersion, RemoteAccess.wireVersion)
         try set(exchange.makeShare(), iGhostVTWireKey.share, in: start)
         let answer = try await session.request(start)
         try check(answer)

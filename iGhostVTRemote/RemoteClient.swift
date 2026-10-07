@@ -235,10 +235,10 @@ final class RemoteClient {
         }
     }
 
-    /// Two devices talk only when they run the same iGhostVT: the other
-    /// side is told which version this one runs, so it can say which of
-    /// the two needs updating. A device that sends no version is older than
-    /// the rule, and different by definition.
+    /// Two devices talk only on the same release line (`isCompatible`):
+    /// the other side is told which version this one runs, so it can say
+    /// which of the two needs updating. A device that sends no version is
+    /// older than the rule, and different by definition.
     private func isSameVersion(_ message: xpc_object_t, tag: UInt64) -> Bool {
         let theirs = xpc_dictionary_get_string(message, iGhostVTWireKey.appVersion).map { String(cString: $0) }
         guard !RemoteAccess.isCompatible(theirs) else { return true }
@@ -247,11 +247,11 @@ final class RemoteClient {
             let reply = xpc_dictionary_create(nil, nil, 0)
             xpc_dictionary_set_uint64(reply, iGhostVTWireKey.version, iGhostVTProtocol.version)
             xpc_dictionary_set_int64(reply, iGhostVTWireKey.code, iGhostVTReplyCode.unsupportedVersion.rawValue)
-            xpc_dictionary_set_string(reply, iGhostVTWireKey.appVersion, RemoteAccess.appVersion)
+            xpc_dictionary_set_string(reply, iGhostVTWireKey.appVersion, RemoteAccess.wireVersion)
             xpc_dictionary_set_string(
                 reply,
                 iGhostVTWireKey.errorMessage,
-                "The other device runs iGhostVT \(RemoteAccess.appVersion). Update both devices to the same version to connect.",
+                "The other device runs iGhostVT \(RemoteAccess.lineDescription(RemoteAccess.appVersion)). Update both devices to the same version to connect.",
             )
             frames.send(.reply, tag: tag, object: reply)
         }

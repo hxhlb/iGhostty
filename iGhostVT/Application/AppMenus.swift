@@ -120,8 +120,8 @@ enum AppMenus {
     /// are listed inline under their names, more each get a submenu. With
     /// none nearby it says so and points at the settings that pair one.
     ///
-    /// Worked out each time the menu opens (`uncached`), after asking the
-    /// devices — and the Mac's menu bar keeps a
+    /// Worked out each time the menu opens (`uncached`), each device's
+    /// terminals once it has answered — and the Mac's menu bar keeps a
     /// deferred element's first answer whatever it was told, so
     /// `RemoteSessionCatalog` also rebuilds the main menu whenever that
     /// knowledge changes (`setNeedsRebuild`). Without that the first
@@ -131,9 +131,10 @@ enum AppMenus {
         let devices = UIDeferredMenuElement.uncached { completion in
             // The devices are asked as the menu opens, as the window's own
             // new-tab menu does (`NewTabMenuElements`), so what it lists is
-            // what they hold now rather than at the last poll.
-            Task { @MainActor in
-                await NewTabMenuElements.refreshRemoteSessions()
+            // what they hold now rather than at the last poll; the list of
+            // devices itself is this one's and shows at once.
+            MainActor.assumeIsolated {
+                NewTabMenuElements.askRemoteDevices()
                 completion(remoteTabMenuItems())
             }
         }
@@ -169,7 +170,6 @@ enum AppMenus {
         let tabManagers = ShortcutBridge.tabManagers()
         return NewTabMenuElements.remoteHostElements(
             hosts: hosts,
-            sessions: RemoteSessionCatalog.shared.sessions,
             isOpenHere: { host, session in
                 tabManagers.contains { manager in
                     manager.tabs.contains { $0.remoteHostID == host.id && $0.remoteSessionID == session.id }

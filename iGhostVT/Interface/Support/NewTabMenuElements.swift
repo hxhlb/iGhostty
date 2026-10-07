@@ -10,23 +10,30 @@ import UIKit
 ///
 /// A SwiftUI `Menu` is built from what its view knew at its last render: a
 /// paired device's terminals as the last half-minute poll found them, and
-/// rows marked open here for tabs closed since. A deferred element asks
-/// first — the paired devices answer, or a short wait runs out — and then
-/// lists what is true now. The standalone `+` controls (`NewTabMenu`) and
-/// the Mac's File ▸ New Tab on Device are built from it; only the ⋯ menu's
-/// submenu, a SwiftUI menu inside a SwiftUI menu, still renders from the
-/// catalog's last answer.
+/// rows marked open here for tabs closed since. This one lists what is
+/// true as it opens: this device's own rows at once, and each paired
+/// device's terminals once that device has answered — its submenu shows
+/// Loading… until then, or until a short wait runs out. The standalone `+`
+/// controls (`NewTabMenu`) and the Mac's File ▸ New Tab on Device are built
+/// from it; only the ⋯ menu's submenu, a SwiftUI menu inside a SwiftUI
+/// menu, still renders from the catalog's last answer.
 @MainActor
 enum NewTabMenuElements {
-    /// How long an opening menu waits for the devices' lists before it
-    /// shows what it has; a device that answers later is in the next one.
+    /// How long a device's terminals wait for its answer before the
+    /// submenu shows the last list it gave; a device that answers later is
+    /// in the next one.
     private static let refreshWait: UInt64 = 1_500_000_000
+    /// A device that answered this recently is not asked again: the menu
+    /// that has just asked it, opened a second time, uses that answer.
+    private static let answerFreshness: TimeInterval = 5
 
-    /// The whole menu for one window, asked fresh on every opening.
+    /// The whole menu for one window, built fresh on every opening.
     static func deferred(tabManager: TabManager, onOpen: @escaping () -> Void) -> UIMenuElement {
         UIDeferredMenuElement.uncached { [weak tabManager] completion in
-            Task { @MainActor in
-                await refreshRemoteSessions()
+            // Answered before the provider returns, so the menu opens on
+            // its rows with no Loading… of its own.
+            MainActor.assumeIsolated {
+                askRemoteDevices()
                 guard let tabManager else {
                     completion([])
                     return
@@ -36,16 +43,28 @@ enum NewTabMenuElements {
         }
     }
 
-    /// Starts every paired device's list and returns when they have all
-    /// answered or `refreshWait` has passed, whichever is first. The asking
-    /// carries on past the wait and lands in the catalog.
-    static func refreshRemoteSessions() async {
+    /// Starts asking every paired device for its terminals as a menu
+    /// opens, so a device's submenu has the answer by the time the pointer
+    /// reaches it. Returns at once.
+    static func askRemoteDevices() {
         RemoteHostDirectory.shared.start()
-        guard !RemoteHostDirectory.shared.reachablePaired.isEmpty else { return }
+        let hosts = RemoteHostDirectory.shared.reachablePaired
+            .filter { RemoteHostDirectory.shared.mismatchedVersion(of: $0.id) == nil }
+        for host in hosts {
+            Task { @MainActor in
+                await RemoteSessionCatalog.shared.refresh(hostID: host.id, freshness: answerFreshness)
+            }
+        }
+    }
+
+    /// Returns when the device has answered — the ask out now, or one
+    /// within `answerFreshness` — or `refreshWait` has passed, whichever is
+    /// first. The asking carries on past the wait and lands in the catalog.
+    private static func awaitAnswer(fromHostID hostID: String) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             let gate = ResumeOnce(continuation)
             Task { @MainActor in
-                await RemoteSessionCatalog.shared.refresh()
+                await RemoteSessionCatalog.shared.refresh(hostID: hostID, freshness: answerFreshness)
                 gate.resume()
             }
             Task { @MainActor in
@@ -97,7 +116,6 @@ enum NewTabMenuElements {
         }
         let hosts = remoteHostElements(
             hosts: choices.remoteHosts,
-            sessions: choices.remoteSessions,
             isOpenHere: { host, session in
                 tabManager.tabs.contains { $0.remoteHostID == host.id && $0.remoteSessionID == session.id }
             },
@@ -116,11 +134,11 @@ enum NewTabMenuElements {
         return elements
     }
 
-    /// One submenu per paired device. Shared with the Mac's File ▸ New Tab
-    /// on Device.
+    /// One submenu per paired device: a fresh shell and the directories
+    /// tabs here were in on it at once, its open terminals as it answers.
+    /// Shared with the Mac's File ▸ New Tab on Device.
     static func remoteHostElements(
         hosts: [PairedRemoteHost],
-        sessions: [String: [XPCDaemonTransport.SessionSummary]],
         isOpenHere: @escaping (PairedRemoteHost, XPCDaemonTransport.SessionSummary) -> Bool,
         openFresh: @escaping (String, TerminalDirectory?) -> Void,
         attach: @escaping (String, UInt64) -> Void,
@@ -144,24 +162,41 @@ enum NewTabMenuElements {
                     openFresh(host.id, directory)
                 }
             }
-            let open = (sessions[host.id] ?? []).map { session in
-                let action = UIAction(
-                    title: session.menuTitle,
-                    image: UIImage(systemName: isOpenHere(host, session) ? "checkmark" : "terminal"),
-                ) { _ in attach(host.id, session.id) }
-                if #available(iOS 16.0, *) {
-                    action.subtitle = session.menuSubtitle
-                }
-                return action
-            }
             var children: [UIMenuElement] = [fresh]
             if !recents.isEmpty {
                 children.append(UIMenu(title: String(localized: "Recent"), options: .displayInline, children: recents))
             }
-            if !open.isEmpty {
-                children.append(UIMenu(title: String(localized: "Open Terminals"), options: .displayInline, children: open))
-            }
+            children.append(openTerminals(of: host, isOpenHere: isOpenHere, attach: attach))
             return UIMenu(title: host.displayName, image: UIImage(systemName: "network"), children: children)
+        }
+    }
+
+    /// The terminals the device has open, listed once it has answered:
+    /// what it holds now, and checkmarks for what is open here now.
+    private static func openTerminals(
+        of host: PairedRemoteHost,
+        isOpenHere: @escaping (PairedRemoteHost, XPCDaemonTransport.SessionSummary) -> Bool,
+        attach: @escaping (String, UInt64) -> Void,
+    ) -> UIMenuElement {
+        UIDeferredMenuElement.uncached { completion in
+            Task { @MainActor in
+                await awaitAnswer(fromHostID: host.id)
+                let open = (RemoteSessionCatalog.shared.sessions[host.id] ?? []).map { session in
+                    let action = UIAction(
+                        title: session.menuTitle,
+                        image: UIImage(systemName: isOpenHere(host, session) ? "checkmark" : "terminal"),
+                    ) { _ in attach(host.id, session.id) }
+                    if #available(iOS 16.0, *) {
+                        action.subtitle = session.menuSubtitle
+                    }
+                    return action
+                }
+                guard !open.isEmpty else {
+                    completion([])
+                    return
+                }
+                completion([UIMenu(title: String(localized: "Open Terminals"), options: .displayInline, children: open)])
+            }
         }
     }
 }

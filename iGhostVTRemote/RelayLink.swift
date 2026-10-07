@@ -149,7 +149,7 @@ final class RelayLink: @unchecked Sendable {
             "role": RelayControl.Role.host.rawValue,
             "hostID": hostID,
             "name": service.hostName,
-            "appVersion": RemoteAccess.appVersion,
+            "appVersion": RemoteAccess.wireVersion,
             "hostKey": hostKey.publicKey.derRepresentation.base64EncodedString(),
             "sig": signature,
             "hostSig": hostSignature,

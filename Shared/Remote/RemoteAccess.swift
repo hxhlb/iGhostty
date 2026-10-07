@@ -41,11 +41,13 @@ enum RemoteAccess {
     static let protocolVersion = "1"
 
     /// The iGhostVT version this side runs, `CFBundleShortVersionString`.
-    /// Two devices connect, and pair, only when theirs are equal: the
-    /// operations a device may send grow from one version to the next, and
-    /// a mismatch is said plainly instead of surfacing as some later
-    /// request failing. The build number is left out — every local build
-    /// bumps it.
+    /// Two devices connect, and pair, only on the same release line — the
+    /// same major and minor (`isCompatible`): the operations a device may
+    /// send grow from one minor version to the next, and a mismatch is said
+    /// plainly instead of surfacing as some later request failing. A patch
+    /// release adds no remote operation, so it talks to every other patch
+    /// of its line. The build number is left out — every local build bumps
+    /// it.
     ///
     /// The app reads its own bundle, and so does `ighostvtd-remote` on the
     /// Mac, where it sits in `Contents/MacOS`. On the device the helper is
@@ -72,12 +74,44 @@ enum RemoteAccess {
 
     static let unknownVersion = "0"
 
-    /// Whether two versions may talk: equal, or one side does not know its
-    /// own.
+    /// What this side says it runs, everywhere another device reads it —
+    /// the advertisement, `hello`, `pairStart`, their replies, the relay's
+    /// list: its release line with patch 0. 1.4.0 compared the whole
+    /// string, so a 1.4.1 that said 1.4.1 would be refused by it; saying
+    /// 1.4.0 keeps every patch of a line talking to every other.
+    static let wireVersion = wireSpelling(of: appVersion)
+
+    /// `1.4.2` as another device is told it, `1.4.0`; anything that is not
+    /// a version, `unknownVersion` included, as it is.
+    static func wireSpelling(of version: String) -> String {
+        guard let (major, minor) = releaseLine(of: version) else { return version }
+        return "\(major).\(minor).0"
+    }
+
+    /// Whether two versions may talk: the same major and minor, or one side
+    /// does not know its own.
     static func isCompatible(_ theirs: String?, with ours: String = appVersion) -> Bool {
         guard ours != unknownVersion else { return true }
         guard let theirs else { return false }
-        return theirs == ours || theirs == unknownVersion
+        if theirs == ours || theirs == unknownVersion {
+            return true
+        }
+        guard let theirLine = releaseLine(of: theirs), let ourLine = releaseLine(of: ours) else { return false }
+        return theirLine == ourLine
+    }
+
+    /// A version as a mismatch names it: its release line, `1.4`, since the
+    /// patch is never the reason two devices cannot talk.
+    static func lineDescription(_ version: String) -> String {
+        guard let (major, minor) = releaseLine(of: version) else { return version }
+        return "\(major).\(minor)"
+    }
+
+    /// The major and minor of `1.4.2`; nil for anything else.
+    private static func releaseLine(of version: String) -> (Int, Int)? {
+        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count >= 2, let major = Int(parts[0]), let minor = Int(parts[1]) else { return nil }
+        return (major, minor)
     }
 
     private static func shortVersion(_ info: [String: Any]?) -> String? {

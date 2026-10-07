@@ -581,7 +581,7 @@ check(waitUntil(10 * slowFactor) { state(of: link, on: host) == .registered }, "
 if case let .success(hosts) = listHosts() {
     let entry = hosts.first { $0.id == host.relayHostID }
     check(entry?.name == "Harness Host", "and is listed under its name")
-    check(entry?.appVersion == RemoteAccess.appVersion, "with the version it runs")
+    check(entry?.appVersion == RemoteAccess.wireVersion, "with the version it runs")
 } else {
     check(false, "the relay lists the host")
 }

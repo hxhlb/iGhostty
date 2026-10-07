@@ -159,6 +159,28 @@ check(waitUntil { pairing.1() }, "the public pairing key completes the handshake
 
 check(RemoteFrameConnectionTests.localAddresses(), "only local-network peers count as local")
 
+check(
+    RemoteAccess.isCompatible("1.4.0", with: "1.4.1") && RemoteAccess.isCompatible("1.4.3", with: "1.4.0"),
+    "patch releases of one line talk to each other",
+)
+check(
+    !RemoteAccess.isCompatible("1.5.0", with: "1.4.1") && !RemoteAccess.isCompatible("2.4.0", with: "1.4.0"),
+    "another minor or major does not",
+)
+check(
+    !RemoteAccess.isCompatible("", with: "1.4.1") && !RemoteAccess.isCompatible(nil, with: "1.4.1"),
+    "nor a device too old to say its version",
+)
+check(
+    RemoteAccess.isCompatible("1.3.0", with: RemoteAccess.unknownVersion) && RemoteAccess.isCompatible(RemoteAccess.unknownVersion, with: "1.4.1"),
+    "a side that does not know its own version is not checked",
+)
+check(
+    RemoteAccess.wireSpelling(of: "1.4.1") == "1.4.0" && RemoteAccess.wireSpelling(of: RemoteAccess.unknownVersion) == RemoteAccess.unknownVersion,
+    "a patch release tells other devices its line with patch 0, which 1.4.0's whole-string check accepts",
+)
+check(RemoteAccess.lineDescription("1.4.1") == "1.4", "a mismatch names the release line")
+
 print(failures == 0 ? "remote harness passed" : "remote harness: \(failures) failure(s)")
 exit(failures == 0 ? 0 : 1)
 

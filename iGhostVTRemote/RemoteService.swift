@@ -191,7 +191,7 @@ final class RemoteService: RelayLinkHost {
                 (RemoteAccess.TXTKey.hostName, hostName),
                 (RemoteAccess.TXTKey.version, RemoteAccess.protocolVersion),
                 (RemoteAccess.TXTKey.address, advertisedAddress ?? ""),
-                (RemoteAccess.TXTKey.appVersion, RemoteAccess.appVersion),
+                (RemoteAccess.TXTKey.appVersion, RemoteAccess.wireVersion),
             ]),
         )
         listener.stateUpdateHandler = { [weak self] state in

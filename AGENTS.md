@@ -113,14 +113,18 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   (`x.y.z`, the relay protocol's version, `latest`), records it in
   `relay-image.txt`, and attaches the `compose.yml` CI handed over.
   `release.sh` checks the version tag names the digest CI built.
-- **The relay never terminates TLS, and two devices talk only at the same
-  version.** The relay (`Relay/`) splices TCP and reads nothing but a
+- **The relay never terminates TLS, and two devices talk only on the same
+  release line.** The relay (`Relay/`) splices TCP and reads nothing but a
   ClientHello's SNI; the remote-access TLS-PSK runs end to end. The app and
   the helper stay on system frameworks only (Network.framework, CryptoKit,
   Security) — no Noise, no NIO, nothing that grows the bundle. A remote
-  `hello` or `pairStart` whose `appVersion` differs from the host's is
-  refused (`unsupportedVersion`), so a new operation needs no compatibility
-  path; the build number is not part of the version.
+  `hello` or `pairStart` from another major or minor version is refused
+  (`unsupportedVersion`), so a new operation needs no compatibility path —
+  and a **patch release may never add one**: every patch of a line talks to
+  every other (`RemoteAccess.isCompatible`). On the wire a device says its
+  line as `x.y.0` (`RemoteAccess.wireVersion`) — 1.4.0 compared the whole
+  string, and `x.y.0` is what keeps a 1.4.1 acceptable to it. The build
+  number is not part of the version.
 - **The release note is a file in the repo**, `Documents/Releases/<version>.md`,
   written before the tag: one headline sentence, one bullet per user-visible
   change with the symptom first, and a closing line naming which package to
@@ -632,11 +636,17 @@ after the active tab, as a browser's does; one that arrives from outside
 Every `+` is a `NewTabMenu`: the only decision a new terminal has is where
 its shell starts, so the control opens a menu of directories instead of a
 tab. The menu is UIKit's, a `UIDeferredMenuElement.uncached`
-built as it opens (`NewTabMenuElements`, over the SwiftUI label): it asks
-the paired devices for their terminals first, waits at most 1.5 s, and
+built as it opens (`NewTabMenuElements`, over the SwiftUI label): this
+device's rows at once, and each paired device's open terminals in a
+deferred element of their own inside its submenu, which waits for that
+device's answer (at most 1.5 s; one from the last five seconds counts) and
 lists what is true then — a SwiftUI `Menu` listed what its view knew at
 its last render, a device's terminals from the last poll and checkmarks
-for tabs closed since. Only the ⋯ menu's entry (`NewTabSubmenu`, a menu
+for tabs closed since. The opening asks every device at once
+(`RemoteSessionCatalog.refresh(hostID:)` joins an ask already out), so a
+submenu's answer is usually in before the pointer gets there; the menu
+once waited for all of them, and a slow relay put Loading… over the whole
+menu, local rows included. Only the ⋯ menu's entry (`NewTabSubmenu`, a menu
 inside a SwiftUI menu) still renders from the catalog. Three inline groups, in this order — the home; the directories this
 window's own tabs are in, deduplicated and sorted by path, each naming a
 live session (`inheritDirectoryFrom`) so the daemon re-reads it as the tab

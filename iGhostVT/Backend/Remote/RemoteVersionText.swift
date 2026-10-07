@@ -1,12 +1,14 @@
 import Foundation
 
 /// How a version mismatch between two devices is put into words: which
-/// device runs what, and that both have to run the same.
+/// device runs what, and that both have to run the same. Versions are named
+/// by their release line (`1.4`): the patch never decides it.
 enum RemoteVersionText {
     /// `theirs` empty: a device older than the rule, which does not say.
     /// `name` nil: "the other device".
     static func mismatch(theirs: String, name: String?) -> String {
-        let ours = RemoteAccess.appVersion
+        let ours = RemoteAccess.lineDescription(RemoteAccess.appVersion)
+        let theirs = theirs.isEmpty ? theirs : RemoteAccess.lineDescription(theirs)
         switch (theirs.isEmpty, name) {
         case let (true, name?):
             return String.localizedStringWithFormat(
@@ -57,8 +59,8 @@ enum RemoteVersionText {
                 "Needs update: %1$@ there, %2$@ here",
                 comment: "Under a device whose iGhostVT differs; %1$@ its version, %2$@ this device's",
             ),
-            theirs,
-            RemoteAccess.appVersion,
+            RemoteAccess.lineDescription(theirs),
+            RemoteAccess.lineDescription(RemoteAccess.appVersion),
         )
     }
 }

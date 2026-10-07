@@ -92,23 +92,45 @@ final class RemoteSessionCatalog: ObservableObject {
             sessions = [:]
             return
         }
-        await withTaskGroup(of: (String, [XPCDaemonTransport.SessionSummary]?).self) { group in
+        await withTaskGroup(of: Void.self) { group in
             for host in hosts {
-                group.addTask {
-                    await (host.id, Self.list(hostID: host.id))
-                }
-            }
-            for await (hostID, rows) in group {
-                if let rows, sessions[hostID] != rows {
-                    sessions[hostID] = rows
-                }
+                group.addTask { await self.refresh(hostID: host.id) }
             }
         }
         // A device no longer offered takes its list with it.
         let offered = Set(hosts.map(\.id))
         for hostID in sessions.keys where !offered.contains(hostID) {
             sessions.removeValue(forKey: hostID)
+            answeredAt.removeValue(forKey: hostID)
         }
+    }
+
+    /// The asks out now, by device: a second ask for the same device —
+    /// the poll and an opening menu, say — waits for the first rather
+    /// than opening a connection of its own.
+    private var asking: [String: Task<Void, Never>] = [:]
+    /// When each device last answered.
+    private var answeredAt: [String: Date] = [:]
+
+    /// Asks one device for its terminals, unless it answered within
+    /// `freshness` seconds.
+    func refresh(hostID: String, freshness: TimeInterval = 0) async {
+        if let ask = asking[hostID] {
+            return await ask.value
+        }
+        if freshness > 0, let answeredAt = answeredAt[hostID], Date().timeIntervalSince(answeredAt) < freshness {
+            return
+        }
+        let ask = Task { @MainActor in
+            guard let rows = await Self.list(hostID: hostID) else { return }
+            answeredAt[hostID] = Date()
+            if sessions[hostID] != rows {
+                sessions[hostID] = rows
+            }
+        }
+        asking[hostID] = ask
+        await ask.value
+        asking[hostID] = nil
     }
 
     private nonisolated static func list(hostID: String) async -> [XPCDaemonTransport.SessionSummary]? {

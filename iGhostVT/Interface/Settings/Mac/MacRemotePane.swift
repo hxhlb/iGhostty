@@ -202,53 +202,25 @@ import SwiftUI
         /// could pair with. The selected row carries its one action — trash
         /// to forget a paired device, Pair for one nearby.
         private var yourDevices: some View {
-            let unpaired = directory.unpairedNearby + directory.unpairedAtRelay
+            let entries = accessibleEntries
             return MacTableFrame {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(Array(directory.paired.enumerated()), id: \.element.id) { index, host in
-                                MacDeviceRow(
-                                    name: host.displayName,
-                                    address: directory.address(of: host),
-                                    detail: directory.mismatchedVersion(of: host.id).map(RemoteVersionText.needsUpdate(theirs:))
-                                        ?? RemoteAccessView.whereabouts(of: host.id, in: directory),
-                                    index: index,
-                                    isSelected: host.id == selectedHostID,
-                                    select: { selectedHostID = host.id },
-                                ) {
-                                    MacRowIconButton(symbol: "trash", label: "Forget") {
-                                        confirmForget(host)
-                                    }
-                                }
-                            }
-                            // Devices not paired yet get a section of their
-                            // own, as Bluetooth settings list them.
-                            if !unpaired.isEmpty {
-                                MacTableSectionHeader(title: "Other Devices")
-                            }
-                            ForEach(Array(unpaired.enumerated()), id: \.element.id) { offset, host in
-                                MacDeviceRow(
-                                    name: host.name,
-                                    address: host.address,
-                                    detail: host.viaRelay ? String(localized: "Through relay") : "",
-                                    index: offset,
-                                    isSelected: host.id == selectedHostID,
-                                    select: { selectedHostID = host.id },
-                                ) {
-                                    Button("Pair") { pairingHost = host }
-                                        .buttonStyle(.borderless)
-                                        .foregroundColor(.white)
-                                        .font(DS.Font.labelEmphasis)
-                                        .popover(item: $pairingHost, arrowEdge: .trailing) { host in
-                                            RemotePairDeviceView(host: host, isPopover: true)
-                                            .keepsPopover()
-                                        }
+                            // One list, keyed by device: a device keeps its
+                            // row as it pairs, and the row moves up into the
+                            // paired ones with Pair turned into Forget.
+                            ForEach(entries) { entry in
+                                switch entry {
+                                case .otherDevicesTitle:
+                                    MacTableSectionHeader(title: "Other Devices")
+                                case let .device(device):
+                                    accessibleRow(device)
                                 }
                             }
                         }
                     }
                     .overlay {
-                        if directory.paired.isEmpty, unpaired.isEmpty {
+                        if entries.isEmpty {
                             Group {
                                 if directory.relay == nil {
                                     Text("Devices on this network with remote access on appear here.")
@@ -265,6 +237,78 @@ import SwiftUI
                 }
         }
 
+        /// The paired devices, then — under a title of their own, as
+        /// Bluetooth settings list them — the ones not paired yet.
+        private var accessibleEntries: [AccessibleEntry] {
+            var entries = directory.paired.enumerated().map { index, host in
+                AccessibleEntry.device(AccessibleDevice(
+                    id: host.id,
+                    name: host.displayName,
+                    address: directory.address(of: host),
+                    detail: directory.mismatchedVersion(of: host.id).map(RemoteVersionText.needsUpdate(theirs:))
+                        ?? RemoteAccessView.whereabouts(of: host.id, in: directory),
+                    index: index,
+                    action: .forget(host),
+                ))
+            }
+            let unpaired = directory.unpairedNearby + directory.unpairedAtRelay
+            if !unpaired.isEmpty {
+                entries.append(.otherDevicesTitle)
+            }
+            entries += unpaired.enumerated().map { index, host in
+                AccessibleEntry.device(AccessibleDevice(
+                    id: host.id,
+                    name: host.name,
+                    address: host.address,
+                    detail: host.viaRelay ? String(localized: "Through relay") : "",
+                    index: index,
+                    action: .pair(host),
+                ))
+            }
+            return entries
+        }
+
+        private func accessibleRow(_ device: AccessibleDevice) -> some View {
+            MacDeviceRow(
+                name: device.name,
+                address: device.address,
+                detail: device.detail,
+                index: device.index,
+                isSelected: device.id == selectedHostID,
+                select: { selectedHostID = device.id },
+            ) {
+                switch device.action {
+                case let .forget(host):
+                    MacRowIconButton(symbol: "trash", label: "Forget") {
+                        confirmForget(host)
+                    }
+                case let .pair(host):
+                    Button {
+                        pairingHost = host
+                    } label: {
+                        Text("Pair")
+                            .font(DS.Font.labelEmphasis)
+                            .foregroundColor(.white)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            // On the row rather than its Pair button, which pairing takes
+            // away: the popover stays to say how it went, still pointing at
+            // the row's trailing end, where Forget has taken Pair's place.
+            .popover(
+                item: Binding(
+                    get: { pairingHost?.id == device.id ? pairingHost : nil },
+                    set: { pairingHost = $0 },
+                ),
+                attachmentAnchor: .point(.trailing),
+                arrowEdge: .trailing,
+            ) { host in
+                RemotePairDeviceView(host: host, isPopover: true)
+                    .keepsPopover()
+            }
+        }
+
         private func confirmForget(_ host: PairedRemoteHost) {
             AlertViewController(
                 title: "Forget “\(host.displayName)”?",
@@ -278,6 +322,37 @@ import SwiftUI
                 ],
             ).present(in: window)
         }
+    }
+
+    /// A row of the Accessible Devices table: a device, or the title over
+    /// the ones not paired yet.
+    private enum AccessibleEntry: Identifiable {
+        case device(AccessibleDevice)
+        case otherDevicesTitle
+
+        var id: String {
+            switch self {
+            case let .device(device): device.id
+            // No host id is empty.
+            case .otherDevicesTitle: ""
+            }
+        }
+    }
+
+    private struct AccessibleDevice {
+        enum Action {
+            case forget(PairedRemoteHost)
+            case pair(DiscoveredRemoteHost)
+        }
+
+        /// The host id, the same before and after it pairs.
+        let id: String
+        let name: String
+        let address: String?
+        let detail: String
+        /// Its place in its own group, for the stripes.
+        let index: Int
+        let action: Action
     }
 
     /// One row of a device table: the name with its address dim after it,

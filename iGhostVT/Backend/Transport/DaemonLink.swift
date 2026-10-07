@@ -345,7 +345,7 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
             xpc_dictionary_set_string(message, iGhostVTWireKey.deviceID, host.deviceID)
             // The name it goes by now, so the host's list follows a rename.
             xpc_dictionary_set_string(message, iGhostVTWireKey.deviceName, RemoteDeviceIdentity.deviceName)
-            xpc_dictionary_set_string(message, iGhostVTWireKey.appVersion, RemoteAccess.appVersion)
+            xpc_dictionary_set_string(message, iGhostVTWireKey.appVersion, RemoteAccess.wireVersion)
             proof.withUnsafeBytes { buffer in
                 if let base = buffer.baseAddress {
                     xpc_dictionary_set_data(message, iGhostVTWireKey.confirmation, base, buffer.count)
