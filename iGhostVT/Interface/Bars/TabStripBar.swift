@@ -157,9 +157,15 @@ struct TabStripBar: View {
                                 onClose: { tabManager.requestClose(tab, from: .closeButton) },
                             )
                             .frame(width: width)
+                            #if targetEnvironment(macCatalyst)
+                            // A touch screen's long press is the reorder,
+                            // and nothing else: a menu that opened when the
+                            // finger held still took the chip from under a
+                            // reorder. The ⋯ button has the same menu.
                             .contextMenu {
                                 TabContextMenu(tab: tab, tabManager: tabManager, window: window)
                             }
+                            #endif
                             .offset(x: chipDragOffset(for: tab, pitch: width + DS.Padding.xs))
                             .scaleEffect(chipDrag?.id == tab.id ? Self.liftedChipScale : 1)
                             .zIndex(chipDrag?.id == tab.id ? 1 : 0)
@@ -528,9 +534,9 @@ private enum ChipLift {
     }
 }
 
-/// Not an observer of the tab: the strip hangs the tab's context menu on
-/// this view, and a menu host re-evaluated on every retitle rebuilds the
-/// menu while it is open. The title and the padlock observe for themselves.
+/// Not an observer of the tab: on the Mac the strip hangs the tab's
+/// context menu on this view, and a menu host re-evaluated on every
+/// retitle rebuilds the menu while it is open. The title and the padlock observe for themselves.
 private struct TabChip: View {
     let tab: TerminalTab
     let isActive: Bool
@@ -687,20 +693,21 @@ private struct ChipScroller<Content: View>: View {
     /// A touch screen's way to pick up a chip, recognised by the strip's own
     /// scroll view. Placed inside the scroller's content, it finds the
     /// `UIScrollView` SwiftUI built around it and adds the press there.
-    /// One touch on a chip can mean four things, and this decides which,
+    /// One touch on a chip can mean three things, and this decides which,
     /// the way the Home Screen does for an icon:
     ///
     /// - moved before the press lifts: a swipe, and the strip scrolls;
     /// - let go before then: a tap, and the chip's button selects it;
     /// - held for ``TabStripBar/reorderPressDuration``: the chip lifts, and
     ///   moved from there it is carried (reorder, or out of the window);
-    /// - held still for ``menuDelay`` instead: the chip settles back and
-    ///   its context menu opens.
+    ///   let go without moving, it settles back.
     ///
-    /// Everything else on the strip — the scroll view's pan, the button,
-    /// the context menu's own press — waits for this one to fail, so none
-    /// of them starts on a touch that turns out to be a carry. It cancels
-    /// no touches, so the ones it lets go reach them as they were.
+    /// A chip has no context menu here (the ⋯ button has it): one that
+    /// opened when the finger held still took the chip from under a
+    /// reorder. Everything else on the strip — the scroll view's pan, the
+    /// button — waits for this one to fail, so neither starts on a touch
+    /// that turns out to be a carry. It cancels no touches, so the ones it
+    /// lets go reach them as they were.
     private struct ChipPressRecognizer: UIViewRepresentable {
         /// The chip under this point of the strip's content lifts; answers
         /// whether there was a chip there.
@@ -745,9 +752,8 @@ private struct ChipScroller<Content: View>: View {
             }
 
             /// Asked only of recognizers that share this touch: the strip's
-            /// pan, the chip's button, and the context menu's press, which
-            /// SwiftUI hangs on a view above the scroll view. All of them
-            /// wait — at most ``ChipPress/menuDelay``.
+            /// pan and the chip's button. Both wait until the press lets
+            /// the touch go — a move before it lifts, or the finger up.
             func gestureRecognizer(
                 _ gestureRecognizer: UIGestureRecognizer,
                 shouldBeRequiredToFailBy other: UIGestureRecognizer,
@@ -813,8 +819,6 @@ private struct ChipScroller<Content: View>: View {
             /// counts as carried.
             private static let holdSlop: CGFloat = 10
             private static let carryDistance: CGFloat = 6
-            /// How long a still finger holds before the context menu wins.
-            static let menuDelay: TimeInterval = 0.6
 
             override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent) {
                 guard touches.count == 1, numberOfTouches == 1, let touch = touches.first, let view else {
@@ -824,7 +828,6 @@ private struct ChipScroller<Content: View>: View {
                 start = touch.location(in: view.superview)
                 pressX = touch.location(in: view).x
                 schedule(after: TabStripBar.reorderPressDuration, #selector(liftTimerFired))
-                schedule(after: Self.menuDelay, #selector(menuTimerFired))
             }
 
             @objc private func liftTimerFired() {
@@ -833,12 +836,6 @@ private struct ChipScroller<Content: View>: View {
                 if !isLifted {
                     state = .failed
                 }
-            }
-
-            /// Held still this long, the touch is the context menu's.
-            @objc private func menuTimerFired() {
-                guard state == .possible else { return }
-                state = .failed
             }
 
             override func touchesMoved(_ touches: Set<UITouch>, with _: UIEvent) {

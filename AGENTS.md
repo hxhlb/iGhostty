@@ -631,7 +631,8 @@ driven against each other.
 
 Every presentation of a tab — strip chip, title capsule, sidebar row, switcher
 card — carries the same `TabContextMenu` (copy the page as text or image,
-export it, lock, close). Close asks first only when it would interrupt
+export it, lock, close), except a strip chip on a touch screen, where a long
+press is the reorder and only that (below); the ⋯ button has it there. Close asks first only when it would interrupt
 something: event 102 also says whether the foreground process group *is* the
 spawned shell (`tcgetpgrp == childPID`, `foregroundIsShell`), and a connected
 tab whose shell is at its prompt closes on the spot (`hasRunningProgram`). A
@@ -691,7 +692,10 @@ UIKit recognizer on the strip's scroll view that every other recognizer
 on the touch waits for — any SwiftUI gesture on a chip stopped the strip
 scrolling. It decides a touch the way the Home Screen does: moved early
 is a scroll, let go early a tap, held 0.3 s lifts, moved once lifted is
-a carry, and held still to 0.6 s gives the touch to the context menu.
+a carry, and let go unmoved settles it back. The chip had a context menu
+there too, given the touch when the finger held still to 0.6 s, and on an
+iPad it opened under a reorder that had not moved yet; it is gone, not
+retimed.
 
 A tab opened from inside the window (⌘T, a `+`, the menus) goes right
 after the active tab, as a browser's does; one that arrives from outside
