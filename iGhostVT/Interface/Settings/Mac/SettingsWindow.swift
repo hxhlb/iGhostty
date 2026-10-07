@@ -29,8 +29,21 @@ import UIKit
             activities.contains { $0.activityType == activityType }
         }
 
-        /// Opens the settings window, or brings the open one forward.
-        static func open() {
+        /// The window up now, which shows a requested pane straight away.
+        fileprivate static weak var current: SettingsSceneDelegate?
+        /// A pane asked for before the window was up, taken as it connects.
+        fileprivate static var requestedPane: MacSettingsPane?
+
+        /// Opens the settings window, or brings the open one forward —
+        /// showing `pane` when one is named, the last one shown otherwise.
+        static func open(showing pane: MacSettingsPane? = nil) {
+            if let pane {
+                if let current {
+                    current.show(pane)
+                } else {
+                    requestedPane = pane
+                }
+            }
             let existing = UIApplication.shared.openSessions.first(where: isSettings)
             UIApplication.shared.requestSceneSessionActivation(
                 existing,
@@ -83,6 +96,11 @@ import UIKit
             {
                 self.pane = pane
             }
+            if let requested = SettingsWindow.requestedPane {
+                pane = requested
+                SettingsWindow.requestedPane = nil
+            }
+            SettingsWindow.current = self
 
             if let titlebar = windowScene.titlebar {
                 let toolbar = NSToolbar(identifier: "settings")
@@ -105,9 +123,22 @@ import UIKit
             show(pane)
         }
 
+        /// A relay file (or an `ighostvt://` link) opened while this window
+        /// is in front: macOS hands it to the key window's scene, this one
+        /// included, and a terminal window would have taken it the same way.
+        func scene(_: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {
+            for context in contexts {
+                if RelayImport.isConfiguration(context.url) {
+                    RelayImport.open(context.url, in: window)
+                } else {
+                    ShortcutBridge.handle(context.url)
+                }
+            }
+        }
+
         // MARK: - Panes
 
-        private func show(_ pane: MacSettingsPane) {
+        fileprivate func show(_ pane: MacSettingsPane) {
             self.pane = pane
             UserDefaults.standard.set(pane.rawValue, forKey: Self.selectedPaneKey)
             windowScene?.title = pane.title

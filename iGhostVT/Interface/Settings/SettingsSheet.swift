@@ -11,6 +11,10 @@ import SwiftUI
 /// (`SettingsWindow`).
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
+    /// Remote Access, pushed by itself for a relay file opened while the
+    /// sheet is up or one that opened it (`RelayImport`): that page is
+    /// where the file is asked about.
+    @State private var isShowingRemoteAccess = false
 
     var body: some View {
         NavigationView {
@@ -23,6 +27,22 @@ struct SettingsSheet: View {
                 RecentDirectoriesSettingsSection()
                 KeyboardSettingsSection()
                 AboutSettingsSection()
+            }
+            // Out here, not on the section's row: a Form builds its rows
+            // as they scroll into view, and a link in a row not built yet
+            // cannot be followed.
+            .background(
+                NavigationLink(isActive: $isShowingRemoteAccess) {
+                    RemoteAccessView()
+                } label: {
+                    EmptyView()
+                },
+            )
+            .onReceive(RelayImport.pending) { request in
+                // Remote Access already on screen asks for itself.
+                if request != nil, RelayImport.promptsOnScreen == 0 {
+                    isShowingRemoteAccess = true
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)

@@ -43,6 +43,7 @@ struct RemoteAccessView: View {
         .sheet(item: $pairingHost) { host in
             RemotePairDeviceView(host: host)
         }
+        .relayImportPrompt()
     }
 
     // MARK: - This device

@@ -53,11 +53,31 @@ final class AlertViewController: OverlayPanelController {
         install(AlertPane(title: alertTitle, message: alertMessage, actions: dismissing))
     }
 
+    /// Posted as an alert leaves the screen, answered or not: what a request
+    /// waiting for its window to be free (`RelayImport`) listens for.
+    static let didDisappear = Notification.Name("wiki.qaq.ighostvt.alertDidDisappear")
+
+    /// Whether `window` shows an alert that is not on its way out — at any
+    /// depth, above a sheet or the switcher's cover included.
+    static func isShowing(in window: UIWindow) -> Bool {
+        var controller = window.rootViewController?.presentedViewController
+        while let current = controller {
+            if current is AlertViewController, !current.isBeingDismissed {
+                return true
+            }
+            controller = current.presentedViewController
+        }
+        return false
+    }
+
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        guard !hasAnswered, isBeingDismissed || presentingViewController == nil else { return }
-        hasAnswered = true
-        onDismissUnanswered?()
+        guard isBeingDismissed || presentingViewController == nil else { return }
+        if !hasAnswered {
+            hasAnswered = true
+            onDismissUnanswered?()
+        }
+        NotificationCenter.default.post(name: Self.didDisappear, object: self)
     }
 
     private func answer(_ action: AlertAction) {

@@ -104,6 +104,7 @@ import SwiftUI
                     yourDevices
                 }
             }
+            .relayImportPrompt()
         }
 
         // MARK: - Relay

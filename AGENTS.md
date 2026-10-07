@@ -390,9 +390,15 @@ that wants the same exit sooner.
 (`Relay/PROTOCOL.md` is the wire contract; the server is Go, standard
 library only, in a scratch image). Its server generates a P-256 key and keeps
 only the public half; the private half goes into the `.vtrpsc` file
-(`RelayConfiguration`) people import — Settings ▸ Remote Access ▸ Relay, or
-opening the file (`RelayImport`, the `wiki.qaq.ighostvt.relay-config`
-document type). The app keeps the file (`RelayConfigurationStore`) and is
+(`RelayConfiguration`) people import by opening it (`RelayImport`, the
+`wiki.qaq.ighostvt.relay-config` document type). Opening one brings up
+Settings ▸ Remote Access — the sheet, pushed to that page, on iPhone and
+iPad; the settings window's Remote pane on the Mac — and the question is
+asked there (`relayImportPrompt`), never over a terminal: alerts do not
+stack, and one raised there took down whatever a tab was already asking as
+if it had been refused. On iOS a window that is asking something waits for
+the answer before Settings opens (`AlertViewController.isShowing`,
+`didDisappear`). The app keeps the file (`RelayConfigurationStore`) and is
 its one truth: it sends it to its own helper (`setRelayConfiguration`, op 26
 — the payload holds the key, so nothing may log it) whenever the helper's
 `relayFingerprint` in `remoteStatus` differs. The helper registers over a

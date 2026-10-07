@@ -55,8 +55,9 @@ class OverlayPanelController: UIViewController {
     /// has gone — or stayed: UIKit defers a presentation made under a
     /// dismissing sheet, but drops it without a word when the user cancels
     /// that dismissal (the sheet dragged, then let snap back), and the
-    /// front-most context is then the sheet itself. An alert already up is
-    /// dismissed before another is shown, never covered by it.
+    /// front-most context is then the sheet itself. A context on its way in
+    /// is waited for the same way. An alert already up is dismissed before
+    /// another is shown, never covered by it.
     func present(in window: UIWindow?) {
         guard var presenter = window?.rootViewController else { return }
         while let presented = presenter.presentedViewController {
@@ -78,6 +79,14 @@ class OverlayPanelController: UIViewController {
                 return
             }
             presenter = presented
+        }
+        // A context still on its way in — the settings sheet a relay file
+        // just opened — refuses to present over itself until it has arrived.
+        if presenter.isBeingPresented, let coordinator = presenter.transitionCoordinator {
+            coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+                self?.present(in: window)
+            }
+            return
         }
         presenter.present(self, animated: true)
     }
