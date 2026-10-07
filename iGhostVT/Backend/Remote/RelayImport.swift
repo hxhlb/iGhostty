@@ -20,14 +20,14 @@ enum RelayImport {
         case unusable(String)
     }
 
-    /// The file opened last and not yet answered, which Settings ▸ Remote
-    /// Access asks about (`relayImportPrompt`); nil once answered. A second
-    /// file opened before the first is answered replaces it.
+    /// The file opened last and not yet answered, which Settings asks
+    /// about (`relayImportPrompt`); nil once answered. A second file opened
+    /// before the first is answered replaces it.
     static let pending = CurrentValueSubject<Request?, Never>(nil)
 
-    /// How many Remote Access pages are on screen, each of which asks by
-    /// itself; the settings sheet pushes one only when there is none.
-    fileprivate(set) static var promptsOnScreen = 0
+    /// How many Remote Access pages are on screen (`RemoteAccessView`
+    /// counts itself), so the settings sheet pushes one only when none is.
+    static var remoteAccessOnScreen = 0
 
     static func isConfiguration(_ url: URL) -> Bool {
         url.isFileURL && url.pathExtension.lowercased() == RelayConfiguration.fileExtension
@@ -109,12 +109,12 @@ enum RelayImport {
         }
 
         /// Opens the settings sheet; one already up takes the request where
-        /// it is (`RemoteAccessSettingsSection` pushes Remote Access). The
-        /// sheet hangs off the window's root, which presents one thing at a
-        /// time, so the switcher's cover is closed first, and whatever else
-        /// is in the way — the cover on its way out, a share sheet — is
-        /// waited out for a few seconds. Past that the request stays, and
-        /// Remote Access asks about it the next time it opens.
+        /// it is (`SettingsSheet` pushes Remote Access and asks). The sheet
+        /// hangs off the window's root, which presents one thing at a time,
+        /// so the switcher's cover is closed first, and whatever else is in
+        /// the way — the cover on its way out, a share sheet — is waited
+        /// out for a few seconds. Past that the request stays, and Settings
+        /// asks about it the next time it opens.
         private static func showSettings(in window: TerminalWindow, attempt: Int) {
             guard pending.value != nil else { return }
             let interface = window.interface
@@ -201,15 +201,14 @@ enum RelayImport {
 
 extension View {
     /// Asks about the relay file opened last (`RelayImport.pending`), in
-    /// this view's window. Attached to Settings ▸ Remote Access on every
-    /// platform, which is where opening a file brings the person.
+    /// this view's window. One per settings presentation — the iPhone and
+    /// iPad sheet, the Mac's Remote pane — so a file is asked about once
+    /// however deep the sheet's navigation is.
     func relayImportPrompt() -> some View {
         modifier(WindowAlertPresenter(
             requests: RelayImport.pending,
             onFinish: { RelayImport.pending.send(nil) },
             makeAlert: { request, finish in RelayImport.alert(for: request, finish: finish) },
         ))
-        .onAppear { RelayImport.promptsOnScreen += 1 }
-        .onDisappear { RelayImport.promptsOnScreen -= 1 }
     }
 }

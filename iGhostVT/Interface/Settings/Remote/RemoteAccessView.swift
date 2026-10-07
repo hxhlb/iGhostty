@@ -29,13 +29,18 @@ struct RemoteAccessView: View {
             yourDevicesSection
         }
         .navigationTitle("Remote Access")
+        // Said outright rather than inherited: pushed as the sheet appears
+        // (a relay file that launched the app), it came up with a large title.
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             model.appear()
             directory.start()
+            RelayImport.remoteAccessOnScreen += 1
         }
         .onDisappear {
             saveName()
             model.disappear()
+            RelayImport.remoteAccessOnScreen -= 1
         }
         .sheet(isPresented: $isShowingPairingCode) {
             RemotePairingCodeView(model: model)
@@ -43,7 +48,6 @@ struct RemoteAccessView: View {
         .sheet(item: $pairingHost) { host in
             RemotePairDeviceView(host: host)
         }
-        .relayImportPrompt()
     }
 
     // MARK: - This device

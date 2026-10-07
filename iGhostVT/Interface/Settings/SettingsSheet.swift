@@ -39,8 +39,7 @@ struct SettingsSheet: View {
                 },
             )
             .onReceive(RelayImport.pending) { request in
-                // Remote Access already on screen asks for itself.
-                if request != nil, RelayImport.promptsOnScreen == 0 {
+                if request != nil, RelayImport.remoteAccessOnScreen == 0 {
                     isShowingRemoteAccess = true
                 }
             }
@@ -59,5 +58,9 @@ struct SettingsSheet: View {
             }
         }
         .navigationViewStyle(.stack)
+        // On the sheet, not on Remote Access: one asker however deep the
+        // navigation is, so a file opened from a page under Remote Access is
+        // still asked about once.
+        .relayImportPrompt()
     }
 }
