@@ -41,13 +41,20 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   for exactly this reason.
 - Depends on the **released**
   [libghostty-spm](https://github.com/Lakr233/libghostty-spm) package
-  (`upToNextMajor` from 2.2.2026100303, Ghostty 0538f753 on Zig 0.16). 2.x
+  (`upToNextMajor` from 2.2.2026100701, Ghostty 35a81a98 on Zig 0.16). 2.x
   selects text inline on iOS — a long press puts handles and the edit menu
   on the terminal itself — and removed the long-press hand-off
   (`onTextSelectionRequest`) the app's own selection sheet hung off, so the
   app has no selection UI of its own; customise the menus through
   `touchMenuItems(for:)` / `touchSelectionMenuItems(for:)` on
-  `LockableTerminalView`, never by bringing a sheet back. 1.6.20261003 makes
+  `LockableTerminalView`, never by bringing a sheet back. Match an item
+  there by its identifier (`terminal.copy`, `terminal.paste`, …), never by
+  its title: since 2.2.2026100701 the titles are localized, and they follow
+  the user's language only because `Info.plist` sets
+  `CFBundleAllowMixedLocalizations`. That release also adds the iOS 17+
+  selection loupe and puts away, on a tap, the accessory bar iOS 27 left
+  behind after hardware-keyboard input; below it the touch menus read
+  English on every system. 1.6.20261003 makes
   a tap below the cursor row, when nothing has mouse
   capture, click the cursor's cell, so raising the keyboard no longer
   pushes the top lines into scrollback; 1.6.20261002 bounds the main-queue
