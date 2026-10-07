@@ -70,6 +70,20 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         @objc func newWindow(_: Any?) {
             TerminalWindow.requestNewWindow()
         }
+
+        @objc func checkForUpdates(_: Any?) {
+            UpdateCheck.shared.check()
+        }
+
+        /// Check for Updates… reads as what the check is doing, and does
+        /// nothing more until it is done.
+        override func validate(_ command: UICommand) {
+            super.validate(command)
+            guard command.action == #selector(checkForUpdates(_:)) else { return }
+            let checker = UpdateCheck.shared
+            command.title = checker.menuTitle
+            command.attributes = checker.phase == .idle ? [] : .disabled
+        }
     #endif
 
     /// The system menu bar (the Mac, an iPad with a keyboard — where it is

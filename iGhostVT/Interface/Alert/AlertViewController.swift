@@ -16,8 +16,22 @@ import UIKit
 /// whose key stays `Close “%@”?` — and localization keeps working implicitly,
 /// exactly as it did in `.alert`'s `LocalizedStringKey` positions.
 final class AlertViewController: OverlayPanelController {
-    private let alertTitle: String
-    private let alertMessage: String
+    /// What the card says. Fixed for an ordinary alert; a running task's
+    /// alert (`init(content:actions:)`) changes it in place, and `close`
+    /// takes it down when the task is done.
+    final class Content: ObservableObject {
+        @Published var title: String
+        @Published var message: String
+        @Published var progress: AlertProgress?
+
+        init(title: String, message: String = "", progress: AlertProgress? = nil) {
+            self.title = title
+            self.message = message
+            self.progress = progress
+        }
+    }
+
+    private let content: Content
     private let actions: [AlertAction]
     private var hasAnswered = false
 
@@ -31,13 +45,21 @@ final class AlertViewController: OverlayPanelController {
     /// Quit) sets its own.
     var onDismissUnanswered: (() -> Void)?
 
-    init(
+    convenience init(
         title: String.LocalizationValue,
         message: String.LocalizationValue,
         actions: [AlertAction],
     ) {
-        alertTitle = String(localized: title)
-        alertMessage = String(localized: message)
+        self.init(
+            content: Content(title: String(localized: title), message: String(localized: message)),
+            actions: actions,
+        )
+    }
+
+    /// An alert whose text and progress follow `content`. Localize its
+    /// strings where they are set.
+    init(content: Content, actions: [AlertAction]) {
+        self.content = content
         self.actions = actions
         onDismissUnanswered = actions.last { $0.kind == .normal }?.handler
         super.init()
@@ -50,7 +72,30 @@ final class AlertViewController: OverlayPanelController {
                 self?.answer(action)
             }
         }
-        install(AlertPane(title: alertTitle, message: alertMessage, actions: dismissing))
+        install(AlertPane(content: content, actions: dismissing))
+    }
+
+    /// Takes the alert down with no action run, for a task that finished on
+    /// its own; `completion` follows once it is gone. One still on its way
+    /// in is let arrive first — a dismissal sent mid-presentation is dropped
+    /// — and one never presented stays that way (`wantsPresentation`).
+    func close(then completion: (() -> Void)? = nil) {
+        hasAnswered = true
+        if isBeingPresented, let coordinator = transitionCoordinator {
+            coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+                self?.close(then: completion)
+            }
+            return
+        }
+        guard presentingViewController != nil, !isBeingDismissed else {
+            completion?()
+            return
+        }
+        dismiss(animated: true, completion: completion)
+    }
+
+    override var wantsPresentation: Bool {
+        !hasAnswered
     }
 
     /// Posted as an alert leaves the screen, answered or not: what a request
@@ -88,16 +133,20 @@ final class AlertViewController: OverlayPanelController {
 }
 
 private struct AlertPane: View {
-    let title: String
-    let message: String
+    @ObservedObject var content: AlertViewController.Content
     let actions: [AlertAction]
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.25)
                 .ignoresSafeArea()
-            AlertCardView(title: title, message: message, actions: actions)
-                .padding(DS.Padding.l)
+            AlertCardView(
+                title: content.title,
+                message: content.message,
+                actions: actions,
+                progress: content.progress,
+            )
+            .padding(DS.Padding.l)
         }
     }
 }

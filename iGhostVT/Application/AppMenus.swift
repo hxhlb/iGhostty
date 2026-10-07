@@ -59,6 +59,9 @@ enum AppMenus {
     static func install(into builder: UIMenuBuilder) {
         installFileMenu(into: builder)
         installSettings(into: builder)
+        #if targetEnvironment(macCatalyst)
+            installUpdateCheck(into: builder)
+        #endif
         installViewMenu(into: builder)
         installWindowMenu(into: builder)
     }
@@ -210,6 +213,26 @@ enum AppMenus {
             builder.insertChild(settings, atStartOfMenu: .application)
         }
     }
+
+    #if targetEnvironment(macCatalyst)
+        /// Check for Updates… under About, where Mac apps keep it — the
+        /// Mac's only way in. Its title is the check's progress
+        /// (`AppDelegate.validate`).
+        private static func installUpdateCheck(into builder: UIMenuBuilder) {
+            let check = UICommand(
+                title: String(localized: "Check for Updates…"),
+                action: #selector(AppDelegate.checkForUpdates(_:)),
+            )
+            if builder.menu(for: .about) != nil {
+                builder.replaceChildren(ofMenu: .about) { $0 + [check] }
+            } else {
+                builder.insertChild(
+                    UIMenu(title: "", options: .displayInline, children: [check]),
+                    atStartOfMenu: .application,
+                )
+            }
+        }
+    #endif
 
     // MARK: - View
 

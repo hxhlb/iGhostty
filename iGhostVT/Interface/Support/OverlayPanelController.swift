@@ -32,6 +32,12 @@ class OverlayPanelController: UIViewController {
         view.backgroundColor = .clear
     }
 
+    /// False once the panel no longer wants to appear — an alert closed
+    /// while its presentation was still waiting for the context above it.
+    var wantsPresentation: Bool {
+        true
+    }
+
     func install(_ pane: some View) {
         let host = UIHostingController(rootView: pane.interfaceTextSize().interfaceAccent())
         host.view.backgroundColor = .clear
@@ -59,7 +65,7 @@ class OverlayPanelController: UIViewController {
     /// is waited for the same way. An alert already up is dismissed before
     /// another is shown, never covered by it.
     func present(in window: UIWindow?) {
-        guard var presenter = window?.rootViewController else { return }
+        guard wantsPresentation, var presenter = window?.rootViewController else { return }
         while let presented = presenter.presentedViewController {
             guard !presented.isBeingDismissed else {
                 if let coordinator = presented.transitionCoordinator {

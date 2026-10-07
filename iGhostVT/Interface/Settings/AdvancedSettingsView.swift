@@ -5,22 +5,32 @@
 
 import GhosttyTerminal
 import SwiftUI
+import UIKit
 
 /// What only troubleshooting needs, off the main sheet so it doesn't read
 /// as something to fill in: the keystroke-level log and the way into the
-/// logs. The Mac has its own pane for this (`MacSettingsPanes`), with the
-/// background helper's status beside it.
+/// logs, and the release package straight from GitHub. The Mac has its own
+/// pane for this (`MacSettingsPanes`), with the background helper's status
+/// beside it.
 struct AdvancedSettingsView: View {
     @AppStorage(DetailedTerminalLog.key) private var verboseTerminalLog = false
     @AppStorage(ZmodemSetting.key) private var zmodemEnabled = ZmodemSetting.defaultValue
+    @ObservedObject private var updates = UpdateCheck.shared
+    @State private var window: UIWindow?
 
     var body: some View {
         Form {
             fileTransferSection
             debugSection
+            #if !targetEnvironment(macCatalyst)
+                if UpdateCheck.isAvailable {
+                    updatesSection
+                }
+            #endif
         }
         .navigationTitle("Advanced")
         .navigationBarTitleDisplayMode(.inline)
+        .background(WindowReader(window: $window))
     }
 
     private var fileTransferSection: some View {
@@ -60,6 +70,20 @@ struct AdvancedSettingsView: View {
             .font(DS.Font.detail)
         }
     }
+
+    #if !targetEnvironment(macCatalyst)
+        /// The release's deb for this bootstrap, ahead of the APT
+        /// repository. The check runs under an alert of its own.
+        private var updatesSection: some View {
+            Section {
+                Button("Check for Updates") { updates.check(in: window) }
+                    .disabled(updates.phase != .idle)
+            } header: {
+                Text("Updates")
+                    .font(DS.Font.caption)
+            }
+        }
+    #endif
 }
 
 enum ZmodemSetting {

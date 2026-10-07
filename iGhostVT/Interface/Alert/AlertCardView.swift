@@ -64,6 +64,9 @@ struct AlertCardView: View {
     /// may take first responder, or a failed tab in the back would steal
     /// the keyboard from the one in front.
     var claimsFirstResponder = true
+    /// A running task's progress, under the message: a spinner until it
+    /// knows how far along it is, a bar from then on.
+    var progress: AlertProgress?
 
     var body: some View {
         // Two looks and no more: one highlighted answer at most, every
@@ -90,6 +93,15 @@ struct AlertCardView: View {
                     .font(DS.Font.detail)
                     .multilineTextAlignment(.center)
                     .lineLimit(6)
+            }
+
+            switch progress {
+            case .indeterminate:
+                ProgressView()
+            case let .fraction(value):
+                ProgressView(value: value)
+            case nil:
+                EmptyView()
             }
 
             // Side by side for two; stacked past that, as the system's
@@ -122,6 +134,11 @@ struct AlertCardView: View {
             }
         }
     }
+}
+
+enum AlertProgress: Equatable {
+    case indeterminate
+    case fraction(Double)
 }
 
 extension AlertCardView {

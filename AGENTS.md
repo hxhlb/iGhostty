@@ -112,7 +112,8 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   workflow stays named `Release` — `pages.yml` watches for it, and
   `Scripts/release.sh` finds the run by that name and then checks all ten
   assets by name (and then waits for Notarize's eleventh), so an asset that
-  is renamed breaks the cut. The relay's
+  is renamed breaks the cut — and the app's Check for Updates, which fetches
+  the notarized zip and the two debs by the same names. The relay's
   container image follows the same rule: CI pushes
   `ghcr.io/<owner>/ighostvt-relay:sha-<commit>` (every event but a pull
   request), and the Release run only gives that digest its release tags
@@ -183,6 +184,26 @@ change. Each `TerminalTab` snapshots the text when it is made and a theme
 change re-applies that snapshot, which is what keeps "open tabs keep the
 configuration they were opened with" true. The field straightens smart
 quotes and dashes as they are typed — ghostty reads neither as syntax.
+
+Check for Updates (`UpdateCheck`) asks GitHub's API for the latest release
+and, when that is newer than `CFBundleShortVersionString`, downloads the
+one asset that fits this install. On a device it is a button in Settings ▸
+Advanced that runs under an `AlertViewController` of its own — live text
+and a progress bar (`AlertViewController.Content`, `AlertCardView`'s
+`progress`) over a Cancel that is always there to press — closed with
+`close(then:)` once the check is done, so the next thing is not stacked on
+it: the share sheet with the deb for this bootstrap, which a package
+manager installs ahead of the APT repository, or an alert with any other
+answer. The bootstrap is read off where the app sits (inside what `/var/jb`
+resolves to is rootless, a jbroot's `Applications` is roothide; anywhere
+else, the Simulator included, the button is hidden — Debug builds take
+`UpdateCheck.packageArchitecture` from the defaults). On the Mac the only
+way in is Check for Updates… under About in the application menu, whose
+title is the progress (`AppDelegate.validate`, never a menu rebuild); the
+notarized zip — never the ad-hoc one — lands in Downloads, quarantined as a
+browser would so Gatekeeper's first-open check is the notarization check,
+and is shown in the Finder. Bytes are kept only when they match the SHA-256
+GitHub reports for the asset. It installs nothing and spawns nothing.
 
 ## Layout
 
