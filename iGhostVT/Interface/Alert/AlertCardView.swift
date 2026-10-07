@@ -142,12 +142,14 @@ enum AlertProgress: Equatable {
 }
 
 extension AlertCardView {
+    /// A lone button is the answer whatever it says — a progress card's
+    /// Cancel included — so it fills; it is Return's target already.
     private var buttons: some View {
         ForEach(actions) { action in
             Button(action: action.handler) {
                 Text(action.title)
             }
-            .buttonStyle(AlertButtonStyle(kind: action.kind))
+            .buttonStyle(AlertButtonStyle(kind: actions.count == 1 ? .highlighted : action.kind))
         }
     }
 }
