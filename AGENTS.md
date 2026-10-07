@@ -106,7 +106,8 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   number, a different runner image and bytes no test ever ran against. The
   workflow stays named `Release` — `pages.yml` watches for it, and
   `Scripts/release.sh` finds the run by that name and then checks all ten
-  assets by name, so an asset that is renamed breaks the cut. The relay's
+  assets by name (and then waits for Notarize's eleventh), so an asset that
+  is renamed breaks the cut. The relay's
   container image follows the same rule: CI pushes
   `ghcr.io/<owner>/ighostvt-relay:sha-<commit>` (every event but a pull
   request), and the Release run only gives that digest its release tags
@@ -918,12 +919,16 @@ the catalog's generated symbols, which is why the menu's entry is keyed
   assets, dispatching the APT repository build, and polling
   `https://apt.owngoal.dev/Packages` until the version is served — that
   poll is the acceptance test, because the APT run's own verify step has
-  raced the CDN cache and reported failure after a successful deploy.
+  raced the CDN cache and reported failure after a successful deploy —
+  then waiting for the notarized Mac zip Notarize attaches. The relay
+  image is checked against the tag's commit, never HEAD: a commit pushed
+  to main during the wait once made a good release fail that check.
   `INSTALL=1` ends with `make mac-update-from-github` (Touch ID).
 - `make mac-zip` — the *distributable* Mac build, a separate path from
   `make mac-run` (`mac-zip-check` validates its inputs; `Scripts/package-mac.sh`
-  stages, signs, zips). Universal Release, ad-hoc signed by default, Developer
-  ID and notarization optional via `MAC_ZIP_IDENTITY` / `MAC_NOTARY_PROFILE`.
+  stages, signs, zips). Universal Release, ad-hoc signed by default, a
+  Developer ID signature optional via `MAC_ZIP_IDENTITY`. Nothing here
+  notarizes: the release's notarized zip is the Notarize workflow's.
   It deliberately does **not** depend on `make check`: that target requires the
   jailbreak toolchain, and a Mac with only Xcode has to be able to cut this zip.
 

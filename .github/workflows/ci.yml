@@ -40,8 +40,9 @@
 # `make mac-zip` produces on a checkout with no signing identity: a
 # universal, hardened-runtime bundle that Gatekeeper will not trust on
 # sight. Whoever installs it clears the quarantine bit once — the release
-# notes say so, and so does the packager. Signing it properly is a local
-# `make mac-zip MAC_ZIP_IDENTITY=...` away.
+# notes say so, and so does the packager. The Developer ID, notarized copy is
+# made from this very zip once a release publishes it (notarize.yml), with
+# the identity kept in that workflow's secrets, never here.
 
 name: CI
 

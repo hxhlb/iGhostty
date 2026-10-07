@@ -280,8 +280,10 @@ iGhostVT.app
   x86_64) for Release, then `Scripts/package-mac.sh` stages the helper and the
   agent plist into the bundle, raises `LSMinimumSystemVersion` to 13.0, signs
   inside out with Hardened Runtime, and `ditto`s the zip. Ad-hoc by default;
-  `MAC_ZIP_IDENTITY` takes a Developer ID and `MAC_NOTARY_PROFILE` a notarytool
-  keychain profile. Same contract as the deb packager: xcodebuild never signs.
+  `MAC_ZIP_IDENTITY` takes a Developer ID. Notarization is not part of it: the
+  Notarize workflow re-signs the zip CI built and notarizes that
+  (`Scripts/notarize-mac-release.sh`). Same contract as the deb packager:
+  xcodebuild never signs.
 - `MacLaunchAgent` registers the bundled agent with `SMAppService` on first
   launch, and only from `/Applications` — Login Items binds to the registering
   path, and a translocated launch out of Downloads would bind to a mount that

@@ -3,7 +3,7 @@
 #
 #   package-mac.sh <app-bundle> <daemon-binary> <daemon-io-binary> <cli-binary> \
 #                  <agent-plist> <app-entitlements> <daemon-entitlements> \
-#                  <output-zip> <version> <sign-identity> [notary-profile]
+#                  <output-zip> <version> <sign-identity>
 #
 # The contract is the one Scripts/package-deb.sh already established: xcodebuild
 # produces *unsigned* products and the packager is the only thing that signs.
@@ -28,7 +28,7 @@ set -euo pipefail
 
 repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
-app_bundle="${1:?usage: $0 <app-bundle> <daemon> <daemon-io> <cli> <agent-plist> <app-ents> <daemon-ents> <output-zip> <version> <identity> [notary-profile]}"
+app_bundle="${1:?usage: $0 <app-bundle> <daemon> <daemon-io> <cli> <agent-plist> <app-ents> <daemon-ents> <output-zip> <version> <identity>}"
 daemon_binary="${2:?missing daemon binary}"
 daemon_io_binary="${3:?missing daemon io binary}"
 # Built beside io by the ighostvtd scheme, which depends on both.
@@ -40,7 +40,6 @@ daemon_entitlements="${7:?missing daemon entitlements}"
 output_zip="${8:?missing output zip}"
 version="${9:?missing version}"
 sign_identity="${10:?missing signing identity}"
-notary_profile="${11:-}"
 
 # The identifier the CLI is signed with. A bare Mach-O is otherwise named
 # after its file, and PeerAuthenticator's macOS branch requires this exact
@@ -193,27 +192,15 @@ if [[ "$sign_identity" == "-" ]]; then
     # called the download damaged.
     echo "    ad-hoc signed: recipients must run"
     echo "    xattr -dr com.apple.quarantine /Applications/iGhostVT.app"
-else
-    spctl --assess --type execute --verbose=2 "$staged_app" || \
-        echo "    note: spctl rejected the bundle; it needs notarization before distribution" >&2
 fi
 
 mkdir -p "$(dirname "$output_zip")"
 rm -f "$output_zip"
-# ditto, not zip: it is the archiver Apple's own notarization path expects, and
-# it preserves the symlinks and extended attributes a signed bundle needs.
+# ditto, not zip: it preserves the symlinks and extended attributes a signed
+# bundle needs. Notarization is not done here: the Notarize workflow re-signs
+# the zip CI built with Developer ID and notarizes that
+# (Scripts/notarize-mac-release.sh).
 ditto -c -k --sequesterRsrc --keepParent "$staged_app" "$output_zip"
-
-if [[ -n "$notary_profile" && "$sign_identity" != "-" ]]; then
-    echo "==> notarizing with keychain profile ${notary_profile}"
-    xcrun notarytool submit "$output_zip" --keychain-profile "$notary_profile" --wait
-    xcrun stapler staple "$staged_app"
-    rm -f "$output_zip"
-    ditto -c -k --sequesterRsrc --keepParent "$staged_app" "$output_zip"
-    echo "    stapled"
-elif [[ -n "$notary_profile" ]]; then
-    echo "    note: notarization skipped; an ad-hoc signature cannot be notarized" >&2
-fi
 
 echo "==> iGhostVT $version"
 echo "    $output_zip"

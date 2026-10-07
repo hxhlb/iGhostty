@@ -1,7 +1,7 @@
 #!/bin/bash
 # One-command release: version bump → commit → tag → GitHub Release run →
 # asset check → relay image check → APT repository build → the repo actually
-# serving it.
+# serving it → the notarized Mac zip Notarize attaches.
 #
 #   release.sh <x.y.z> [build]
 #
@@ -114,7 +114,9 @@ relay_digest() {
         "https://ghcr.io/v2/$relay_repo/manifests/$tag" 2>/dev/null \
         | tr -d '\r' | awk 'tolower($1) == "docker-content-digest:" { print $2 }'
 }
-commit="$(git rev-parse HEAD)"
+# The tag's commit, not HEAD: a commit pushed to main while this waited on the
+# Release run moved HEAD, and its own image is not the one the tag published.
+commit="$(git rev-parse "v$version^{commit}")"
 built="$(relay_digest "sha-$commit" || true)"
 tagged="$(relay_digest "$version" || true)"
 recorded="$(gh release download "v$version" --pattern relay-image.txt --output - 2>/dev/null || true)"
@@ -156,6 +158,20 @@ done
 grep -qxF "$version" <<<"$served" \
     || die "the APT repository serves '$(tr '\n' ' ' <<<"$served")', not $version"
 echo "    served"
+
+# Notarize follows a successful Release run on its own: the zip above, signed
+# with Developer ID and notarized, attached beside it. Apple usually answers
+# within minutes; a failure is the Notarize run's to explain.
+echo "==> waiting for the notarized Mac zip"
+notarized="iGhostVT-$version-macos-notarized.zip"
+for _ in $(seq 1 90); do
+    gh release view "v$version" --json assets --jq '.assets[].name' 2>/dev/null \
+        | grep -qxF "$notarized" && break
+    sleep 20
+done
+gh release view "v$version" --json assets --jq '.assets[].name' | grep -qxF "$notarized" \
+    || die "$notarized never arrived; see: gh run list --workflow Notarize"
+echo "    $notarized attached"
 
 echo "==> released $version (build $build)"
 if [[ "${INSTALL:-0}" == "1" ]]; then

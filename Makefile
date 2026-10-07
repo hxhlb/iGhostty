@@ -439,17 +439,17 @@ mac-run: mac-daemon mac-app
 # Signing is ad-hoc by default, which is what an unattended build (and every
 # checkout without a certificate) can do. An ad-hoc bundle is not
 # Gatekeeper-clean: whoever downloads it has to clear the quarantine bit once.
-# To ship one that does not need that, pass a Developer ID and a notarytool
-# keychain profile:
+# The release's Developer ID, notarized copy is not made here: the Notarize
+# workflow re-signs the zip CI built and notarizes that
+# (Scripts/notarize-mac-release.sh). A local Developer ID signature is still
+# one variable away:
 #
-#   make mac-zip MAC_ZIP_IDENTITY="Developer ID Application: NAME (TEAMID)" \
-#                MAC_NOTARY_PROFILE=ighostvt-notary
+#   make mac-zip MAC_ZIP_IDENTITY="Developer ID Application: NAME (TEAMID)"
 MAC_RELEASE_CONFIGURATION := Release
 # Universal by default. libghostty-spm ships both slices, and an Intel Mac is
 # still the machine a lot of people keep a terminal on.
 MAC_ARCHS           ?= arm64 x86_64
 MAC_ZIP_IDENTITY    ?= -
-MAC_NOTARY_PROFILE  ?=
 MAC_APP_ENTITLEMENTS    := $(ROOT_DIR)/Packaging/macOS/iGhostVT.entitlements
 MAC_DAEMON_ENTITLEMENTS := $(ROOT_DIR)/Packaging/macOS/iGhostVTDaemon.entitlements
 MAC_AGENT_PLIST     := $(ROOT_DIR)/Packaging/macOS/wiki.qaq.ighostvtd.agent.plist
@@ -516,8 +516,7 @@ mac-zip: mac-zip-check
 		"$(MAC_DAEMON_ENTITLEMENTS)" \
 		"$(MAC_ZIP_OUTPUT)" \
 		"$(APP_VERSION)" \
-		"$(MAC_ZIP_IDENTITY)" \
-		"$(MAC_NOTARY_PROFILE)"
+		"$(MAC_ZIP_IDENTITY)"
 
 # Install the GitHub Release macOS zip over /Applications/iGhostVT.app.
 # TAG defaults to the latest release. Needs `gh` and sudo (Touch ID here).
