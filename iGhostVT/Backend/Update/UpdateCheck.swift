@@ -71,7 +71,7 @@ final class UpdateCheck: ObservableObject {
         guard work == nil else { return }
         #if !targetEnvironment(macCatalyst)
             let content = AlertViewController.Content(
-                title: String(localized: "Checking for Updates"),
+                title: String(localized: "Checking for Updates…"),
                 progress: .indeterminate,
             )
             let alert = AlertViewController(
@@ -169,7 +169,7 @@ final class UpdateCheck: ObservableObject {
     var menuTitle: String {
         switch phase {
         case .idle:
-            String(localized: "Check for Updates…")
+            String(localized: "Check for Updates… (menu)")
         case .checking:
             String(localized: "Checking for Updates…")
         case let .downloading(_, fraction):

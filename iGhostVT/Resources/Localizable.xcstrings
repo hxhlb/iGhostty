@@ -4461,7 +4461,8 @@
         }
       }
     },
-    "Check for Updates…" : {
+    "Check for Updates… (menu)" : {
+      "comment" : "Menu item: checks GitHub for a newer release; the English text is “Check for Updates…”",
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
@@ -4540,89 +4541,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "檢查更新項目…"
-          }
-        }
-      }
-    },
-    "Checking for Updates" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "جارٍ البحث عن تحديثات"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suche nach Updates"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking for Updates"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscando actualizaciones"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recherche de mises à jour"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ricerca aggiornamenti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アップデートを確認中"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "업데이트 확인 중"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscando atualizações"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверка обновлений"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Đang kiểm tra bản cập nhật"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在检查更新"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在檢查更新項目"
           }
         }
       }

@@ -220,7 +220,7 @@ enum AppMenus {
         /// (`AppDelegate.validate`).
         private static func installUpdateCheck(into builder: UIMenuBuilder) {
             let check = UICommand(
-                title: String(localized: "Check for Updates…"),
+                title: String(localized: "Check for Updates… (menu)"),
                 action: #selector(AppDelegate.checkForUpdates(_:)),
             )
             if builder.menu(for: .about) != nil {
