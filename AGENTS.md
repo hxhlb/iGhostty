@@ -41,7 +41,7 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   for exactly this reason.
 - Depends on the **released**
   [libghostty-spm](https://github.com/Lakr233/libghostty-spm) package
-  (`upToNextMajor` from 2.2.2026100701, Ghostty 35a81a98 on Zig 0.16). 2.x
+  (`upToNextMajor` from 2.2.2026100702, Ghostty 35a81a98 on Zig 0.16). 2.x
   selects text inline on iOS — a long press puts handles and the edit menu
   on the terminal itself — and removed the long-press hand-off
   (`onTextSelectionRequest`) the app's own selection sheet hung off, so the
@@ -54,7 +54,12 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   `CFBundleAllowMixedLocalizations`. That release also adds the iOS 17+
   selection loupe and puts away, on a tap, the accessory bar iOS 27 left
   behind after hardware-keyboard input; below it the touch menus read
-  English on every system. 1.6.20261003 makes
+  English on every system. 2.2.2026100702 applies the surface option's
+  `fontSize` as a set size, so a config reload (a theme change, the system
+  switching light and dark) no longer snaps an open tab to the config's
+  `font-size` — which, after Settings ▸ Text Size changed, resized tabs
+  that should keep theirs — and reports the size back
+  (`TerminalViewState.fontSize`). 1.6.20261003 makes
   a tap below the cursor row, when nothing has mouse
   capture, click the cursor's cell, so raising the keyboard no longer
   pushes the top lines into scrollback; 1.6.20261002 bounds the main-queue
