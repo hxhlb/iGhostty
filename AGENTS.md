@@ -125,7 +125,7 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   (`Scripts/notarize-mac-release.sh`: Developer ID inside out with the
   identifiers and empty entitlements kept, hardened runtime, notarytool,
   staple) before attaching `iGhostVT-x.y.z-macos-notarized.zip` beside the
-  ad-hoc one. It compiles nothing. The identity and the notarytool profile
+  ad-hoc one and adding its line to `SHA256SUMS.macos`. It compiles nothing. The identity and the notarytool profile
   are one keychain held in two secrets, `NOTARY_TOOLBOX_ZIP_BASE64` (a zip
   holding the `.keychain-db`) and `NOTARY_TOOLBOX_PASSWORD`; the script reads
   the identity and the profile out of it and names neither. A release cut

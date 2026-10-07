@@ -1,6 +1,7 @@
 #!/bin/bash
 # The Mac zip a release published, signed with Developer ID and notarized,
-# attached to the same release as iGhostVT-<version>-macos-notarized.zip.
+# attached to the same release as iGhostVT-<version>-macos-notarized.zip,
+# with its sum added to the release's SHA256SUMS.macos.
 #
 #   notarize-mac-release.sh <vX.Y.Z | X.Y.Z>
 #
@@ -170,3 +171,10 @@ fi
 
 echo "==> attaching $notarized to $tag"
 gh release upload "$tag" "$workdir/out/$notarized" --clobber
+
+# Its sum goes beside the ad-hoc zip's, replacing the line a run before this
+# one wrote: a new signature is a new file.
+grep -vF "  $notarized" "$workdir/download/SHA256SUMS.macos" >"$workdir/out/SHA256SUMS.macos" || true
+printf '%s  %s\n' "$sum" "$notarized" >>"$workdir/out/SHA256SUMS.macos"
+gh release upload "$tag" "$workdir/out/SHA256SUMS.macos" --clobber
+echo "    SHA256SUMS.macos lists it"
