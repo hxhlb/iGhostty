@@ -73,7 +73,19 @@ for _ in $(seq 1 30); do
     sleep 5
 done
 [[ -n "$run_id" ]] || die "the Release run for $version never appeared"
-gh run watch "$run_id" --exit-status >/dev/null || die "Release run $run_id failed"
+# Polled, not `gh run watch`: that asks for the jobs every three seconds and
+# exits non-zero on the first API error, and a 403 from GitHub's rate limit
+# once ended a cut whose tag was already pushed, with its Release run going
+# on to succeed. Only the run's own conclusion decides.
+while :; do
+    state="$(gh run view "$run_id" --json status,conclusion \
+        --jq '"\(.status) \(.conclusion)"' 2>/dev/null || true)"
+    case "$state" in
+        "completed success") break ;;
+        completed*) die "Release run $run_id ended ${state#completed }" ;;
+    esac
+    sleep 30
+done
 echo "    run $run_id succeeded"
 
 echo "==> verifying the release assets"
