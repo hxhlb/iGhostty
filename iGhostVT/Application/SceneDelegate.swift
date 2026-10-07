@@ -74,7 +74,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         if let movedSessionID {
             TabWindowMove.releaseSource(of: movedSessionID, into: tabManager)
         }
-        tabManager.populate(movingSession: movedSessionID)
+        // Every other terminal window, background ones included: a window
+        // opened beside one of them was asked for.
+        let isOnlyWindow = ShortcutBridge.tabManagers().allSatisfy { $0 === tabManager }
+        tabManager.populate(movingSession: movedSessionID, isOnlyWindow: isOnlyWindow)
         #if targetEnvironment(macCatalyst)
             // A tab pulled out of a strip opens its window where it was
             // dropped, once AppKit has a window to move

@@ -5,9 +5,10 @@
 
 import SwiftUI
 
-/// What a window shows once its last tab is closed. Closing everything is
-/// allowed — the window stays open, and the bar's `+` (or ⌘T) opens the next
-/// shell; this view offers nothing of its own.
+/// What a window shows once its last tab is closed, or when it opened with
+/// nothing to resume and New Session at Launch off (`SessionLaunch`).
+/// Closing everything is allowed — the window stays open, and the bar's `+`
+/// (or ⌘T) opens the next shell; this view offers nothing of its own.
 ///
 /// A prompt glyph and a title, in the theme's text colour on the theme's
 /// background — the pane behind this view is the theme's background whatever

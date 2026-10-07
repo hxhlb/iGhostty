@@ -74,14 +74,19 @@ final class TabManager: ObservableObject {
     /// daemon has answered, and that tab has not attached yet, so the
     /// answer still lists the session as free.
     ///
+    /// `isOnlyWindow` is a window the app opened with no other terminal
+    /// window up — a launch, or the first window back after the last one
+    /// closed. Its fresh tab follows `SessionLaunch`; a window opened beside
+    /// another was asked for and always gets one.
+    ///
     /// Called by the scene delegate as the window connects, before anything
     /// else can add a tab.
-    func populate(movingSession movedSessionID: UInt64?) {
+    func populate(movingSession movedSessionID: UInt64?, isOnlyWindow: Bool) {
         if let movedSessionID {
             openTab(attachingTo: movedSessionID)
             return
         }
-        resumeLeftovers(openingFreshTab: true)
+        resumeLeftovers(openingFreshTab: !isOnlyWindow || SessionLaunch.opensNewSession)
     }
 
     /// Adopts the sessions no peer is attached to — and the ones a paired

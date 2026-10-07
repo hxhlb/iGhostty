@@ -368,6 +368,15 @@ not the tabs' transports, whose `closeSession` is fire-and-forget on a queue
 the exit outruns — and the call polls `listSessions` until the closed
 sessions are gone, because a close reply only says the SIGHUP was sent.
 
+Opening is the other half, beside it in Settings ▸ Sessions: New Session
+at Launch (`SessionLaunch`, on by default) decides whether a window with
+nothing to resume starts a shell. It applies to a window the app opens with
+no other terminal window up — a launch, or the first window back after the
+last closed — and never to one opened beside another (⌘N, New Window),
+which was asked for. Leftovers are resumed either way, and a window that
+opens with nothing shows `EmptyTabsView`. A remote-only build would turn it
+off; `populate(movingSession:isOnlyWindow:)` is the one place it is read.
+
 The app never asks the daemon to exit. **The daemon is demand-launched on
 both platforms and leaves by itself**: `IOSupervisor` arms a timer whenever
 no peer is connected (`idleExitDelay`, 30 s) and, when it fires, sends the

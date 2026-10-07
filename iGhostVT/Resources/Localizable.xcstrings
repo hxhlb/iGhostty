@@ -14240,6 +14240,89 @@
         }
       }
     },
+    "Keep Sessions Running lets a session with a program running keep going after the app quits and come back on the next launch; a shell sitting at its prompt closes. With it off, every session closes when the app quits." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عند تفعيل „إبقاء الجلسات قيد التشغيل“ تستمر الجلسة التي يعمل فيها برنامج بعد إنهاء التطبيق وتعود عند التشغيل التالي؛ أما الصدفة المتوقفة عند موجّهها فتُغلق. وعند تعطيله تُغلق كل الجلسات عند إنهاء التطبيق."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit „Sitzungen weiterlaufen lassen“ läuft eine Sitzung mit einem laufenden Programm nach dem Beenden der App weiter und kehrt beim nächsten Start zurück; eine Shell, die an ihrer Eingabeaufforderung wartet, wird geschlossen. Ist die Option deaktiviert, werden beim Beenden der App alle Sitzungen geschlossen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Sessions Running lets a session with a program running keep going after the app quits and come back on the next launch; a shell sitting at its prompt closes. With it off, every session closes when the app quits."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con “Mantener las sesiones activas”, una sesión con un programa en ejecución sigue activa después de salir de la app y vuelve al abrirla de nuevo; un shell que espera en su prompt se cierra. Si está desactivada, todas las sesiones se cierran al salir de la app."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec « Garder les sessions actives », une session où un programme s’exécute continue après la fermeture de l’app et revient au lancement suivant ; un shell en attente à son invite est fermé. Désactivée, toutes les sessions sont fermées à la fermeture de l’app."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con “Mantieni attive le sessioni”, una sessione con un programma in esecuzione resta attiva dopo la chiusura dell’app e torna al lancio successivo; una shell ferma al prompt viene chiusa. Se è disattivata, tutte le sessioni vengono chiuse alla chiusura dell’app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「セッションを実行し続ける」がオンの場合、プログラムを実行中のセッションはAppを終了しても実行を続け、次回起動時に復元されます。プロンプトで待機しているだけのシェルは閉じられます。オフにすると、Appの終了時にすべてのセッションが閉じられます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“세션 계속 실행”을 켜면 프로그램이 실행 중인 세션은 앱을 종료해도 계속 실행되고 다음 실행 시 복원됩니다. 프롬프트에서 대기 중인 셸은 닫힙니다. 끄면 앱을 종료할 때 모든 세션이 닫힙니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com “Manter sessões em execução”, uma sessão com um programa em execução continua depois que o app é encerrado e volta na próxima abertura; um shell parado no prompt é fechado. Desativada, todas as sessões são fechadas quando o app é encerrado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если включён параметр «Не завершать сеансы», сеанс с запущенной программой продолжает работать после выхода из приложения и восстанавливается при следующем запуске; оболочка, ожидающая в приглашении, закрывается. Если выключить, при выходе из приложения закрываются все сеансы."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khi bật “Giữ các phiên tiếp tục chạy”, phiên có chương trình đang chạy sẽ tiếp tục sau khi thoát ứng dụng và quay lại ở lần khởi chạy sau; shell đang dừng ở dấu nhắc thì bị đóng. Khi tắt, mọi phiên sẽ bị đóng khi thoát ứng dụng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启“保持会话运行”后，有程序正在运行的会话会在应用退出后继续运行，下次启动时自动恢复；停在提示符处的 shell 会被关闭。关闭后，退出应用时将关闭所有会话。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟「保持工作階段執行」後，有程式正在執行的工作階段會在 App 結束後繼續執行，並在下次啟動時恢復；停在提示字元的 shell 會被關閉。關閉後，結束 App 時將關閉所有工作階段。"
+          }
+        }
+      }
+    },
     "Key" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17551,6 +17634,172 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增工作階段"
+          }
+        }
+      }
+    },
+    "New Session at Launch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جلسة جديدة عند التشغيل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Sitzung beim Start"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Session at Launch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nueva sesión al abrir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvelle session au lancement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova sessione all’avvio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "起動時に新しいセッションを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "실행 시 새 세션 열기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nova sessão ao abrir"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый сеанс при запуске"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở phiên mới khi khởi chạy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动时新建会话"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟動時新增工作階段"
+          }
+        }
+      }
+    },
+    "New Session at Launch opens a session when the app starts with nothing to resume. With it off, the app opens with no tabs." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يفتح خيار „جلسة جديدة عند التشغيل“ جلسة عند بدء التطبيق إذا لم يكن هناك ما يُستعاد. وعند تعطيله يُفتح التطبيق دون علامات تبويب."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Neue Sitzung beim Start“ öffnet eine Sitzung, wenn die App startet und nichts wiederherzustellen ist. Ist die Option deaktiviert, öffnet sich die App ohne Tabs."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Session at Launch opens a session when the app starts with nothing to resume. With it off, the app opens with no tabs."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Nueva sesión al abrir” abre una sesión cuando la app se inicia y no hay nada que restaurar. Si está desactivada, la app se abre sin pestañas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« Nouvelle session au lancement » ouvre une session lorsque l’app démarre sans rien à restaurer. Désactivée, l’app s’ouvre sans onglet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Nuova sessione all’avvio” apre una sessione quando l’app si avvia senza nulla da ripristinare. Se è disattivata, l’app si apre senza schede."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「起動時に新しいセッションを開く」がオンの場合、復元するものがなければApp起動時に新しいセッションを開きます。オフにすると、タブを開かずに起動します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“실행 시 새 세션 열기”를 켜면 앱을 실행할 때 복원할 세션이 없으면 새 세션을 엽니다. 끄면 탭 없이 앱이 열립니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Nova sessão ao abrir” abre uma sessão quando o app é iniciado sem nada para restaurar. Desativada, o app abre sem abas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«Новый сеанс при запуске» открывает сеанс, если при запуске приложения нечего восстановить. Если выключить, приложение откроется без вкладок."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Mở phiên mới khi khởi chạy” mở một phiên khi ứng dụng khởi động mà không có gì để khôi phục. Khi tắt, ứng dụng mở ra mà không có tab nào."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启“启动时新建会话”后，如果启动应用时没有可恢复的会话，会新建一个。关闭后，应用启动时不打开任何标签页。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟「啟動時新增工作階段」後，如果啟動 App 時沒有可恢復的工作階段，會新增一個。關閉後，App 啟動時不開啟任何分頁。"
           }
         }
       }

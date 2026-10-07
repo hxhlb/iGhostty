@@ -81,6 +81,7 @@ import SwiftUI
             ShellMenuItems.showsCustomPath(shellPath, available: availableShellPaths, isEditing: isEditingCustomShell)
         }
 
+        @AppStorage(SessionLaunch.key) private var opensNewSession = true
         @AppStorage(SessionKeepAlive.key) private var keepAlive = true
         @ObservedObject private var agent = MacLaunchAgent.shared
         @ObservedObject private var recents = RecentDirectoryStore.shared
@@ -90,8 +91,16 @@ import SwiftUI
                 shellRow
                 Divider()
                 MacSettingsRow("Sessions") {
-                    MacCheckbox(String(localized: "Keep Sessions Running"), isOn: $keepAlive)
+                    MacCheckbox(String(localized: "New Session at Launch"), isOn: $opensNewSession)
                 } details: {
+                    MacSettingsNote(
+                        """
+                        New Session at Launch opens a session when the app starts \
+                        with nothing to resume. With it off, the app opens with no tabs.
+                        """,
+                    )
+                    MacCheckbox(String(localized: "Keep Sessions Running"), isOn: $keepAlive)
+                        .padding(.top, DS.Padding.s)
                     MacSettingsNote(
                         """
                         Sessions with a program running keep going after the app quits \

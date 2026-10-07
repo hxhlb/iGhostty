@@ -127,3 +127,18 @@ enum SessionKeepAlive {
         UserDefaults.standard.object(forKey: key) as? Bool ?? true
     }
 }
+
+/// Whether a window the app opens on its own starts a shell when there is
+/// nothing to resume. On by default: a terminal opens to a prompt. Off is
+/// for someone who opens the app to reach what is already running — a
+/// paired device's terminals, a session the CLI started — and would rather
+/// see an empty window than a shell they did not ask for. A window opened
+/// beside another (⌘N, New Window) is a request for a terminal and gets one
+/// either way.
+enum SessionLaunch {
+    static let key = "Session.openAtLaunch"
+
+    static var opensNewSession: Bool {
+        UserDefaults.standard.object(forKey: key) as? Bool ?? true
+    }
+}
