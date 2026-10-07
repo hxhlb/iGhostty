@@ -226,7 +226,7 @@ final class PeerSession {
             DaemonFileLog.log("peer \(peerID) shutdown with nothing held")
             return Outcome(.success, then: .exitProcess)
         case .remoteStatus, .setRemoteAccess, .beginPairing, .endPairing, .revokeRemoteDevice, .setHostName,
-             .pairStart, .pairFinish:
+             .setRelayConfiguration, .pairStart, .pairFinish, .ping:
             // The proxy's and the remote helper's; none of them reaches
             // here from a client the proxy relays.
             return Outcome(.invalidRequest)

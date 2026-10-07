@@ -33,9 +33,56 @@ enum RemoteAccess {
         static let version = "v"
         /// The host's address on the local network, for a list to show.
         static let address = "ip"
+        /// The iGhostVT version the host runs (`appVersion`), so a list can
+        /// say a device needs updating before anyone connects.
+        static let appVersion = "av"
     }
 
     static let protocolVersion = "1"
+
+    /// The iGhostVT version this side runs, `CFBundleShortVersionString`.
+    /// Two devices connect, and pair, only when theirs are equal: the
+    /// operations a device may send grow from one version to the next, and
+    /// a mismatch is said plainly instead of surfacing as some later
+    /// request failing. The build number is left out — every local build
+    /// bumps it.
+    ///
+    /// The app reads its own bundle, and so does `ighostvtd-remote` on the
+    /// Mac, where it sits in `Contents/MacOS`. On the device the helper is
+    /// in `<bootstrap>/usr/libexec` and the app it was installed with in
+    /// `<bootstrap>/Applications`, two levels up from it whatever the
+    /// bootstrap's root is. A build with neither — the harness, a helper
+    /// run from a build folder — is `unknownVersion`, and the check is
+    /// skipped for it rather than refusing everyone.
+    static let appVersion: String = {
+        if let version = shortVersion(Bundle.main.infoDictionary) {
+            return version
+        }
+        let executable = URL(fileURLWithPath: CommandLine.arguments.first ?? "").resolvingSymlinksInPath()
+        let plist = executable.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Applications/iGhostVT.app/Info.plist")
+        if let data = try? Data(contentsOf: plist),
+           let object = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+           let version = shortVersion(object)
+        {
+            return version
+        }
+        return unknownVersion
+    }()
+
+    static let unknownVersion = "0"
+
+    /// Whether two versions may talk: equal, or one side does not know its
+    /// own.
+    static func isCompatible(_ theirs: String?, with ours: String = appVersion) -> Bool {
+        guard ours != unknownVersion else { return true }
+        guard let theirs else { return false }
+        return theirs == ours || theirs == unknownVersion
+    }
+
+    private static func shortVersion(_ info: [String: Any]?) -> String? {
+        (info?["CFBundleShortVersionString"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    }
 
     /// The identity and key a pairing connection handshakes with. Public
     /// by design — see the type's notes.
@@ -67,6 +114,15 @@ enum RemoteAccess {
     /// without the host noticing, short enough that a device that left
     /// hands them back soon.
     static let reconnectGraceSeconds: TimeInterval = 30
+    /// A link through a relay is pinged after this much quiet
+    /// (`iGhostVTOperation.ping`), and given up by the app after
+    /// `relayedReplyLimit` without a byte from the host.
+    static let relayedPingInterval: TimeInterval = 15
+    static let relayedReplyLimit: TimeInterval = 45
+    /// The host drops a relayed device it has heard nothing from for this
+    /// long — a phone that went to sleep is one, and reattaches when it
+    /// wakes.
+    static let relayedSilenceLimit: TimeInterval = 60
     static let maximumDeviceCount = 32
     static let maximumNameByteCount = 64
 

@@ -225,6 +225,13 @@ enum iGhostVTOperation: UInt64, Sendable {
     /// advertised, and named in their lists. Empty goes back to the name
     /// the owner gave the device in Settings.
     case setHostName = 25
+    /// `relay`: the relay configuration (a `.vtrpsc` file's bytes) this
+    /// host registers with, empty to stop using one. The app keeps the
+    /// file and is the one truth about it: `remoteStatus` reports the
+    /// helper's `relayFingerprint`, and the app sends this again whenever
+    /// that differs from its own. The payload holds a private key — nothing
+    /// that handles it may log it.
+    case setRelayConfiguration = 26
 
     // Remote access: spoken by the app to `ighostvtd-remote` over the
     // pairing link only (see `RemoteAccess`), never to the daemon.
@@ -235,6 +242,14 @@ enum iGhostVTOperation: UInt64, Sendable {
     /// `confirmation` (the prover's). Answered with success, or with
     /// `invalidRequest` for a wrong code.
     case pairFinish = 31
+    /// Answered at once by `ighostvtd-remote` itself, never forwarded: an
+    /// end-to-end heartbeat for a link through a relay. TCP keepalive only
+    /// proves each leg to the next box, and a proxy on the way answers it
+    /// for a peer that is long gone; this crosses the whole path. The app
+    /// sends it on a quiet relayed link and gives the link up when nothing
+    /// comes back; the helper drops a relayed device that has sent nothing
+    /// for `RemoteAccess.relayedSilenceLimit`.
+    case ping = 32
 }
 
 /// The attribute keys and values the app keeps on a session
@@ -406,6 +421,24 @@ enum iGhostVTWireKey {
     static let confirmation = "confirm"
     /// On `remoteStatus`: paired devices connected right now.
     static let connectedCount = "connected"
+    /// On a remote `hello` and `pairStart`, on the host's refusal of either
+    /// (`unsupportedVersion`), and on `remoteStatus`: the iGhostVT version
+    /// (`CFBundleShortVersionString`) the sender runs. Two devices connect
+    /// only when theirs are equal.
+    static let appVersion = "appver"
+    /// `setRelayConfiguration`: the `.vtrpsc` bytes.
+    static let relay = "relay"
+    /// On `remoteStatus`: the relay the helper uses (`RelayConfiguration.fingerprint`),
+    /// empty for none. Absent when the helper is not running.
+    static let relayFingerprint = "relayfp"
+    /// On `remoteStatus`: `RelayState`, and the relay's name and what went
+    /// wrong with it, if anything.
+    static let relayState = "relaystate"
+    static let relayName = "relayname"
+    static let relayMessage = "relaymsg"
+    /// On `beginPairing`: the window also accepts a pairing that comes in
+    /// through the relay. Off unless asked for.
+    static let relayPairing = "relaypair"
 }
 
 /// The remote helper's state, as `remoteStatus` reports it.
@@ -414,6 +447,21 @@ enum RemoteAccessState: String, Sendable {
     case starting
     case listening
     case failed
+}
+
+/// The host's registration with its relay, as `remoteStatus` reports it.
+enum RelayState: String, Sendable {
+    /// No relay configured.
+    case off
+    case connecting
+    case registered
+    /// Could not reach or register; tried again with a backoff.
+    case failed
+    /// Another machine registered this host id with this host's key — a
+    /// copied identity. Not retried until the configuration changes.
+    case conflict
+    /// The relay speaks another protocol version. Not retried.
+    case versionMismatch
 }
 
 /// A reply code carrying the sentence the app should show.
