@@ -13,10 +13,6 @@ import Foundation
 /// next time anyone looks.
 enum RelayConfigurationStore {
     static let didChange = Notification.Name("wiki.qaq.ighostvt.relayConfigurationDidChange")
-    /// Whether a pairing window opened here also takes a pairing that comes
-    /// through the relay. Off by default: pairing is the one thing a
-    /// stranger who knows this host's id can try through it.
-    static let allowsRelayPairingKey = "Remote.allowsRelayPairing"
 
     private static let lock = NSLock()
     private nonisolated(unsafe) static var cache: RelayConfiguration??
@@ -36,11 +32,6 @@ enum RelayConfigurationStore {
     /// for none.
     static var fingerprint: String {
         current?.fingerprint ?? ""
-    }
-
-    static var allowsRelayPairing: Bool {
-        get { UserDefaults.standard.bool(forKey: allowsRelayPairingKey) }
-        set { UserDefaults.standard.set(newValue, forKey: allowsRelayPairingKey) }
     }
 
     static func save(_ configuration: RelayConfiguration) throws {

@@ -30,10 +30,11 @@ enum InterfaceTextSize {
 enum TerminalFontSize {
     static let key = "Terminal.fontSize"
 
-    // The Mac gets libghostty's own default; the device keeps the smaller
-    // size the library's default configuration renders there.
+    // The Mac a little under libghostty's own 14, which read large in the
+    // iPad idiom's scaled window; the device keeps the smaller size the
+    // library's default configuration renders there.
     #if targetEnvironment(macCatalyst)
-        static let `default` = 14
+        static let `default` = 12
     #else
         static let `default` = 10
     #endif

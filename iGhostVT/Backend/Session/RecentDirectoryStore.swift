@@ -62,14 +62,17 @@ final class RecentDirectoryStore: ObservableObject {
     /// names nothing on this one, and the other way round.
     @Published private(set) var remoteEntries: [String: [Entry]] = [:]
 
-    /// Whether the menu offers the list at all, and whether visits are
-    /// recorded while it is off. Both: a switch that says the app is not
-    /// keeping this should mean it. What is already stored stays, so
-    /// turning it back on restores the list; Clear is the other control.
+    /// Whether the menu offers the list at all, whether visits are
+    /// recorded, and whether anything is kept: turning it off clears what
+    /// is stored. A switch that says the app is not keeping this should
+    /// mean it, and it is the list's only control.
     @Published var isEnabled: Bool {
         didSet {
             guard isEnabled != oldValue else { return }
             defaults.set(isEnabled, forKey: Self.enabledKey)
+            if !isEnabled {
+                clear()
+            }
         }
     }
 

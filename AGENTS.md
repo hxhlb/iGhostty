@@ -399,8 +399,9 @@ an SNI of the host id (`RemoteTLS.parameters(serverName:)`, sent on the
 direct path too); the relay asks the host to call back, and the helper
 splices that call back into a second TLS listener on the loopback address,
 so `RemoteClient` serves it like any other — counted apart from the local
-network's unauthenticated slots, and refusing pairing unless the window was
-opened with Allow Pairing Through Relay. `RemoteDaemonLink` races the paths:
+network's unauthenticated slots, and taking a pairing through it only in a
+window the app opened while it has a relay (it always asks for that; there
+is no switch). `RemoteDaemonLink` races the paths:
 direct first, the relay a moment later (1 s when Bonjour sees the host,
 300 ms on a remembered address, at once when the direct one fails), first
 TLS handshake wins, and a recent winner goes first for five minutes. Things
@@ -672,10 +673,10 @@ is not a path anything can `chdir` to. Forty are kept, the least recently
 visited evicted first whatever the sort order; eight reach the menu, minus
 any directory an open tab is already offering and minus the home, which is
 the first row anyway. Settings ▸ Recent Directories is the whole
-of its configuration: Remember Directories both hides the group *and* stops
-recording — a switch that says the app is not keeping this has to mean it —
-Sort By is Last Visited or Most Visited, and Clear is the only thing that
-throws the list away, so turning the switch back on restores it. A remote
+of its configuration: Remember Directories hides the group, stops recording
+*and* clears what is stored — a switch that says the app is not keeping this
+has to mean it, and there is no separate Clear — and Sort By is Last Visited
+or Most Visited. A remote
 tab's directories are kept apart, per host id (`remoteEntries`, twenty per
 device, five in its menu group): a path on another device names nothing
 here. They open with `startDirectory` on *that* device's daemon, which

@@ -34,12 +34,6 @@ struct RecentDirectoriesSettingsSection: View {
                     .accessibilityValue(recents.sortOrder.title)
                 }
             }
-
-            if !recents.entries.isEmpty {
-                Button(role: .destructive, action: { recents.clear() }) {
-                    Text("Clear Recent Directories")
-                }
-            }
         } header: {
             Text("Recent Directories")
                 .font(DS.Font.caption)
@@ -47,9 +41,8 @@ struct RecentDirectoriesSettingsSection: View {
             Text(
                 """
                 New Tab offers the directories your terminals are in, then \
-                the ones they have been in before. Turn this off and that \
-                second list is neither offered nor added to; what is already \
-                remembered stays until you clear it.
+                the ones they have been in before. Turning this off forgets \
+                that second list and stops adding to it.
                 """,
             )
             .font(DS.Font.detail)

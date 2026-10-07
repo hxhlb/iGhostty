@@ -158,6 +158,252 @@
       },
       "shouldTranslate" : false
     },
+    "%lld Devices" : {
+      "comment" : "Count of devices in a list",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld أجهزة"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld جهازًا"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "جهاز واحد"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld جهاز"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "جهازان"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld جهاز"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Gerät"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Geräte"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Device"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Devices"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dispositivo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dispositivos"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld appareil"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld appareils"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dispositivo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dispositivi"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 台のデバイス"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "기기 %lld대"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dispositivo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dispositivos"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld устройства"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld устройств"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld устройство"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld устройства"
+                }
+              }
+            }
+          }
+        },
+        "vi" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld thiết bị"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 台设备"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 台裝置"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld entries" : {
       "comment" : "A log entry count",
       "localizations" : {
@@ -1235,89 +1481,6 @@
         }
       }
     },
-    "A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يتيح المرحّل لأجهزتك الوصول إلى بعضها عندما لا تكون على الشبكة نفسها. أعِدّه على خادم واستورد ملف ‎.vtrpsc الذي يكتبه."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mit einem Relay erreichen sich deine Geräte auch außerhalb desselben Netzwerks. Richte es auf einem Server ein und importiere die .vtrpsc-Datei, die es schreibt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un relé permite que tus dispositivos se conecten cuando no están en la misma red. Configúralo en un servidor e importa el archivo .vtrpsc que genera."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un relais permet à vos appareils de se joindre quand ils ne sont pas sur le même réseau. Installez-le sur un serveur et importez le fichier .vtrpsc qu’il génère."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un relay permette ai tuoi dispositivi di raggiungersi quando non sono sulla stessa rete. Configuralo su un server e importa il file .vtrpsc che genera."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リレーを使うと、同じネットワークにいないデバイス同士も接続できます。サーバに設定し、生成される.vtrpscファイルを読み込んでください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "릴레이를 사용하면 같은 네트워크에 있지 않은 기기들도 서로 연결할 수 있습니다. 서버에 설정한 뒤 생성되는 .vtrpsc 파일을 가져오십시오."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Um relay permite que seus dispositivos se conectem quando não estão na mesma rede. Configure-o em um servidor e importe o arquivo .vtrpsc que ele gera."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ретранслятор позволяет устройствам связываться, даже если они не в одной сети. Разверните его на сервере и импортируйте созданный им файл .vtrpsc."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Relay giúp các thiết bị kết nối với nhau khi không cùng mạng. Hãy thiết lập trên một máy chủ rồi nhập tệp .vtrpsc mà nó tạo ra."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中继可让不在同一网络的设备互相连接。在服务器上部署中继，然后导入它生成的 .vtrpsc 文件。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中繼可讓不在同一網路的裝置互相連線。在伺服器上部署中繼，然後匯入它產生的 .vtrpsc 檔案。"
-          }
-        }
-      }
-    },
     "A removed device loses access at once and has to pair again." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1646,6 +1809,171 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "強調色"
+          }
+        }
+      }
+    },
+    "Accessible" : {
+      "comment" : "Label in Remote settings: the devices this one can open terminals on",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المتاحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erreichbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessible"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesibles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessibili"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセス可能"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "접근 가능"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acessíveis"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступные"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Có thể truy cập"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可访问"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可存取"
+          }
+        }
+      }
+    },
+    "Accessible Devices" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأجهزة المتاحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erreichbare Geräte"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accessible Devices"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos accesibles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appareils accessibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivi accessibili"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセスできるデバイス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "접근 가능한 기기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos acessíveis"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступные устройства"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thiết bị có thể truy cập"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可访问的设备"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可存取的裝置"
           }
         }
       }
@@ -2645,89 +2973,6 @@
         }
       }
     },
-    "Allow Pairing Through Relay" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السماح بالاقتران عبر المرحّل"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kopplung über Relay erlauben"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Pairing Through Relay"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir enlazar a través del relé"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser le jumelage via le relais"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consenti abbinamento tramite relay"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リレー経由のペアリングを許可"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "릴레이를 통한 페어링 허용"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir pareamento pelo relay"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить создание пары через ретранслятор"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cho phép ghép đôi qua relay"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许通过中继配对"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允許透過中繼配對"
-          }
-        }
-      }
-    },
     "Allow Remote Access" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2889,89 +3134,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允許終端機助手"
-          }
-        }
-      }
-    },
-    "Allowed Devices" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الأجهزة المسموح بها"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erlaubte Geräte"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allowed Devices"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dispositivos permitidos"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appareils autorisés"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dispositivi consentiti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "許可されたデバイス"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "허용된 기기"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dispositivos Permitidos"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешенные устройства"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Thiết bị được phép"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许的设备"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允許的裝置"
           }
         }
       }
@@ -3303,6 +3465,171 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "位於提示字元"
+          }
+        }
+      }
+    },
+    "Authorized" : {
+      "comment" : "Label in Remote settings: the devices allowed to open terminals here",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المصرّح لها"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorized"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorizados"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorizzati"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "허용됨"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorizados"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешённые"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Được cấp quyền"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已授权"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已授權"
+          }
+        }
+      }
+    },
+    "Authorized Devices" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأجهزة المصرّح لها"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisierte Geräte"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authorized Devices"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos autorizados"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appareils autorisés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivi autorizzati"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可したデバイス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "허용된 기기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos autorizados"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешённые устройства"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thiết bị được cấp quyền"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授权的设备"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "授權的裝置"
           }
         }
       }
@@ -4378,88 +4705,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇「自動」以使用登入命令列直譯器。若未列於上方，請輸入可執行檔的自訂路徑。"
-          }
-        }
-      }
-    },
-    "Clear Recent Directories" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مسح المجلدات الأخيرة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuletzt verwendete Ordner löschen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear Recent Directories"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Borrar directorios recientes"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effacer les dossiers récents"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancella le directory recenti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最近使ったディレクトリを消去"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "최근 디렉토리 지우기"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Limpar diretórios recentes"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очистить недавние папки"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Xóa thư mục gần đây"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除最近的目录"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除最近的目錄"
           }
         }
       }
@@ -7282,6 +7527,89 @@
         }
       }
     },
+    "Custom" : {
+      "comment" : "The default shell menu's title while a custom path is chosen",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مخصص"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigene"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalizado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personnalisé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalizzato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용자 지정"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalizado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Другой"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tùy chỉnh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂"
+          }
+        }
+      }
+    },
     "Custom Configuration" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8521,6 +8849,170 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不在同一網路的裝置將無法再互相連線。"
+          }
+        }
+      }
+    },
+    "Devices that may open terminals on this one." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأجهزة التي يمكنها فتح طرفيات على هذا الجهاز."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geräte, die auf diesem Terminals öffnen dürfen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices that may open terminals on this one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos que pueden abrir terminales en este."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appareils autorisés à ouvrir des terminaux sur celui-ci."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivi che possono aprire terminali su questo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスでターミナルを開けるデバイス。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기에서 터미널을 열 수 있는 기기입니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos que podem abrir terminais neste."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устройства, которым разрешено открывать терминалы на этом."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các thiết bị được phép mở terminal trên thiết bị này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可以在本设备上打开终端的设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可以在本裝置上開啟終端機的裝置。"
+          }
+        }
+      }
+    },
+    "Devices this one can open terminals on." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأجهزة التي يمكن لهذا الجهاز فتح طرفيات عليها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geräte, auf denen dieses Terminals öffnen kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices this one can open terminals on."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos en los que este puede abrir terminales."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appareils sur lesquels celui-ci peut ouvrir des terminaux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivi su cui questo può aprire terminali."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスからターミナルを開けるデバイス。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기가 터미널을 열 수 있는 기기입니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos em que este pode abrir terminais."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устройства, на которых это устройство может открывать терминалы."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các thiết bị mà thiết bị này có thể mở terminal."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本设备可以在其上打开终端的设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本裝置可以在其上開啟終端機的裝置。"
           }
         }
       }
@@ -12500,89 +12992,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "iGhostVT 在「應用程式」資料夾中執行，關閉此視窗後終端機仍會繼續執行。它可以自動移至該處並重新開啟。"
-          }
-        }
-      }
-    },
-    "Import Relay Configuration…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "استيراد إعداد المرحّل…"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Relay-Konfiguration importieren …"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import Relay Configuration…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importar configuración de relé…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importer une configuration de relais…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importa configurazione relay…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リレー構成を読み込む…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "릴레이 구성 가져오기…"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importar configuração de relay…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Импортировать конфигурацию…"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nhập cấu hình relay…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "导入中继配置…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "匯入中繼設定…"
           }
         }
       }
@@ -17229,84 +17638,84 @@
         }
       }
     },
-    "New Tab offers the directories your terminals are in, then the ones they have been in before. Turn this off and that second list is neither offered nor added to; what is already remembered stays until you clear it." : {
+    "New Tab offers the directories your terminals are in, then the ones they have been in before. Turning this off forgets that second list and stops adding to it." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يعرض «علامة تبويب جديدة» المجلدات التي توجد بها طرفياتك الآن، ثم المجلدات التي زارتها من قبل. عند إيقاف هذا الخيار، لا تُعرض القائمة الثانية ولا تُحدَّث؛ ويبقى ما حُفظ حتى تمسحه."
+            "value" : "يعرض علامة التبويب الجديدة المجلدات التي توجد فيها طرفياتك، ثم المجلدات التي كانت فيها من قبل. يؤدي إيقاف هذا الخيار إلى مسح القائمة الثانية والتوقف عن الإضافة إليها."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Neuer Tab“ bietet die Ordner an, in denen deine Terminals gerade sind, und danach die, in denen sie schon waren. Ist dies aus, wird die zweite Liste weder angeboten noch ergänzt; bereits Gemerktes bleibt, bis du es löschst."
+            "value" : "Neuer Tab bietet die Ordner an, in denen deine Terminals gerade sind, dann die, in denen sie zuvor waren. Wenn du dies ausschaltest, wird diese zweite Liste gelöscht und nicht mehr ergänzt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "New Tab offers the directories your terminals are in, then the ones they have been in before. Turn this off and that second list is neither offered nor added to; what is already remembered stays until you clear it."
+            "value" : "New Tab offers the directories your terminals are in, then the ones they have been in before. Turning this off forgets that second list and stops adding to it."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "«Nueva pestaña» ofrece los directorios en los que están tus terminales y, a continuación, aquellos en los que han estado antes. Si lo desactivas, esa segunda lista no se ofrece ni se amplía; lo ya recordado se mantiene hasta que lo borres."
+            "value" : "Nueva pestaña ofrece las carpetas en las que están tus terminales y después aquellas en las que han estado. Al desactivarlo, esa segunda lista se borra y deja de ampliarse."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "« Nouvel onglet » propose les dossiers où se trouvent vos terminaux, puis ceux où ils sont déjà passés. Désactivée, cette seconde liste n’est ni proposée ni enrichie ; ce qui est déjà mémorisé reste jusqu’à ce que vous l’effaciez."
+            "value" : "Nouvel onglet propose les dossiers où se trouvent vos terminaux, puis ceux où ils sont déjà allés. Désactiver cette option efface cette seconde liste et cesse de la compléter."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "«Nuova scheda» propone le directory in cui si trovano i tuoi terminali e poi quelle in cui sono già stati. Se disattivi questa opzione, il secondo elenco non viene né proposto né aggiornato; quanto già memorizzato resta finché non lo cancelli."
+            "value" : "Nuova scheda propone le cartelle in cui si trovano i terminali, poi quelle in cui sono già stati. Disattivandolo, questo secondo elenco viene cancellato e non viene più aggiornato."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「新規タブ」は、ターミナルが今いるディレクトリと、以前いたディレクトリを続けて表示します。オフにすると、後者は表示も記録もされません。すでに記憶した内容は、消去するまで残ります。"
+            "value" : "新規タブには、ターミナルが今いるディレクトリに続いて、これまでにいたディレクトリが表示されます。オフにすると後者のリストは消去され、記録もされなくなります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "새로운 탭은 터미널이 지금 있는 디렉토리를, 이어서 전에 있던 디렉토리를 제시합니다. 끄면 두 번째 목록은 제시되지도 기록되지도 않습니다. 이미 기억된 항목은 지울 때까지 남아 있습니다."
+            "value" : "새 탭은 터미널이 현재 있는 디렉터리와 이전에 있었던 디렉터리를 차례로 보여 줍니다. 끄면 이전 디렉터리 목록이 지워지고 더 이상 기록되지 않습니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“Nova aba” oferece os diretórios em que seus terminais estão e, em seguida, aqueles em que já estiveram. Com isto desativado, essa segunda lista não é oferecida nem ampliada; o que já foi lembrado permanece até você limpar."
+            "value" : "Nova Aba oferece as pastas em que seus terminais estão e depois aquelas em que já estiveram. Desativar isso apaga essa segunda lista e para de adicionar a ela."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "«Новая вкладка» предлагает папки, в которых сейчас находятся ваши терминалы, а затем те, где они уже бывали. Если выключить, второй список не показывается и не пополняется; то, что уже запомнено, останется, пока вы его не очистите."
+            "value" : "Новая вкладка предлагает папки, в которых сейчас находятся терминалы, а затем те, где они уже бывали. Если выключить, этот второй список будет удалён и больше не будет пополняться."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“Tab mới” đưa ra các thư mục mà terminal của bạn đang ở, rồi đến những thư mục đã từng ở. Tắt tùy chọn này thì danh sách thứ hai không được đưa ra và cũng không được ghi thêm; những gì đã ghi nhớ vẫn còn cho đến khi bạn xóa."
+            "value" : "Thẻ mới gợi ý các thư mục mà terminal đang ở, rồi đến các thư mục chúng từng ở. Tắt tùy chọn này sẽ xóa danh sách thứ hai và ngừng ghi thêm vào đó."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“新建标签页”会先列出终端当前所在的目录，再列出以前去过的目录。关闭后，第二组既不会显示，也不再记录；已记住的内容会保留，直到你清除它们。"
+            "value" : "新建标签页会先列出终端当前所在的目录，再列出它们去过的目录。关闭后会清除后一份列表，并不再记录。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「新增分頁」會先列出終端機目前所在的目錄，再列出先前去過的目錄。關閉後，第二組既不會顯示，也不再記錄；已記住的內容會保留，直到你清除為止。"
+            "value" : "新增標籤頁會先列出終端機目前所在的目錄，再列出它們去過的目錄。關閉後會清除後一份列表，並不再記錄。"
           }
         }
       }
@@ -21111,89 +21520,6 @@
         }
       }
     },
-    "Pairing through the relay is off unless allowed here; pairing on the same network always works." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الاقتران عبر المرحّل متوقف ما لم تسمح به هنا؛ أما الاقتران على الشبكة نفسها فيعمل دائمًا."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kopplung über das Relay ist aus, solange sie hier nicht erlaubt ist; im selben Netzwerk funktioniert sie immer."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pairing through the relay is off unless allowed here; pairing on the same network always works."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enlazar a través del relé está desactivado salvo que lo permitas aquí; en la misma red siempre funciona."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le jumelage via le relais est désactivé sauf si vous l’autorisez ici ; sur le même réseau, il fonctionne toujours."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’abbinamento tramite relay è disattivato se non lo consenti qui; sulla stessa rete funziona sempre."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ここで許可しない限り、リレー経由のペアリングはオフです。同じネットワークでのペアリングは常に使えます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "여기서 허용하지 않으면 릴레이를 통한 페어링은 꺼져 있습니다. 같은 네트워크에서는 항상 페어링할 수 있습니다."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O pareamento pelo relay fica desativado a menos que permitido aqui; na mesma rede, sempre funciona."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Создание пары через ретранслятор выключено, пока его не разрешить здесь; в одной сети оно работает всегда."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ghép đôi qua relay bị tắt trừ khi được cho phép ở đây; ghép đôi trong cùng mạng luôn hoạt động."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "除非在这里允许，否则无法通过中继配对；在同一网络中配对始终可用。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "除非在這裡允許，否則無法透過中繼配對；在同一網路中配對始終可用。"
-          }
-        }
-      }
-    },
     "Part of iGhostVT is missing, so it cannot open a terminal. Download iGhostVT again and replace this copy." : {
       "localizations" : {
         "ar" : {
@@ -23347,89 +23673,6 @@
         }
       }
     },
-    "Replace Relay…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "استبدال المرحّل…"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Relay ersetzen …"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Replace Relay…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reemplazar relé…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remplacer le relais…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sostituisci relay…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リレーを置き換え…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "릴레이 대체…"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Substituir relay…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заменить ретранслятор…"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Thay relay…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "替换中继…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取代中繼…"
-          }
-        }
-      }
-    },
     "Replace the Relay “%@”?" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23509,89 +23752,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取代中繼「%@」？"
-          }
-        }
-      }
-    },
-    "Replace…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "استبدال…"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ersetzen …"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Replace…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reemplazar…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remplacer…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sostituisci…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "置き換え…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "대체…"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Substituir…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заменить…"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Thay…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "替换…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取代…"
           }
         }
       }
@@ -37108,89 +37268,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你可以從「新增標籤頁」在它上面開啟終端機。"
-          }
-        }
-      }
-    },
-    "Your Devices" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "أجهزتك"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine Geräte"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your Devices"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tus dispositivos"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vos appareils"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I tuoi dispositivi"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自分のデバイス"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "나의 기기"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seus Dispositivos"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ваши устройства"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Thiết bị của bạn"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的设备"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的裝置"
           }
         }
       }

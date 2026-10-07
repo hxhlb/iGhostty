@@ -1,10 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
-
-/// The relay configuration's file type, for the pickers.
-enum RelayImportType {
-    static let type = UTType(exportedAs: RelayConfiguration.typeIdentifier, conformingTo: .json)
-}
 
 /// One line on how the relay is doing, for the settings on both platforms:
 /// this device's registration while remote access is on, and whether the

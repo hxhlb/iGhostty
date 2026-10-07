@@ -9,9 +9,9 @@ import SwiftUI
 
     /// Settings ▸ Remote on the Mac: the same settings as the iPhone and
     /// iPad page (`RemoteAccessView`), read from the same model and
-    /// directory, laid out as a Mac pane — a checkbox and a name field in
-    /// the label column, then the devices in two tables with their buttons
-    /// under them, the selected row's details beside the buttons.
+    /// directory, laid out as a Mac pane — a checkbox, the relay and a name
+    /// field in the label column, then a count for each list of devices
+    /// whose button opens that list in a sheet.
     struct MacRemotePane: View {
         @StateObject private var model = RemoteAccessModel()
         @ObservedObject private var directory = RemoteHostDirectory.shared
@@ -19,12 +19,11 @@ import SwiftUI
         @State private var name = RemoteDeviceIdentity.chosenName ?? ""
         @State private var selectedAllowedID: String?
         @State private var selectedHostID: String?
-        @State private var nickname = ""
         @State private var isShowingPairingCode = false
         @State private var pairingHost: DiscoveredRemoteHost?
         @State private var window: UIWindow?
-        @State private var isImportingRelay = false
-        @AppStorage(RelayConfigurationStore.allowsRelayPairingKey) private var allowsRelayPairing = false
+        @State private var isShowingAuthorized = false
+        @State private var isShowingAccessible = false
 
         var body: some View {
             VStack(alignment: .leading, spacing: DS.Padding.l) {
@@ -49,7 +48,10 @@ import SwiftUI
                         }
                     }
                 }
-                relayRow
+                // Only once a .vtrpsc file has been opened: no relay, no row.
+                if let relay = directory.relay {
+                    relayRow(relay)
+                }
                 MacSettingsRow("Name") {
                     TextField(RemoteDeviceIdentity.systemName, text: $name)
                         .textFieldStyle(.roundedBorder)
@@ -62,12 +64,20 @@ import SwiftUI
                     )
                 }
                 Divider()
-                // Both tables stay put whatever the switch says, so turning
-                // it on or off moves nothing: off, the first is dimmed.
-                allowedDevices
-                    .disabled(!model.isEnabled)
-                    .opacity(model.isEnabled ? 1 : 0.5)
-                yourDevices
+                MacSettingsRow("Authorized") {
+                    MacSheetLink(count: model.status.devices.count, label: "Authorized Devices") {
+                        isShowingAuthorized = true
+                    }
+                } details: {
+                    MacSettingsNote("Devices that may open terminals on this one.")
+                }
+                MacSettingsRow("Accessible") {
+                    MacSheetLink(count: directory.paired.count, label: "Accessible Devices") {
+                        isShowingAccessible = true
+                    }
+                } details: {
+                    MacSettingsNote("Devices this one can open terminals on.")
+                }
             }
             .padding(DS.Padding.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -78,53 +88,46 @@ import SwiftUI
             }
             .onDisappear {
                 saveName()
-                saveNickname()
                 model.disappear()
             }
-            .onChange(of: selectedHostID) { _ in
-                nickname = selectedPaired?.nickname ?? ""
+            .sheet(isPresented: $isShowingAuthorized) {
+                MacDeviceSheet(title: "Authorized Devices") {
+                    // Off, the list is dimmed rather than hidden, so turning
+                    // the switch moves nothing.
+                    allowedDevices
+                        .disabled(!model.isEnabled)
+                        .opacity(model.isEnabled ? 1 : 0.5)
+                }
             }
-            .fileImporter(
-                isPresented: $isImportingRelay,
-                allowedContentTypes: [RelayImportType.type],
-            ) { result in
-                if case let .success(url) = result {
-                    RelayImport.open(url, in: window)
+            .sheet(isPresented: $isShowingAccessible) {
+                MacDeviceSheet(title: "Accessible Devices") {
+                    yourDevices
                 }
             }
         }
 
         // MARK: - Relay
 
-        private var relayRow: some View {
+        /// The relay's name with a small remove button after it, one line for
+        /// the label to centre on; its address and how it is doing go under
+        /// it.
+        private func relayRow(_ relay: RelayConfiguration) -> some View {
             MacSettingsRow("Relay") {
-                if let relay = directory.relay {
-                    VStack(alignment: .leading, spacing: DS.Padding.s) {
-                        HStack(spacing: DS.Padding.m) {
-                            Text(verbatim: relay.name)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Button("Replace…") { isImportingRelay = true }
-                            Button("Remove") { RelayConfigurationStore.remove() }
-                        }
-                        MacCheckbox(String(localized: "Allow Pairing Through Relay"), isOn: $allowsRelayPairing)
-                    }
-                } else {
-                    Button("Import Relay Configuration…") { isImportingRelay = true }
-                }
-            } details: {
-                if let relay = directory.relay {
-                    let status = RelayStatusText.describe(model.status, directory: directory)
-                    Text(verbatim: [relay.endpointDescription, status?.text].compactMap { $0 }.joined(separator: " · "))
-                        .font(DS.Font.detail)
-                        .foregroundColor(status?.isProblem == true ? .red : .secondary)
+                HStack(alignment: .firstTextBaseline, spacing: DS.Padding.s) {
+                    Text(verbatim: relay.name)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                } else {
-                    MacSettingsNote(
-                        "A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes.",
-                    )
+                    MacInlineIconButton(symbol: "xmark.circle.fill", label: "Remove") {
+                        RelayConfigurationStore.remove()
+                    }
                 }
+            } details: {
+                let status = RelayStatusText.describe(model.status, directory: directory)
+                Text(verbatim: [relay.endpointDescription, status?.text].compactMap { $0 }.joined(separator: " · "))
+                    .font(DS.Font.detail)
+                    .foregroundColor(status?.isProblem == true ? .red : .secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
 
@@ -138,10 +141,7 @@ import SwiftUI
         /// The devices that may open terminals here: + under the table pairs
         /// one more, the selected row's trash takes one away.
         private var allowedDevices: some View {
-            VStack(alignment: .leading, spacing: DS.Padding.s) {
-                Text("Allowed Devices")
-                    .font(DS.Font.labelEmphasis)
-                MacTableFrame {
+            MacTableFrame {
                     VStack(spacing: 0) {
                         ScrollView {
                             LazyVStack(spacing: 0) {
@@ -189,30 +189,21 @@ import SwiftUI
                             .disabled(model.status.state != .listening)
                             .popover(isPresented: $isShowingPairingCode, arrowEdge: .bottom) {
                                 RemotePairingCodeView(model: model, isPopover: true)
+                                .keepsPopover()
                             }
                         }
                     }
                 }
-                .frame(height: Self.tableHeight + macTableBarHeight)
-            }
         }
-
-        /// One height for both tables, never the content's: rows coming
-        /// and going scroll inside it.
-        private static let tableHeight: CGFloat = 112
 
         // MARK: - The other devices
 
         /// The devices this Mac is paired with, then the ones nearby it
         /// could pair with. The selected row carries its one action — trash
-        /// to forget a paired device, Pair for one nearby — and a paired
-        /// device's name can be changed under the table.
+        /// to forget a paired device, Pair for one nearby.
         private var yourDevices: some View {
             let unpaired = directory.unpairedNearby + directory.unpairedAtRelay
-            return VStack(alignment: .leading, spacing: DS.Padding.s) {
-                Text("Your Devices")
-                    .font(DS.Font.labelEmphasis)
-                MacTableFrame {
+            return MacTableFrame {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(Array(directory.paired.enumerated()), id: \.element.id) { index, host in
@@ -230,12 +221,17 @@ import SwiftUI
                                     }
                                 }
                             }
+                            // Devices not paired yet get a section of their
+                            // own, as Bluetooth settings list them.
+                            if !unpaired.isEmpty {
+                                MacTableSectionHeader(title: "Other Devices")
+                            }
                             ForEach(Array(unpaired.enumerated()), id: \.element.id) { offset, host in
                                 MacDeviceRow(
                                     name: host.name,
                                     address: host.address,
                                     detail: host.viaRelay ? String(localized: "Through relay") : "",
-                                    index: directory.paired.count + offset,
+                                    index: offset,
                                     isSelected: host.id == selectedHostID,
                                     select: { selectedHostID = host.id },
                                 ) {
@@ -245,6 +241,7 @@ import SwiftUI
                                         .font(DS.Font.labelEmphasis)
                                         .popover(item: $pairingHost, arrowEdge: .trailing) { host in
                                             RemotePairDeviceView(host: host, isPopover: true)
+                                            .keepsPopover()
                                         }
                                 }
                             }
@@ -266,37 +263,6 @@ import SwiftUI
                         }
                     }
                 }
-                .frame(height: Self.tableHeight)
-                // Always laid out, so selecting a row moves nothing.
-                HStack(spacing: DS.Padding.s) {
-                    if let host = selectedPaired {
-                        Text("Name")
-                        TextField(host.name, text: $nickname)
-                            .textFieldStyle(.roundedBorder)
-                            .disableAutocorrection(true)
-                            .frame(maxWidth: 240)
-                            .onSubmit(saveNickname)
-                            .accessibilityLabel("Name")
-                        if let lastSeen = host.lastSeen {
-                            Text(RelativeDateTimeFormatter().localizedString(for: lastSeen, relativeTo: Date()))
-                                .font(DS.Font.detail)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
-                    Spacer()
-                }
-                .frame(height: 28)
-            }
-        }
-
-        private var selectedPaired: PairedRemoteHost? {
-            directory.paired.first { $0.id == selectedHostID }
-        }
-
-        private func saveNickname() {
-            guard let host = selectedPaired, nickname != (host.nickname ?? "") else { return }
-            PairedRemoteHostStore.setNickname(nickname, forHostID: host.id)
         }
 
         private func confirmForget(_ host: PairedRemoteHost) {
@@ -374,6 +340,103 @@ import SwiftUI
             }
             .buttonStyle(.borderless)
             .accessibilityLabel(label)
+        }
+    }
+
+    /// A small round glyph button set after a line of text, the text's own
+    /// size and on its baseline (the caller's `HStack` aligns them).
+    private struct MacInlineIconButton: View {
+        let symbol: String
+        let label: LocalizedStringKey
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: symbol)
+                    .foregroundColor(.secondary)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(label)
+        }
+    }
+
+    /// "3 Devices" with the button that opens the list in a sheet.
+    private struct MacSheetLink: View {
+        let count: Int
+        let label: LocalizedStringKey
+        let open: () -> Void
+
+        var body: some View {
+            HStack(alignment: .firstTextBaseline, spacing: DS.Padding.s) {
+                Text(String.localizedStringWithFormat(
+                    NSLocalizedString("%lld Devices", comment: "Count of devices in a list"),
+                    count,
+                ))
+                MacInlineIconButton(symbol: "arrow.up.right.circle.fill", label: label, action: open)
+            }
+        }
+    }
+
+    /// A list of devices on a sheet of its own: the title, the table filling
+    /// the sheet, Done.
+    private struct MacDeviceSheet<Content: View>: View {
+        let title: LocalizedStringKey
+        @ViewBuilder let content: () -> Content
+        @Environment(\.dismiss) private var dismiss
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: DS.Padding.m) {
+                Text(title)
+                    .font(DS.Font.labelEmphasis)
+                content()
+                    .frame(maxHeight: .infinity)
+                HStack {
+                    Spacer()
+                    Button("Done") { dismiss() }
+                }
+            }
+            .padding(DS.Padding.xl)
+            .frame(width: 480, height: 320)
+            .fittedSheet()
+        }
+    }
+
+    private extension View {
+        /// A popover stays one inside the device sheet: the sheet is narrow
+        /// enough to read as compact, and a compact popover becomes a
+        /// centred sheet of its own.
+        @ViewBuilder
+        func keepsPopover() -> some View {
+            if #available(macCatalyst 16.4, *) {
+                presentationCompactAdaptation(.popover)
+            } else {
+                self
+            }
+        }
+
+        /// The sheet as big as its content: a plain sheet on the Mac is a
+        /// fixed form sheet much larger than a short list.
+        @ViewBuilder
+        func fittedSheet() -> some View {
+            if #available(macCatalyst 18.0, *) {
+                presentationSizing(.fitted)
+            } else {
+                self
+            }
+        }
+    }
+
+    /// A dim group title between a table's rows.
+    private struct MacTableSectionHeader: View {
+        let title: LocalizedStringKey
+
+        var body: some View {
+            Text(title)
+                .font(DS.Font.detail)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, DS.Padding.m)
+                .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
         }
     }
 

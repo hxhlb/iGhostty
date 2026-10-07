@@ -196,6 +196,16 @@ final class RemoteHostDirectory: ObservableObject {
             let result = await withCheckedContinuation { continuation in
                 RelayControl.listHosts(configuration: configuration) { continuation.resume(returning: $0) }
             }
+            // The relay was removed or replaced while it answered: its list
+            // describes a relay this device no longer uses.
+            guard RelayConfigurationStore.current?.fingerprint == configuration.fingerprint else {
+                relayProblem = nil
+                if !relayHosts.isEmpty {
+                    relayHosts = [:]
+                }
+                publish()
+                return
+            }
             switch result {
             case let .success(entries):
                 relayProblem = nil

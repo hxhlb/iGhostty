@@ -15,6 +15,12 @@ struct ShellSettingsSection: View {
     @State private var isEditingCustomShell = false
     @FocusState private var shellPathIsFocused: Bool
 
+    /// The path field is the choice: being edited, or holding a path the
+    /// menu does not list.
+    private var isCustomShell: Bool {
+        ShellMenuItems.showsCustomPath(shellPath, available: availableShellPaths, isEditing: isEditingCustomShell)
+    }
+
     var body: some View {
         shellSection
             .onAppear(perform: loadAvailableShellPaths)
@@ -30,6 +36,7 @@ struct ShellSettingsSection: View {
                     ShellMenuItems(
                         shellPath: $shellPath,
                         available: availableShellPaths ?? [],
+                        isCustom: isCustomShell,
                         onChoose: {
                             isEditingCustomShell = false
                             shellPathIsFocused = false
@@ -43,7 +50,7 @@ struct ShellSettingsSection: View {
                     )
                 } label: {
                     HStack(spacing: DS.Padding.xs) {
-                        Text(ShellMenuItems.title(of: shellPath))
+                        Text(ShellMenuItems.title(of: shellPath, isCustom: isCustomShell))
                             .lineLimit(1)
                             .truncationMode(.middle)
                         Image(systemName: "chevron.up.chevron.down")
@@ -51,16 +58,18 @@ struct ShellSettingsSection: View {
                     }
                 }
                 .accessibilityLabel("Default Shell")
-                .accessibilityValue(ShellMenuItems.title(of: shellPath))
+                .accessibilityValue(ShellMenuItems.title(of: shellPath, isCustom: isCustomShell))
             }
 
-            if ShellMenuItems.showsCustomPath(
-                shellPath,
-                available: availableShellPaths,
-                isEditing: isEditingCustomShell,
-            ) {
+            if isCustomShell {
                 TextField("Custom Path", text: $shellPath)
                     .focused($shellPathIsFocused)
+                    // Left empty, the field goes and the menu reads Automatic again.
+                    .onChange(of: shellPathIsFocused) { focused in
+                        if !focused, shellPath.isEmpty {
+                            isEditingCustomShell = false
+                        }
+                    }
                     .keyboardType(.asciiCapable)
                     .textInputAutocapitalization(.never)
                     .disableAutocorrection(true)
@@ -105,28 +114,36 @@ struct ShellSettingsSection: View {
 struct ShellMenuItems: View {
     @Binding var shellPath: String
     let available: [String]
+    /// Whether the path field is the choice, so Custom… is the item checked.
+    var isCustom = false
     /// A listed shell picked: the caller puts its path field away.
     let onChoose: () -> Void
     /// Custom… picked: the caller shows the path field and focuses it.
     let onCustom: () -> Void
 
     var body: some View {
-        choice(String(localized: "Automatic"), path: "")
+        choice(String(localized: "Automatic"), path: "", isChecked: !isCustom && shellPath.isEmpty)
         Divider()
         ForEach(available, id: \.self) { path in
-            choice(path, path: path)
+            choice(path, path: path, isChecked: !isCustom && shellPath == path)
         }
         Divider()
-        Button("Custom…", action: onCustom)
+        Button(action: onCustom) {
+            if isCustom {
+                Label("Custom…", systemImage: "checkmark")
+            } else {
+                Text("Custom…")
+            }
+        }
     }
 
     /// One row of the menu, checked when it is the current choice.
-    private func choice(_ title: String, path: String) -> some View {
+    private func choice(_ title: String, path: String, isChecked: Bool) -> some View {
         Button {
             shellPath = path
             onChoose()
         } label: {
-            if shellPath == path {
+            if isChecked {
                 Label(title, systemImage: "checkmark")
             } else {
                 Text(verbatim: title)
@@ -134,9 +151,13 @@ struct ShellMenuItems: View {
         }
     }
 
-    /// What the menu's button reads for the stored path.
-    static func title(of shellPath: String) -> String {
-        shellPath.isEmpty ? String(localized: "Automatic") : shellPath
+    /// What the menu's button reads: Custom while the path field is the
+    /// choice — it holds the path — else the shell picked.
+    static func title(of shellPath: String, isCustom: Bool = false) -> String {
+        if isCustom {
+            return String(localized: "Custom")
+        }
+        return shellPath.isEmpty ? String(localized: "Automatic") : shellPath
     }
 
     /// The path field shows while it is being edited, and for a stored path

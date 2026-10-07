@@ -53,7 +53,7 @@ final class RemoteAccessModel: ObservableObject {
     }
 
     func beginPairing() async {
-        let throughRelay = RelayConfigurationStore.current != nil && RelayConfigurationStore.allowsRelayPairing
+        let throughRelay = RelayConfigurationStore.current != nil
         await apply(RemoteAccessControl.beginPairing(throughRelay: throughRelay))
     }
 

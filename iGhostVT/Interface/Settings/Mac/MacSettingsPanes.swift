@@ -48,10 +48,8 @@ import SwiftUI
         /// log — in the app's points. Nil for a pane the window fits to.
         var fixedHeight: CGFloat? {
             switch self {
-            case .general, .appearance, .advanced: nil
+            case .general, .appearance, .advanced, .remote: nil
             case .keyboard, .configuration, .about: 560
-            // Two tables, and the relay's row above them.
-            case .remote: 640
             }
         }
 
@@ -76,6 +74,12 @@ import SwiftUI
         @State private var availableShellPaths: [String]?
         @State private var isEditingCustomShell = false
         @FocusState private var shellPathIsFocused: Bool
+
+        /// The path field is the choice: being edited, or holding a path the
+        /// menu does not list.
+        private var isCustomShell: Bool {
+            ShellMenuItems.showsCustomPath(shellPath, available: availableShellPaths, isEditing: isEditingCustomShell)
+        }
 
         @AppStorage(SessionKeepAlive.key) private var keepAlive = true
         @ObservedObject private var agent = MacLaunchAgent.shared
@@ -125,6 +129,7 @@ import SwiftUI
                     ShellMenuItems(
                         shellPath: $shellPath,
                         available: availableShellPaths ?? [],
+                        isCustom: isCustomShell,
                         onChoose: {
                             isEditingCustomShell = false
                             shellPathIsFocused = false
@@ -137,19 +142,21 @@ import SwiftUI
                         },
                     )
                 } label: {
-                    MacPopupLabel(title: ShellMenuItems.title(of: shellPath))
+                    MacPopupLabel(title: ShellMenuItems.title(of: shellPath, isCustom: isCustomShell))
                 }
                 .accessibilityLabel("Default Shell")
-                .accessibilityValue(ShellMenuItems.title(of: shellPath))
+                .accessibilityValue(ShellMenuItems.title(of: shellPath, isCustom: isCustomShell))
             } details: {
-                if ShellMenuItems.showsCustomPath(
-                    shellPath,
-                    available: availableShellPaths,
-                    isEditing: isEditingCustomShell,
-                ) {
+                if isCustomShell {
                     TextField("Custom Path", text: $shellPath)
                         .textFieldStyle(.roundedBorder)
                         .focused($shellPathIsFocused)
+                        // Left empty, the field goes and the menu reads Automatic again.
+                        .onChange(of: shellPathIsFocused) { focused in
+                            if !focused, shellPath.isEmpty {
+                                isEditingCustomShell = false
+                            }
+                        }
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
                         .frame(maxWidth: 300)
@@ -183,17 +190,10 @@ import SwiftUI
                 MacSettingsNote(
                     """
                     New Tab offers the directories your terminals are in, then \
-                    the ones they have been in before. Turn this off and that \
-                    second list is neither offered nor added to; what is already \
-                    remembered stays until you clear it.
+                    the ones they have been in before. Turning this off forgets \
+                    that second list and stops adding to it.
                     """,
                 )
-                if !recents.entries.isEmpty {
-                    Button(role: .destructive, action: { recents.clear() }) {
-                        Text("Clear Recent Directories")
-                    }
-                    .buttonStyle(.bordered)
-                }
             }
         }
     }

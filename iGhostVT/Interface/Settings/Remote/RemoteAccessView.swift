@@ -13,9 +13,7 @@ struct RemoteAccessView: View {
     @State private var isShowingPairingCode = false
     @State private var pairingHost: DiscoveredRemoteHost?
     @State private var name = RemoteDeviceIdentity.chosenName ?? ""
-    @State private var isImportingRelay = false
     @State private var isConfirmingRelayRemoval = false
-    @AppStorage(RelayConfigurationStore.allowsRelayPairingKey) private var allowsRelayPairing = false
 
     var body: some View {
         Form {
@@ -24,18 +22,13 @@ struct RemoteAccessView: View {
             if model.isEnabled {
                 allowedDevicesSection
             }
-            relaySection
+            // Only once a .vtrpsc file has been opened: no relay, no section.
+            if let relay = directory.relay {
+                relaySection(relay)
+            }
             yourDevicesSection
         }
         .navigationTitle("Remote Access")
-        .fileImporter(
-            isPresented: $isImportingRelay,
-            allowedContentTypes: [RelayImportType.type],
-        ) { result in
-            if case let .success(url) = result {
-                RelayImport.open(url, in: nil)
-            }
-        }
         .onAppear {
             model.appear()
             directory.start()
@@ -100,49 +93,30 @@ struct RemoteAccessView: View {
 
     // MARK: - Relay
 
-    private var relaySection: some View {
+    private func relaySection(_ relay: RelayConfiguration) -> some View {
         Section {
-            if let relay = directory.relay {
-                SettingsValueText(title: "Relay", value: relay.name)
-                SettingsValueText(title: "Address", value: relay.endpointDescription)
-                if let status = RelayStatusText.describe(model.status, directory: directory) {
-                    SettingsValueText(title: "Status", value: status.text, isWarning: status.isProblem)
-                }
-                Toggle("Allow Pairing Through Relay", isOn: $allowsRelayPairing)
-                Button("Replace Relay…") {
-                    isImportingRelay = true
-                }
+            SettingsValueText(title: "Relay", value: relay.name)
+            SettingsValueText(title: "Address", value: relay.endpointDescription)
+            if let status = RelayStatusText.describe(model.status, directory: directory) {
+                SettingsValueText(title: "Status", value: status.text, isWarning: status.isProblem)
+            }
+            Button("Remove Relay", role: .destructive) {
+                isConfirmingRelayRemoval = true
+            }
+            .confirmationDialog(
+                "Remove the relay?",
+                isPresented: $isConfirmingRelayRemoval,
+                titleVisibility: .visible,
+            ) {
                 Button("Remove Relay", role: .destructive) {
-                    isConfirmingRelayRemoval = true
+                    RelayConfigurationStore.remove()
                 }
-                .confirmationDialog(
-                    "Remove the relay?",
-                    isPresented: $isConfirmingRelayRemoval,
-                    titleVisibility: .visible,
-                ) {
-                    Button("Remove Relay", role: .destructive) {
-                        RelayConfigurationStore.remove()
-                    }
-                } message: {
-                    Text("Devices that are not on the same network can no longer reach each other.")
-                }
-            } else {
-                Button("Import Relay Configuration…") {
-                    isImportingRelay = true
-                }
+            } message: {
+                Text("Devices that are not on the same network can no longer reach each other.")
             }
         } header: {
             Text("Relay")
                 .font(DS.Font.caption)
-        } footer: {
-            Group {
-                if directory.relay == nil {
-                    Text("A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes.")
-                } else {
-                    Text("Pairing through the relay is off unless allowed here; pairing on the same network always works.")
-                }
-            }
-            .font(DS.Font.detail)
         }
     }
 
@@ -189,7 +163,7 @@ struct RemoteAccessView: View {
             }
             .disabled(model.status.state != .listening)
         } header: {
-            Text("Allowed Devices")
+            Text("Authorized Devices")
                 .font(DS.Font.caption)
         } footer: {
             if !model.status.devices.isEmpty {
@@ -212,8 +186,9 @@ struct RemoteAccessView: View {
 
     // MARK: - Other devices
 
-    /// The devices this one is paired with, then the ones nearby it could
-    /// pair with — one list, since a device only ever moves down it once.
+    /// The devices this one is paired with, then — in a section of their
+    /// own, as Bluetooth settings list them — the ones it could pair with.
+    @ViewBuilder
     private var yourDevicesSection: some View {
         Section {
             ForEach(directory.paired) { host in
@@ -235,25 +210,6 @@ struct RemoteAccessView: View {
                     }
                 }
             }
-            ForEach(unpairedNearby + directory.unpairedAtRelay) { host in
-                Button {
-                    pairingHost = host
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            DeviceNameText(name: host.name, address: host.address)
-                                .foregroundColor(.primary)
-                            if host.viaRelay {
-                                Text("Through relay")
-                                    .font(DS.Font.detail)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        Spacer()
-                        Text("Pair")
-                    }
-                }
-            }
             if directory.paired.isEmpty, unpairedNearby.isEmpty, directory.unpairedAtRelay.isEmpty {
                 Group {
                     if directory.relay == nil {
@@ -265,8 +221,34 @@ struct RemoteAccessView: View {
                 .foregroundColor(.secondary)
             }
         } header: {
-            Text("Your Devices")
+            Text("Accessible Devices")
                 .font(DS.Font.caption)
+        }
+        if !(unpairedNearby + directory.unpairedAtRelay).isEmpty {
+            Section {
+                ForEach(unpairedNearby + directory.unpairedAtRelay) { host in
+                    Button {
+                        pairingHost = host
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                DeviceNameText(name: host.name, address: host.address)
+                                    .foregroundColor(.primary)
+                                if host.viaRelay {
+                                    Text("Through relay")
+                                        .font(DS.Font.detail)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Spacer()
+                            Text("Pair")
+                        }
+                    }
+                }
+            } header: {
+                Text("Other Devices")
+                    .font(DS.Font.caption)
+            }
         }
     }
 
