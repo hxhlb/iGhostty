@@ -125,7 +125,16 @@ enum NewTabMenuElements {
         openFresh: @escaping (String, TerminalDirectory?) -> Void,
         attach: @escaping (String, UInt64) -> Void,
     ) -> [UIMenuElement] {
-        hosts.map { host in
+        hosts.map { host -> UIMenuElement in
+            // A device on another iGhostVT cannot be opened: it is listed,
+            // greyed, with what to update.
+            if let theirs = RemoteHostDirectory.mismatchedVersion(ofHostID: host.id) {
+                let action = UIAction(title: host.displayName, image: UIImage(systemName: "network"), attributes: .disabled) { _ in }
+                if #available(iOS 16.0, *) {
+                    action.subtitle = RemoteVersionText.needsUpdate(theirs: theirs)
+                }
+                return action
+            }
             let fresh = UIAction(
                 title: String(localized: "New Terminal", comment: "Menu item: a fresh shell on another device"),
                 image: UIImage(systemName: "plus"),

@@ -25,8 +25,8 @@ final class RemoteSessionCatalog: ObservableObject {
         // than at the next poll: the first one ran at launch, before
         // Bonjour had answered.
         RemoteHostDirectory.shared.$hosts
-            .combineLatest(RemoteHostDirectory.shared.$paired)
-            .map { _, _ in RemoteHostDirectory.shared.reachablePaired.map(\.id) }
+            .combineLatest(RemoteHostDirectory.shared.$paired, RemoteHostDirectory.shared.$relayHosts)
+            .map { _, _, _ in RemoteHostDirectory.shared.reachablePaired.map(\.id) }
             .removeDuplicates()
             .dropFirst()
             .sink { _ in
@@ -84,7 +84,10 @@ final class RemoteSessionCatalog: ObservableObject {
 
     /// Asks every paired device worth offering, all at once.
     func refresh() async {
+        // The relay's list says which hosts are there to ask at all.
+        await RemoteHostDirectory.shared.refreshRelay()
         let hosts = RemoteHostDirectory.shared.reachablePaired
+            .filter { RemoteHostDirectory.shared.mismatchedVersion(of: $0.id) == nil }
         guard !hosts.isEmpty else {
             sessions = [:]
             return

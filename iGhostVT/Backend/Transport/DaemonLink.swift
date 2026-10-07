@@ -108,11 +108,21 @@ final class XPCDaemonLink: DaemonLink, @unchecked Sendable {
 /// device's id and its proof over the session's exporter secret, which is
 /// how the host knows which device this is (`RemoteAccess`). Everything
 /// else is the local protocol, framed (`RemoteFrameConnection`).
+///
+/// The host is reached one of two ways: straight, at the address Bonjour
+/// gives or the one it last answered at, or through the relay
+/// (`Relay/PROTOCOL.md`), which splices the same TLS to it by SNI. With a
+/// relay configured both are tried, the direct one first and the relay a
+/// moment later — sooner when the direct one fails outright — and the
+/// first to finish its handshake is the link; the other is dropped. The
+/// path is not changed under a live link: the next connection tries again,
+/// and is back on the local network as soon as that answers first.
 final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     private let hostID: String
     private let host: PairedRemoteHost
     private let queue: DispatchQueue
     private var frames: RemoteFrameConnection?
+    private var winningPath: Path?
     private var handler: (@Sendable (DaemonLinkEvent) -> Void)?
     private var pendingReplies: [UInt64: @Sendable (xpc_object_t) -> Void] = [:]
     private var nextTag: UInt64 = 1
@@ -120,6 +130,29 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     private var queuedBeforeReady: [(tag: UInt64, message: xpc_object_t)] = []
     private var isReady = false
     private var isFinished = false
+    /// The host is known to run another iGhostVT: nothing is dialled, and
+    /// the hello is answered here with what the host would have said.
+    private var refusedVersion: String?
+
+    private enum Path {
+        case direct(NWEndpoint)
+        case relay(RelayConfiguration)
+
+        var isRelay: Bool {
+            if case .relay = self {
+                return true
+            }
+            return false
+        }
+    }
+
+    /// When the host last sent anything, for the relayed link's heartbeat.
+    private var lastHeard = Date()
+
+    /// Connections still racing, and the paths not tried yet.
+    private var attempts: [RemoteFrameConnection] = []
+    private var untried: [(path: Path, delay: TimeInterval)] = []
+    private var launchGeneration = 0
 
     init?(hostID: String, queue: DispatchQueue) {
         guard let host = PairedRemoteHostStore.host(id: hostID) else { return nil }
@@ -131,24 +164,116 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     func activate(_ handler: @escaping @Sendable (DaemonLinkEvent) -> Void) {
         queue.async { [self] in
             self.handler = handler
-            let endpoint = RemoteHostDirectory.endpoint(forHostID: hostID) ?? host.lastEndpoint
-            guard let endpoint else {
-                AppLog.warning(.transport, "remote host \(hostID) has no known address")
+            if let theirs = RemoteHostDirectory.mismatchedVersion(ofHostID: hostID) {
+                AppLog.info(.transport, "remote host \(hostID) runs iGhostVT \(theirs), not \(RemoteAccess.appVersion)")
+                refusedVersion = theirs
+                return
+            }
+            untried = Self.plan(hostID: hostID, host: host)
+            guard !untried.isEmpty else {
+                AppLog.warning(.transport, "remote host \(hostID) has no known address and no relay")
                 finish(lost: true)
                 return
             }
-            let parameters = RemoteTLS.parameters(keys: [
-                RemoteTLS.Key(identity: Data(host.deviceID.utf8), secret: host.deviceKey),
-            ])
-            let frames = RemoteFrameConnection(connection: NWConnection(to: endpoint, using: parameters), queue: queue)
-            frames.onReady = { [weak self] in self?.ready() }
-            frames.onFrame = { [weak self] header, object in self?.received(header, object) }
-            frames.onClosed = { [weak self] reason in
-                AppLog.info(.transport, "remote link to \(self?.host.name ?? "?") closed: \(reason)")
-                self?.finish(lost: true)
+            launchNext()
+        }
+    }
+
+    /// Which paths, in which order, and how long each waits for the one
+    /// before it. Bonjour seeing the host makes the direct path all but
+    /// certain, so the relay waits a second (it can still see a host that
+    /// left, or an access point that keeps clients apart); a remembered
+    /// address is a guess, and the relay waits 300 ms. A path that won a
+    /// few minutes ago goes first, so the list and the menus, which connect
+    /// every half minute, do not race every time.
+    private static func plan(hostID: String, host: PairedRemoteHost) -> [(path: Path, delay: TimeInterval)] {
+        let bonjour = RemoteHostDirectory.endpoint(forHostID: hostID)
+        var paths: [(path: Path, delay: TimeInterval)] = []
+        if let direct = bonjour ?? host.lastEndpoint {
+            paths.append((.direct(direct), 0))
+        }
+        if let relay = RelayConfigurationStore.current {
+            paths.append((.relay(relay), paths.isEmpty ? 0 : (bonjour != nil ? 1 : 0.3)))
+        }
+        if RemotePathMemory.lastWinner(forHostID: hostID) == true, paths.count == 2 {
+            paths = [(paths[1].path, 0), (paths[0].path, 1)]
+        }
+        return paths
+    }
+
+    private func launchNext() {
+        guard !isFinished, frames == nil, !untried.isEmpty else { return }
+        let (path, _) = untried.removeFirst()
+        launchGeneration += 1
+        let frames = RemoteFrameConnection(connection: makeConnection(path), queue: queue)
+        frames.onReady = { [weak self, weak frames] in
+            guard let self, let frames else { return }
+            won(frames, path: path)
+        }
+        frames.onFrame = { [weak self] header, object in self?.received(header, object) }
+        frames.onClosed = { [weak self, weak frames] reason in
+            guard let self, let frames else { return }
+            attemptClosed(frames, path: path, reason: reason)
+        }
+        attempts.append(frames)
+        frames.start()
+        guard let next = untried.first else { return }
+        let generation = launchGeneration
+        queue.asyncAfter(deadline: .now() + next.delay) { [weak self] in
+            guard let self, generation == launchGeneration else { return }
+            launchNext()
+        }
+    }
+
+    private func makeConnection(_ path: Path) -> NWConnection {
+        let parameters = RemoteTLS.parameters(
+            keys: [RemoteTLS.Key(identity: Data(host.deviceID.utf8), secret: host.deviceKey)],
+            serverName: hostID,
+        )
+        switch path {
+        case let .direct(endpoint):
+            return NWConnection(to: endpoint, using: parameters)
+        case let .relay(configuration):
+            return NWConnection(to: configuration.endpoint, using: parameters)
+        }
+    }
+
+    private func won(_ winner: RemoteFrameConnection, path: Path) {
+        guard frames == nil, !isFinished else { return }
+        frames = winner
+        winningPath = path
+        untried.removeAll()
+        for attempt in attempts where attempt !== winner {
+            attempt.onClosed = nil
+            attempt.onFrame = nil
+            attempt.close(reason: "another path answered first")
+        }
+        attempts.removeAll()
+        RemotePathMemory.note(viaRelay: path.isRelay, forHostID: hostID)
+        AppLog.info(.transport, "remote link to \(host.name) \(path.isRelay ? "through the relay" : "direct")")
+        ready()
+        if path.isRelay {
+            lastHeard = Date()
+            heartbeat()
+        }
+    }
+
+    private func attemptClosed(_ attempt: RemoteFrameConnection, path: Path, reason: String) {
+        if attempt === frames {
+            AppLog.info(.transport, "remote link to \(host.name) closed: \(reason)")
+            finish(lost: true)
+            return
+        }
+        attempts.removeAll { $0 === attempt }
+        AppLog.info(.transport, "remote link to \(host.name) \(path.isRelay ? "through the relay" : "direct") failed: \(reason)")
+        guard frames == nil else { return }
+        if !untried.isEmpty {
+            // No point waiting out the head start of a path that is gone.
+            if attempts.isEmpty {
+                launchNext()
             }
-            self.frames = frames
-            frames.start()
+        } else if attempts.isEmpty {
+            finish(lost: true)
         }
     }
 
@@ -160,6 +285,10 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
 
     func send(_ message: xpc_object_t, reply: @escaping @Sendable (xpc_object_t) -> Void) {
         queue.async { [self] in
+            if let refusedVersion {
+                reply(Self.versionRefusal(theirs: refusedVersion))
+                return
+            }
             guard !isFinished else {
                 reply(xpc_dictionary_create(nil, nil, 0))
                 return
@@ -171,6 +300,15 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
         }
     }
 
+    /// What a host of another version answers a hello with.
+    private static func versionRefusal(theirs: String) -> xpc_object_t {
+        let reply = xpc_dictionary_create(nil, nil, 0)
+        xpc_dictionary_set_uint64(reply, iGhostVTWireKey.version, iGhostVTProtocol.version)
+        xpc_dictionary_set_int64(reply, iGhostVTWireKey.code, iGhostVTReplyCode.unsupportedVersion.rawValue)
+        xpc_dictionary_set_string(reply, iGhostVTWireKey.appVersion, theirs)
+        return reply
+    }
+
     func cancel() {
         queue.async { [self] in
             finish(lost: false)
@@ -178,7 +316,7 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     }
 
     private func enqueue(_ message: xpc_object_t, tag: UInt64) {
-        guard !isFinished else { return }
+        guard !isFinished, refusedVersion == nil else { return }
         guard isReady, let frames else {
             queuedBeforeReady.append((tag, message))
             return
@@ -189,7 +327,7 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     private func ready() {
         guard let frames else { return }
         isReady = true
-        PairedRemoteHostStore.noteReached(frames.connection, forHostID: hostID)
+        PairedRemoteHostStore.noteReached(frames.connection, forHostID: hostID, viaRelay: winningPath?.isRelay == true)
         let queued = queuedBeforeReady
         queuedBeforeReady.removeAll()
         for item in queued {
@@ -207,6 +345,7 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
             xpc_dictionary_set_string(message, iGhostVTWireKey.deviceID, host.deviceID)
             // The name it goes by now, so the host's list follows a rename.
             xpc_dictionary_set_string(message, iGhostVTWireKey.deviceName, RemoteDeviceIdentity.deviceName)
+            xpc_dictionary_set_string(message, iGhostVTWireKey.appVersion, RemoteAccess.appVersion)
             proof.withUnsafeBytes { buffer in
                 if let base = buffer.baseAddress {
                     xpc_dictionary_set_data(message, iGhostVTWireKey.confirmation, base, buffer.count)
@@ -218,7 +357,36 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
         }
     }
 
+    /// A relayed link is alive only if the host answers across it: every
+    /// box on the way may keep its own TCP leg up for a peer that is gone.
+    /// A quiet link is pinged; one the host has not answered on for
+    /// `RemoteAccess.relayedReplyLimit` is given up, and its owner
+    /// reconnects as after any other loss.
+    private func heartbeat() {
+        queue.asyncAfter(deadline: .now() + RemoteAccess.relayedPingInterval / 3) { [weak self] in
+            guard let self, !isFinished, let frames else { return }
+            let quiet = Date().timeIntervalSince(lastHeard)
+            if quiet > RemoteAccess.relayedReplyLimit {
+                AppLog.info(.transport, "remote link to \(host.name): nothing through the relay in \(Int(quiet)) s")
+                finish(lost: true)
+                return
+            }
+            if quiet > RemoteAccess.relayedPingInterval, isReady {
+                let ping = xpc_dictionary_create(nil, nil, 0)
+                xpc_dictionary_set_uint64(ping, iGhostVTWireKey.version, iGhostVTProtocol.version)
+                xpc_dictionary_set_uint64(ping, iGhostVTWireKey.operation, iGhostVTOperation.ping.rawValue)
+                let tag = nextTag
+                nextTag &+= 1
+                // The answer is only worth having arrived.
+                pendingReplies[tag] = { _ in }
+                transmit(ping, tag: tag, over: frames)
+            }
+            heartbeat()
+        }
+    }
+
     private func received(_ header: IOWire.Header, _ object: xpc_object_t) {
+        lastHeard = Date()
         switch header.kind {
         case .reply:
             pendingReplies.removeValue(forKey: header.tag)?(object)
@@ -232,6 +400,12 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
     private func finish(lost: Bool) {
         guard !isFinished else { return }
         isFinished = true
+        untried.removeAll()
+        for attempt in attempts where attempt !== frames {
+            attempt.onClosed = nil
+            attempt.close(reason: "link finished")
+        }
+        attempts.removeAll()
         // A cancel lets the last frames leave first: the owner's close or
         // detach was sent just before it.
         if lost {
@@ -251,6 +425,26 @@ final class RemoteDaemonLink: DaemonLink, @unchecked Sendable {
         self.handler = nil
         if lost {
             handler?(.lost)
+        }
+    }
+}
+
+/// Which path reached each host last, for a few minutes: a link opened
+/// soon after takes it first instead of racing again.
+enum RemotePathMemory {
+    private static let lock = NSLock()
+    private nonisolated(unsafe) static var winners: [String: (viaRelay: Bool, at: Date)] = [:]
+    private static let lifetime: TimeInterval = 300
+
+    static func note(viaRelay: Bool, forHostID id: String) {
+        lock.withLock { winners[id] = (viaRelay, Date()) }
+    }
+
+    /// True for the relay, false for direct, nil when nothing recent.
+    static func lastWinner(forHostID id: String) -> Bool? {
+        lock.withLock {
+            guard let winner = winners[id], Date().timeIntervalSince(winner.at) < lifetime else { return nil }
+            return winner.viaRelay
         }
     }
 }

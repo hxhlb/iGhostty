@@ -68,7 +68,7 @@ struct RemoteHostDetailView: View {
             message: "To connect again, pair it again.",
             actions: [
                 AlertAction("Cancel") {},
-                AlertAction("Forget", kind: .destructive) {
+                AlertAction("Forget", kind: .highlighted) {
                     PairedRemoteHostStore.remove(id: hostID)
                     dismiss()
                 },

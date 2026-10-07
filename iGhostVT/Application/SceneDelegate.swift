@@ -108,14 +108,23 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         observeLaunchAgent()
         for context in options.urlContexts {
-            ShortcutBridge.handle(context.url)
+            open(context.url)
         }
     }
 
-    /// An `ighostvt://` link while the app is running.
+    /// An `ighostvt://` link, or a relay configuration opened from Files or
+    /// the Finder, while the app is running.
     func scene(_: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {
         for context in contexts {
-            ShortcutBridge.handle(context.url)
+            open(context.url)
+        }
+    }
+
+    private func open(_ url: URL) {
+        if RelayImport.isConfiguration(url) {
+            RelayImport.open(url, in: window)
+        } else {
+            ShortcutBridge.handle(url)
         }
     }
 

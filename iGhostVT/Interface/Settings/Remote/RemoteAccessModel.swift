@@ -53,7 +53,8 @@ final class RemoteAccessModel: ObservableObject {
     }
 
     func beginPairing() async {
-        await apply(RemoteAccessControl.beginPairing())
+        let throughRelay = RelayConfigurationStore.current != nil && RelayConfigurationStore.allowsRelayPairing
+        await apply(RemoteAccessControl.beginPairing(throughRelay: throughRelay))
     }
 
     func endPairing() {
@@ -93,5 +94,6 @@ final class RemoteAccessModel: ObservableObject {
         }
         RemoteHostDirectory.shared.noteOwnHostID(status.hostID)
         RemoteAccessActivity.note(status)
+        RelayConfigurationSync.reconcile(with: status)
     }
 }

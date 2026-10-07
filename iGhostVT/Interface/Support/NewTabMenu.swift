@@ -133,10 +133,20 @@ struct NewTabMenuContent: View {
             // as its terminals were many, and read as this device's own.
             Section {
                 ForEach(choices.remoteHosts) { host in
-                    Menu {
-                        remoteHostRows(host)
-                    } label: {
-                        SwiftUI.Label(host.displayName, systemImage: "network")
+                    if let theirs = RemoteHostDirectory.mismatchedVersion(ofHostID: host.id) {
+                        // Another iGhostVT there: listed, greyed, with
+                        // what to update.
+                        let title = "\(host.displayName) — \(RemoteVersionText.needsUpdate(theirs: theirs))"
+                        Button {} label: {
+                            SwiftUI.Label(title, systemImage: "network")
+                        }
+                        .disabled(true)
+                    } else {
+                        Menu {
+                            remoteHostRows(host)
+                        } label: {
+                            SwiftUI.Label(host.displayName, systemImage: "network")
+                        }
                     }
                 }
             } header: {

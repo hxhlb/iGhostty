@@ -36,8 +36,12 @@ struct SetupPage<Content: View, Footer: View>: View {
                 .font(.system(size: 32, weight: .regular))
                 .foregroundColor(tint)
                 .accessibilityHidden(true)
+            // Said outright: a page in a popover inherits the colour of
+            // what it is anchored to, and the Mac's device table anchors it
+            // to a selected row's white Pair button.
             Text(title)
                 .font(DS.Font.title)
+                .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

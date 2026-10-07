@@ -17,9 +17,9 @@ struct PairedRemoteHost: Codable, Equatable, Identifiable, Sendable {
     var deviceID: String
     var deviceKey: Data
     var pairedAt: Date
-    /// The address it was last reached at, as the connection resolved it.
-    /// Pairing needs the host found by Bonjour; after that this is the way
-    /// back in on a launch where the browser has not seen it yet.
+    /// The address it was last reached at directly, as the connection
+    /// resolved it — never the relay's. The way back in on a launch where
+    /// the browser has not seen the host yet.
     var lastAddress: String?
     /// When a link last reached it — pairing, then every connection.
     var lastSeen: Date? = nil
@@ -158,9 +158,11 @@ enum PairedRemoteHostStore {
     }
 
     /// The link reached the host: the address that answered, and when — kept up to date on every connection for a
-    /// launch on which the browser has not found it.
-    static func noteReached(_ connection: NWConnection, forHostID id: String) {
-        let address = rememberedAddress(of: connection, hostID: id)
+    /// launch on which the browser has not found it. Through the relay
+    /// only the time: the address that answered is the relay's, and kept
+    /// as the host's it would send every later direct attempt there.
+    static func noteReached(_ connection: NWConnection, forHostID id: String, viaRelay: Bool) {
+        let address = viaRelay ? nil : rememberedAddress(of: connection, hostID: id)
         lock.withLock {
             var hosts = loadedLocked()
             guard let index = hosts.firstIndex(where: { $0.id == id }) else { return }

@@ -14,6 +14,19 @@ struct DiscoveredRemoteHost: Identifiable, Equatable, Sendable {
     /// The address it advertises, for a list to tell same-named devices
     /// apart; nil from a host that does not say.
     var address: String?
+    /// The iGhostVT version it runs; nil from a host older than the
+    /// version rule, which no longer matches anything.
+    var appVersion: String?
+    /// Found at the relay rather than on this network: `endpoint` is the
+    /// relay's, and a connection has to name the host by SNI.
+    var viaRelay = false
+}
+
+/// A host registered at this device's relay, as the relay's list says.
+struct RelayHost: Equatable, Sendable {
+    var id: String
+    var name: String
+    var appVersion: String
 }
 
 /// The hosts nearby, from an `NWBrowser` on `_ighostvt._tcp`.
@@ -28,6 +41,19 @@ final class RemoteHostDirectory: ObservableObject {
 
     @Published private(set) var hosts: [DiscoveredRemoteHost] = []
     @Published private(set) var paired: [PairedRemoteHost] = PairedRemoteHostStore.hosts
+    /// The hosts at the relay, by id, this device's own left out. Kept
+    /// apart from `hosts`: those are on this network and are dialled at
+    /// the address Bonjour gives, these only through the relay.
+    @Published private(set) var relayHosts: [String: RelayHost] = [:]
+    /// Why the relay could not be asked, nil when it answered (or there is
+    /// none).
+    @Published private(set) var relayProblem: RelayError?
+    /// The relay this device uses (`RelayConfigurationStore`), for the
+    /// settings to show.
+    @Published private(set) var relay: RelayConfiguration? = RelayConfigurationStore.current
+    private var relayObserver: NSObjectProtocol?
+    private var relayAskedAt: Date?
+    private var relayRequest: Task<Void, Never>?
 
     /// This device's own host id: its advertisement is never a device to
     /// pair or connect with. Kept once the helper has said it — the id
@@ -57,8 +83,20 @@ final class RemoteHostDirectory: ObservableObject {
     private nonisolated static let lock = NSLock()
     private nonisolated(unsafe) static var endpoints: [String: NWEndpoint] = [:]
     private nonisolated(unsafe) static var addresses: [String: String] = [:]
+    /// Each host's version, from its advertisement or the relay's list.
+    private nonisolated(unsafe) static var versions: [String: String] = [:]
+    private nonisolated(unsafe) static var relayHostIDs: Set<String> = []
 
     private init() {
+        relayObserver = NotificationCenter.default.addObserver(
+            forName: RelayConfigurationStore.didChange,
+            object: nil,
+            queue: .main,
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.relay = RelayConfigurationStore.current
+            }
+        }
         observer = NotificationCenter.default.addObserver(
             forName: PairedRemoteHostStore.didChange,
             object: nil,
@@ -86,6 +124,29 @@ final class RemoteHostDirectory: ObservableObject {
         lock.withLock { addresses[id] }
     }
 
+    /// Whether the relay listed the host last time it was asked, for a
+    /// transport's queue.
+    nonisolated static func isAtRelay(_ id: String) -> Bool {
+        lock.withLock { relayHostIDs.contains(id) }
+    }
+
+    /// The version the host says it runs, when it said, for a transport's
+    /// queue.
+    nonisolated static func knownVersion(ofHostID id: String) -> String? {
+        lock.withLock { versions[id] }
+    }
+
+    /// The other device's version when it is known not to match this
+    /// one's: a device that cannot connect, and why.
+    nonisolated static func mismatchedVersion(ofHostID id: String) -> String? {
+        guard let theirs = knownVersion(ofHostID: id), !RemoteAccess.isCompatible(theirs) else { return nil }
+        return theirs
+    }
+
+    func mismatchedVersion(of hostID: String) -> String? {
+        Self.mismatchedVersion(ofHostID: hostID)
+    }
+
     /// Paired hosts worth offering: the ones the browser sees, and the ones
     /// with a remembered address — on a network that drops multicast the
     /// browser sees nothing, and the address is the only way in.
@@ -94,7 +155,70 @@ final class RemoteHostDirectory: ObservableObject {
     }
 
     func isReachable(_ host: PairedRemoteHost) -> Bool {
-        isDiscovered(host.id) || host.lastAddress != nil
+        isDiscovered(host.id) || relayHosts[host.id] != nil || host.lastAddress != nil
+    }
+
+    func isAtRelay(_ hostID: String) -> Bool {
+        relayHosts[hostID] != nil
+    }
+
+    /// The hosts at the relay this device is not paired with, to pair with
+    /// through it — never shown as nearby.
+    var unpairedAtRelay: [DiscoveredRemoteHost] {
+        guard let relay = RelayConfigurationStore.current else { return [] }
+        let known = Set(paired.map(\.id)).union(hosts.map(\.id))
+        return relayHosts.values.filter { !known.contains($0.id) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .map { DiscoveredRemoteHost(id: $0.id, name: $0.name, endpoint: relay.endpoint, appVersion: $0.appVersion, viaRelay: true) }
+    }
+
+    /// Asks the relay which hosts it has. At most every few seconds unless
+    /// `force` (the configuration changed); a call while one is out waits
+    /// for that one.
+    func refreshRelay(force: Bool = false) async {
+        if let relayRequest {
+            return await relayRequest.value
+        }
+        guard let configuration = RelayConfigurationStore.current else {
+            relayAskedAt = nil
+            relayProblem = nil
+            if !relayHosts.isEmpty {
+                relayHosts = [:]
+                publish()
+            }
+            return
+        }
+        if !force, let relayAskedAt, Date().timeIntervalSince(relayAskedAt) < 5 {
+            return
+        }
+        relayAskedAt = Date()
+        let request = Task { @MainActor in
+            let result = await withCheckedContinuation { continuation in
+                RelayControl.listHosts(configuration: configuration) { continuation.resume(returning: $0) }
+            }
+            switch result {
+            case let .success(entries):
+                relayProblem = nil
+                let found = Dictionary(
+                    entries.filter { $0.id != ownHostID }
+                        .map { ($0.id, RelayHost(id: $0.id, name: $0.name, appVersion: $0.appVersion)) },
+                    uniquingKeysWith: { first, _ in first },
+                )
+                if found != relayHosts {
+                    relayHosts = found
+                }
+            case let .failure(error):
+                AppLog.info(.transport, "relay list failed: \(error)")
+                relayProblem = error
+                if !relayHosts.isEmpty {
+                    relayHosts = [:]
+                }
+            }
+            publish()
+        }
+        relayRequest = request
+        await request.value
+        relayRequest = nil
     }
 
     func isDiscovered(_ hostID: String) -> Bool {
@@ -113,8 +237,9 @@ final class RemoteHostDirectory: ObservableObject {
         return hosts.filter { !pairedIDs.contains($0.id) }
     }
 
-    /// Starts browsing if it has not; idempotent.
+    /// Starts browsing if it has not; idempotent. Asks the relay too.
     func start() {
+        Task { await refreshRelay() }
         guard browser == nil else { return }
         let parameters = NWParameters()
         parameters.includePeerToPeer = false
@@ -146,12 +271,21 @@ final class RemoteHostDirectory: ObservableObject {
         var seen: Set<String> = []
         let visible = results.filter { $0.id != ownHostID && seen.insert($0.id).inserted }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        let relayHosts = relayHosts
         Self.lock.withLock {
             Self.endpoints = Dictionary(visible.map { ($0.id, $0.endpoint) }, uniquingKeysWith: { first, _ in first })
             Self.addresses = Dictionary(
                 visible.compactMap { host in host.address.map { (host.id, $0) } },
                 uniquingKeysWith: { first, _ in first },
             )
+            var versions = relayHosts.mapValues(\.appVersion).filter { !$0.value.isEmpty }
+            for host in visible {
+                // An advertisement without a version is a host older than
+                // the rule: it cannot match.
+                versions[host.id] = host.appVersion ?? ""
+            }
+            Self.versions = versions
+            Self.relayHostIDs = Set(relayHosts.keys)
         }
         if visible != hosts {
             hosts = visible
@@ -173,6 +307,7 @@ final class RemoteHostDirectory: ObservableObject {
             name = serviceName
         }
         let address = record[RemoteAccess.TXTKey.address].flatMap { $0.isEmpty ? nil : $0 }
-        return DiscoveredRemoteHost(id: id, name: name, endpoint: result.endpoint, address: address)
+        let version = record[RemoteAccess.TXTKey.appVersion].flatMap { $0.isEmpty ? nil : $0 }
+        return DiscoveredRemoteHost(id: id, name: name, endpoint: result.endpoint, address: address, appVersion: version)
     }
 }

@@ -687,11 +687,21 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
             return String(localized: "Unable to connect to the terminal helper. Restart iGhostVT and try again.")
         }
         if let reply, xpc_get_type(reply) == iGhostVTXPC.typeDictionary,
+           xpc_dictionary_get_int64(reply, iGhostVTWireKey.code) == iGhostVTReplyCode.unsupportedVersion.rawValue
+        {
+            let theirs = xpc_dictionary_get_string(reply, iGhostVTWireKey.appVersion).map { String(cString: $0) } ?? ""
+            var name: String?
+            if case let .remote(hostID) = endpoint {
+                name = PairedRemoteHostStore.host(id: hostID)?.displayName
+            }
+            return RemoteVersionText.mismatch(theirs: theirs, name: name)
+        }
+        if let reply, xpc_get_type(reply) == iGhostVTXPC.typeDictionary,
            let message = xpc_dictionary_get_string(reply, iGhostVTWireKey.errorMessage)
         {
             return String(cString: message)
         }
-        return String(localized: "Unable to reach the other device. Check that it is on the same network and that remote access is on.")
+        return String(localized: "Unable to reach the other device. Check that remote access is on there, and that both devices are on the same network or use the same relay.")
     }
 
     /// Generous on purpose: the minute after a userspace reboot runs at a

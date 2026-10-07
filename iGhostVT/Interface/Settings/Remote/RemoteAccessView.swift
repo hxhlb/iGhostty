@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Settings ▸ Remote Access: this device as a host (the switch, the devices
-/// that may connect, pairing a new one) and this device as a client (one
-/// list: the devices it is paired with, then the ones nearby to pair with —
-/// only a device found on this network can be paired).
+/// that may connect, pairing a new one), its relay, and this device as a
+/// client (one list: the devices it is paired with, then the ones nearby or
+/// at the relay to pair with).
 /// Pushed from the settings sheet on iPhone and iPad; the Mac has a pane
 /// of its own (`MacRemotePane`).
 struct RemoteAccessView: View {
@@ -13,6 +13,9 @@ struct RemoteAccessView: View {
     @State private var isShowingPairingCode = false
     @State private var pairingHost: DiscoveredRemoteHost?
     @State private var name = RemoteDeviceIdentity.chosenName ?? ""
+    @State private var isImportingRelay = false
+    @State private var isConfirmingRelayRemoval = false
+    @AppStorage(RelayConfigurationStore.allowsRelayPairingKey) private var allowsRelayPairing = false
 
     var body: some View {
         Form {
@@ -21,9 +24,18 @@ struct RemoteAccessView: View {
             if model.isEnabled {
                 allowedDevicesSection
             }
+            relaySection
             yourDevicesSection
         }
         .navigationTitle("Remote Access")
+        .fileImporter(
+            isPresented: $isImportingRelay,
+            allowedContentTypes: [RelayImportType.type],
+        ) { result in
+            if case let .success(url) = result {
+                RelayImport.open(url, in: nil)
+            }
+        }
         .onAppear {
             model.appear()
             directory.start()
@@ -75,8 +87,62 @@ struct RemoteAccessView: View {
                 SettingsValueText(title: "Status", value: problem, isWarning: true)
             }
         } footer: {
-            Text("Paired devices on this network can open terminals here.")
-                .font(DS.Font.detail)
+            Group {
+                if directory.relay == nil {
+                    Text("Paired devices on this network can open terminals here.")
+                } else {
+                    Text("Paired devices on this network, or anywhere through the relay, can open terminals here.")
+                }
+            }
+            .font(DS.Font.detail)
+        }
+    }
+
+    // MARK: - Relay
+
+    private var relaySection: some View {
+        Section {
+            if let relay = directory.relay {
+                SettingsValueText(title: "Relay", value: relay.name)
+                SettingsValueText(title: "Address", value: relay.endpointDescription)
+                if let status = RelayStatusText.describe(model.status, directory: directory) {
+                    SettingsValueText(title: "Status", value: status.text, isWarning: status.isProblem)
+                }
+                Toggle("Allow Pairing Through Relay", isOn: $allowsRelayPairing)
+                Button("Replace Relay…") {
+                    isImportingRelay = true
+                }
+                Button("Remove Relay", role: .destructive) {
+                    isConfirmingRelayRemoval = true
+                }
+                .confirmationDialog(
+                    "Remove the relay?",
+                    isPresented: $isConfirmingRelayRemoval,
+                    titleVisibility: .visible,
+                ) {
+                    Button("Remove Relay", role: .destructive) {
+                        RelayConfigurationStore.remove()
+                    }
+                } message: {
+                    Text("Devices that are not on the same network can no longer reach each other.")
+                }
+            } else {
+                Button("Import Relay Configuration…") {
+                    isImportingRelay = true
+                }
+            }
+        } header: {
+            Text("Relay")
+                .font(DS.Font.caption)
+        } footer: {
+            Group {
+                if directory.relay == nil {
+                    Text("A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes.")
+                } else {
+                    Text("Pairing through the relay is off unless allowed here; pairing on the same network always works.")
+                }
+            }
+            .font(DS.Font.detail)
         }
     }
 
@@ -155,28 +221,48 @@ struct RemoteAccessView: View {
                     RemoteHostDetailView(hostID: host.id)
                 } label: {
                     HStack {
-                        DeviceNameText(name: host.displayName, address: directory.address(of: host))
+                        VStack(alignment: .leading, spacing: 2) {
+                            DeviceNameText(name: host.displayName, address: directory.address(of: host))
+                            if let theirs = directory.mismatchedVersion(of: host.id) {
+                                Text(RemoteVersionText.needsUpdate(theirs: theirs))
+                                    .font(DS.Font.detail)
+                                    .foregroundColor(.orange)
+                            }
+                        }
                         Spacer()
-                        Text(directory.isDiscovered(host.id) ? "Nearby" : "")
+                        Text(Self.whereabouts(of: host.id, in: directory))
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            ForEach(unpairedNearby) { host in
+            ForEach(unpairedNearby + directory.unpairedAtRelay) { host in
                 Button {
                     pairingHost = host
                 } label: {
                     HStack {
-                        DeviceNameText(name: host.name, address: host.address)
-                            .foregroundColor(.primary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            DeviceNameText(name: host.name, address: host.address)
+                                .foregroundColor(.primary)
+                            if host.viaRelay {
+                                Text("Through relay")
+                                    .font(DS.Font.detail)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                         Spacer()
                         Text("Pair")
                     }
                 }
             }
-            if directory.paired.isEmpty, unpairedNearby.isEmpty {
-                Text("Devices on this network with remote access on appear here.")
-                    .foregroundColor(.secondary)
+            if directory.paired.isEmpty, unpairedNearby.isEmpty, directory.unpairedAtRelay.isEmpty {
+                Group {
+                    if directory.relay == nil {
+                        Text("Devices on this network with remote access on appear here.")
+                    } else {
+                        Text("Devices on this network or at the relay with remote access on appear here.")
+                    }
+                }
+                .foregroundColor(.secondary)
             }
         } header: {
             Text("Your Devices")
@@ -186,6 +272,18 @@ struct RemoteAccessView: View {
 
     private var unpairedNearby: [DiscoveredRemoteHost] {
         directory.unpairedNearby
+    }
+
+    /// Where a paired device can be reached right now: here, through the
+    /// relay, or nowhere that is known.
+    static func whereabouts(of hostID: String, in directory: RemoteHostDirectory) -> String {
+        if directory.isDiscovered(hostID) {
+            return String(localized: "Nearby")
+        }
+        if directory.isAtRelay(hostID) {
+            return String(localized: "Relay")
+        }
+        return ""
     }
 }
 

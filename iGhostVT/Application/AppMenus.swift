@@ -66,9 +66,18 @@ enum AppMenus {
     // MARK: - File
 
     /// The system File menu's New (⌘N) opens a window and its Close (⌘W)
-    /// closes one; in a tabbed terminal both keys belong to the tab.
+    /// closes one; in a tabbed terminal both keys belong to the tab. And
+    /// because the app opens one document type — a relay configuration —
+    /// Catalyst hands it a document app's File menu too (Open…, Open
+    /// Recent, Duplicate, Move, Rename…, Export As…), none of which means
+    /// anything for a terminal; the file is opened from the Finder or from
+    /// Settings, so those go.
     private static func installFileMenu(into builder: UIMenuBuilder) {
-        for identifier in [UIMenu.Identifier.newScene, .close] where builder.menu(for: identifier) != nil {
+        var removed: [UIMenu.Identifier] = [.newScene, .close, .open, .openRecent]
+        if #available(iOS 16.0, *) {
+            removed.append(.document)
+        }
+        for identifier in removed where builder.menu(for: identifier) != nil {
             builder.remove(menu: identifier)
         }
 

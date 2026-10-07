@@ -1235,6 +1235,89 @@
         }
       }
     },
+    "A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يتيح المرحّل لأجهزتك الوصول إلى بعضها عندما لا تكون على الشبكة نفسها. أعِدّه على خادم واستورد ملف ‎.vtrpsc الذي يكتبه."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem Relay erreichen sich deine Geräte auch außerhalb desselben Netzwerks. Richte es auf einem Server ein und importiere die .vtrpsc-Datei, die es schreibt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un relé permite que tus dispositivos se conecten cuando no están en la misma red. Configúralo en un servidor e importa el archivo .vtrpsc que genera."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un relais permet à vos appareils de se joindre quand ils ne sont pas sur le même réseau. Installez-le sur un serveur et importez le fichier .vtrpsc qu’il génère."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un relay permette ai tuoi dispositivi di raggiungersi quando non sono sulla stessa rete. Configuralo su un server e importa il file .vtrpsc che genera."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーを使うと、同じネットワークにいないデバイス同士も接続できます。サーバに設定し、生成される.vtrpscファイルを読み込んでください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이를 사용하면 같은 네트워크에 있지 않은 기기들도 서로 연결할 수 있습니다. 서버에 설정한 뒤 생성되는 .vtrpsc 파일을 가져오십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um relay permite que seus dispositivos se conectem quando não estão na mesma rede. Configure-o em um servidor e importe o arquivo .vtrpsc que ele gera."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ретранслятор позволяет устройствам связываться, даже если они не в одной сети. Разверните его на сервере и импортируйте созданный им файл .vtrpsc."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay giúp các thiết bị kết nối với nhau khi không cùng mạng. Hãy thiết lập trên một máy chủ rồi nhập tệp .vtrpsc mà nó tạo ra."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继可让不在同一网络的设备互相连接。在服务器上部署中继，然后导入它生成的 .vtrpsc 文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中繼可讓不在同一網路的裝置互相連線。在伺服器上部署中繼，然後匯入它產生的 .vtrpsc 檔案。"
+          }
+        }
+      }
+    },
     "A removed device loses access at once and has to pair again." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2562,6 +2645,89 @@
         }
       }
     },
+    "Allow Pairing Through Relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "السماح بالاقتران عبر المرحّل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopplung über Relay erlauben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Pairing Through Relay"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir enlazar a través del relé"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser le jumelage via le relais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti abbinamento tramite relay"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレー経由のペアリングを許可"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이를 통한 페어링 허용"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir pareamento pelo relay"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить создание пары через ретранслятор"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cho phép ghép đôi qua relay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许通过中继配对"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許透過中繼配對"
+          }
+        }
+      }
+    },
     "Allow Remote Access" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2806,6 +2972,89 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "允許的裝置"
+          }
+        }
+      }
+    },
+    "Another device is registered as this one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جهاز آخر مسجّل باسم هذا الجهاز"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein anderes Gerät ist als dieses registriert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another device is registered as this one"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro dispositivo está registrado como este"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un autre appareil est enregistré à la place de celui-ci"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un altro dispositivo è registrato come questo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のデバイスがこのデバイスとして登録されています"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 기기가 이 기기로 등록되어 있음"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outro dispositivo está registrado como este"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Другое устройство зарегистрировано как это"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Một thiết bị khác đã đăng ký thay thiết bị này"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一台设备以本机身份注册了"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一台裝置以本機身分註冊了"
           }
         }
       }
@@ -5212,6 +5461,89 @@
         }
       }
     },
+    "Connected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متصل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connesso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결됨"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключено"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã kết nối"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已連線"
+          }
+        }
+      }
+    },
     "Connected %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5291,6 +5623,89 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@連線過"
+          }
+        }
+      }
+    },
+    "Connected, this device is reachable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متصل، ويمكن الوصول إلى هذا الجهاز"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbunden, dieses Gerät ist erreichbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connected, this device is reachable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado, este dispositivo es accesible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté, cet appareil est joignable"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connesso, questo dispositivo è raggiungibile"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続済み、このデバイスに接続できます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결됨, 이 기기에 연결할 수 있음"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado, este dispositivo está acessível"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключено, устройство доступно"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã kết nối, có thể truy cập thiết bị này"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已连接，可访问本机"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已連線，可存取本機"
           }
         }
       }
@@ -7861,6 +8276,89 @@
         }
       }
     },
+    "Devices on this network or at the relay with remote access on appear here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تظهر هنا الأجهزة الموجودة على هذه الشبكة أو لدى المرحّل التي يكون الوصول عن بُعد فيها قيد التشغيل."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geräte in diesem Netzwerk oder am Relay mit aktiviertem Fernzugriff erscheinen hier."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices on this network or at the relay with remote access on appear here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquí aparecen los dispositivos de esta red o del relé con el acceso remoto activado."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les appareils de ce réseau ou du relais dont l’accès à distance est activé apparaissent ici."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qui compaiono i dispositivi di questa rete o del relay con l’accesso remoto attivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このネットワーク上またはリレーにある、リモートアクセスがオンのデバイスがここに表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 네트워크나 릴레이에 있는, 원격 접근이 켜진 기기가 여기에 표시됩니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos nesta rede ou no relay com acesso remoto ativado aparecem aqui."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь появляются устройства из этой сети или с ретранслятора, на которых включён удалённый доступ."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các thiết bị trong mạng này hoặc trên relay có bật truy cập từ xa sẽ hiện ở đây."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此网络中或中继上已开启远程访问的设备会显示在这里。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此網路中或中繼上已開啟遠端存取的裝置會顯示在這裡。"
+          }
+        }
+      }
+    },
     "Devices on this network with remote access on appear here." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7940,6 +8438,172 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此網路上已開啟遠端存取的裝置會顯示在這裡。"
+          }
+        }
+      }
+    },
+    "Devices that are not on the same network can no longer reach each other." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لن تتمكن الأجهزة غير الموجودة على الشبكة نفسها من الوصول إلى بعضها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geräte, die nicht im selben Netzwerk sind, erreichen sich dann nicht mehr."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices that are not on the same network can no longer reach each other."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los dispositivos que no estén en la misma red ya no podrán conectarse entre sí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les appareils qui ne sont pas sur le même réseau ne pourront plus se joindre."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dispositivi che non sono sulla stessa rete non potranno più raggiungersi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じネットワークにいないデバイス同士は接続できなくなります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "같은 네트워크에 있지 않은 기기들은 더 이상 서로 연결할 수 없습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos que não estão na mesma rede não poderão mais se conectar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устройства не из одной сети больше не смогут связаться друг с другом."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các thiết bị không cùng mạng sẽ không thể kết nối với nhau nữa."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不在同一网络的设备将无法再互相连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不在同一網路的裝置將無法再互相連線。"
+          }
+        }
+      }
+    },
+    "Devices with remote access reach each other through %@ when they are not on the same network. Paired devices still need their pairing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تتصل الأجهزة التي تعمل بالوصول عن بُعد ببعضها عبر %@ عندما لا تكون على الشبكة نفسها. لا تزال الأجهزة بحاجة إلى الاقتران."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geräte mit Fernzugriff erreichen sich über %@, wenn sie nicht im selben Netzwerk sind. Die Kopplung bleibt weiterhin nötig."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices with remote access reach each other through %@ when they are not on the same network. Paired devices still need their pairing."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los dispositivos con acceso remoto se conectan a través de %@ cuando no están en la misma red. Siguen necesitando estar enlazados."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les appareils avec l’accès à distance passent par %@ quand ils ne sont pas sur le même réseau. Ils doivent toujours être jumelés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dispositivi con accesso remoto si raggiungono tramite %@ quando non sono sulla stessa rete. Devono comunque essere abbinati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リモートアクセスがオンのデバイスは、同じネットワークにいないとき%@を経由して接続します。ペアリングは引き続き必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원격 접근이 켜진 기기들은 같은 네트워크에 있지 않을 때 %@을(를) 통해 연결됩니다. 페어링은 여전히 필요합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos com acesso remoto se conectam por %@ quando não estão na mesma rede. Eles ainda precisam estar pareados."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устройства с удалённым доступом связываются через %@, когда они не в одной сети. Создание пары по-прежнему нужно."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các thiết bị bật truy cập từ xa kết nối với nhau qua %@ khi không cùng mạng. Vẫn cần ghép đôi như trước."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不在同一网络时，开启远程访问的设备会通过 %@ 互相连接。设备之间仍需配对。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不在同一網路時，開啟遠端存取的裝置會透過 %@ 互相連線。裝置之間仍需配對。"
           }
         }
       }
@@ -11840,6 +12504,89 @@
         }
       }
     },
+    "Import Relay Configuration…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استيراد إعداد المرحّل…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay-Konfiguration importieren …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Relay Configuration…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar configuración de relé…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer une configuration de relais…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa configurazione relay…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレー構成を読み込む…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 구성 가져오기…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar configuração de relay…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Импортировать конфигурацию…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhập cấu hình relay…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入中继配置…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯入中繼設定…"
+          }
+        }
+      }
+    },
     "In Use in Another Window" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12665,6 +13412,89 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "它現在可以在這部裝置上開啟終端機。"
+          }
+        }
+      }
+    },
+    "Its address becomes %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يصبح عنوانه %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seine Adresse wird %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its address becomes %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su dirección pasa a ser %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son adresse devient %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il suo indirizzo diventa %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アドレスは%@になります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주소가 %@(으)로 바뀝니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O endereço passa a ser %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Его адрес станет %@."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Địa chỉ của nó sẽ là %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地址将改为 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位址將改為 %@。"
           }
         }
       }
@@ -16062,6 +16892,173 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "附近"
+          }
+        }
+      }
+    },
+    "Needs update: %1$@ there, %2$@ here" : {
+      "comment" : "Under a device whose iGhostVT differs; %1$@ its version, %2$@ this device's",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحتاج إلى تحديث: %1$@ هناك، و%2$@ هنا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update nötig: dort %1$@, hier %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs update: %1$@ there, %2$@ here"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requiere actualización: %1$@ allí, %2$@ aquí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mise à jour requise : %1$@ là-bas, %2$@ ici"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento necessario: %1$@ lì, %2$@ qui"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートが必要：相手 %1$@、こちら %2$@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "업데이트 필요: 상대 %1$@, 이 기기 %2$@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precisa de atualização: %1$@ lá, %2$@ aqui"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужно обновление: там %1$@, здесь %2$@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cần cập nhật: bên đó %1$@, bên này %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要更新：对方 %1$@，本机 %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要更新：對方 %1$@，本機 %2$@"
+          }
+        }
+      }
+    },
+    "Needs update: older version" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحتاج إلى تحديث: إصدار أقدم"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update nötig: ältere Version"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Needs update: older version"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requiere actualización: versión anterior"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mise à jour requise : ancienne version"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento necessario: versione precedente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップデートが必要：古いバージョン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "업데이트 필요: 이전 버전"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precisa de atualização: versão mais antiga"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нужно обновление: старая версия"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cần cập nhật: phiên bản cũ hơn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要更新：较旧版本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要更新：較舊版本"
           }
         }
       }
@@ -19948,6 +20945,89 @@
         }
       }
     },
+    "Paired devices on this network, or anywhere through the relay, can open terminals here." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يمكن للأجهزة المقترنة على هذه الشبكة، أو من أي مكان عبر المرحّل، فتح طرفيات هنا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekoppelte Geräte in diesem Netzwerk oder überall über das Relay können hier Terminals öffnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paired devices on this network, or anywhere through the relay, can open terminals here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los dispositivos enlazados en esta red, o en cualquier lugar a través del relé, pueden abrir terminales aquí."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les appareils jumelés sur ce réseau, ou n’importe où via le relais, peuvent ouvrir des terminaux ici."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dispositivi abbinati su questa rete, o ovunque tramite il relay, possono aprire terminali qui."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このネットワーク上、またはリレー経由でどこからでも、ペアリング済みのデバイスがここでターミナルを開けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 네트워크에 있거나 릴레이를 통해 어디서든 페어링된 기기가 여기서 터미널을 열 수 있습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dispositivos pareados nesta rede, ou de qualquer lugar pelo relay, podem abrir terminais aqui."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устройства в паре из этой сети или откуда угодно через ретранслятор могут открывать здесь терминалы."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các thiết bị đã ghép đôi trong mạng này, hoặc ở bất cứ đâu qua relay, có thể mở terminal tại đây."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此网络中或通过中继从任何地方连接的已配对设备都可以在这里打开终端。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此網路中或透過中繼從任何地方連線的已配對裝置都可以在這裡開啟終端機。"
+          }
+        }
+      }
+    },
     "Paired with “%@”" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20027,6 +21107,89 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已與「%@」配對"
+          }
+        }
+      }
+    },
+    "Pairing through the relay is off unless allowed here; pairing on the same network always works." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الاقتران عبر المرحّل متوقف ما لم تسمح به هنا؛ أما الاقتران على الشبكة نفسها فيعمل دائمًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopplung über das Relay ist aus, solange sie hier nicht erlaubt ist; im selben Netzwerk funktioniert sie immer."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing through the relay is off unless allowed here; pairing on the same network always works."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enlazar a través del relé está desactivado salvo que lo permitas aquí; en la misma red siempre funciona."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le jumelage via le relais est désactivé sauf si vous l’autorisez ici ; sur le même réseau, il fonctionne toujours."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’abbinamento tramite relay è disattivato se non lo consenti qui; sulla stessa rete funziona sempre."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここで許可しない限り、リレー経由のペアリングはオフです。同じネットワークでのペアリングは常に使えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여기서 허용하지 않으면 릴레이를 통한 페어링은 꺼져 있습니다. 같은 네트워크에서는 항상 페어링할 수 있습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O pareamento pelo relay fica desativado a menos que permitido aqui; na mesma rede, sempre funciona."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создание пары через ретранслятор выключено, пока его не разрешить здесь; в одной сети оно работает всегда."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghép đôi qua relay bị tắt trừ khi được cho phép ở đây; ghép đôi trong cùng mạng luôn hoạt động."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "除非在这里允许，否则无法通过中继配对；在同一网络中配对始终可用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "除非在這裡允許，否則無法透過中繼配對；在同一網路中配對始終可用。"
           }
         }
       }
@@ -21355,6 +22518,172 @@
         }
       }
     },
+    "Relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المرحّل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relé"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ретранслятор"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中繼"
+          }
+        }
+      }
+    },
+    "Relay Already in Use" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المرحّل قيد الاستخدام بالفعل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay wird bereits verwendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay Already in Use"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El relé ya está en uso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relais déjà utilisé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay già in uso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーはすでに使用中です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이가 이미 사용 중임"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay já em uso"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ретранслятор уже используется"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay đã được dùng"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继已在使用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中繼已在使用"
+          }
+        }
+      }
+    },
     "Remember Directories" : {
       "localizations" : {
         "ar" : {
@@ -21848,6 +23177,421 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除 %@"
+          }
+        }
+      }
+    },
+    "Remove Relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إزالة المرحّل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove Relay"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar relé"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le relais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi relay"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーを削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 제거"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover relay"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить ретранслятор"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gỡ relay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除中继"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除中繼"
+          }
+        }
+      }
+    },
+    "Remove the relay?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هل تريد إزالة المرحّل؟"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay entfernen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove the relay?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Eliminar el relé?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le relais ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovere il relay?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーを削除しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이를 제거하겠습니까?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remover o relay?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить ретранслятор?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gỡ relay?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除中继？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除中繼？"
+          }
+        }
+      }
+    },
+    "Replace Relay…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استبدال المرحّل…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay ersetzen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace Relay…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar relé…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplacer le relais…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituisci relay…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーを置き換え…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 대체…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Substituir relay…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заменить ретранслятор…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thay relay…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换中继…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取代中繼…"
+          }
+        }
+      }
+    },
+    "Replace the Relay “%@”?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هل تريد استبدال المرحّل „%@“؟"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay „%@“ ersetzen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace the Relay “%@”?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Reemplazar el relé “%@”?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplacer le relais « %@ » ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituire il relay “%@”?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレー「%@」を置き換えますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 “%@”을(를) 대체하겠습니까?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Substituir o relay “%@”?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заменить ретранслятор «%@»?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thay relay “%@”?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换中继“%@”？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取代中繼「%@」？"
+          }
+        }
+      }
+    },
+    "Replace…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استبدال…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ersetzen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reemplazar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplacer…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sostituisci…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置き換え…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대체…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Substituir…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заменить…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thay…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取代…"
           }
         }
       }
@@ -28327,6 +30071,174 @@
         }
       }
     },
+    "The other device runs an older version of iGhostVT, and this device runs %@. Update both to the same version to connect." : {
+      "comment" : "%@ is this device's version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعمل الجهاز الآخر بإصدار أقدم من iGhostVT، ويعمل هذا الجهاز بالإصدار %@. حدّث الجهازين إلى الإصدار نفسه للاتصال."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das andere Gerät verwendet eine ältere Version von iGhostVT, dieses Gerät %@. Aktualisiere beide auf dieselbe Version, um zu verbinden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The other device runs an older version of iGhostVT, and this device runs %@. Update both to the same version to connect."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El otro dispositivo usa una versión anterior de iGhostVT y este usa la %@. Actualiza ambos a la misma versión para conectarte."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’autre appareil utilise une version plus ancienne d’iGhostVT, et celui-ci la version %@. Mettez-les à jour vers la même version pour vous connecter."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’altro dispositivo usa una versione precedente di iGhostVT e questo la %@. Aggiorna entrambi alla stessa versione per collegarti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一方のデバイスは古いバージョンのiGhostVTを使っていて、このデバイスは%@です。接続するには両方を同じバージョンにアップデートしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 기기는 이전 버전의 iGhostVT를, 이 기기는 %@ 버전을 사용 중입니다. 연결하려면 두 기기를 같은 버전으로 업데이트하십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O outro dispositivo usa uma versão mais antiga do iGhostVT e este usa a %@. Atualize os dois para a mesma versão para conectar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На другом устройстве стоит более старая версия iGhostVT, а на этом — %@. Обновите оба до одной версии, чтобы подключиться."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thiết bị kia chạy phiên bản iGhostVT cũ hơn, còn thiết bị này chạy %@. Hãy cập nhật cả hai lên cùng phiên bản để kết nối."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一台设备运行的是较旧版本的 iGhostVT，本机运行的是 %@。请将两台设备更新到同一版本后再连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一台裝置執行的是較舊版本的 iGhostVT，本機執行的是 %@。請將兩台裝置更新至同一版本後再連線。"
+          }
+        }
+      }
+    },
+    "The other device runs iGhostVT %1$@, and this device runs %2$@. Update both to the same version to connect." : {
+      "comment" : "%1$@ is the other device's version, %2$@ this device's",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعمل الجهاز الآخر بإصدار iGhostVT %1$@، ويعمل هذا الجهاز بالإصدار %2$@. حدّث الجهازين إلى الإصدار نفسه للاتصال."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das andere Gerät verwendet iGhostVT %1$@, dieses Gerät %2$@. Aktualisiere beide auf dieselbe Version, um zu verbinden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The other device runs iGhostVT %1$@, and this device runs %2$@. Update both to the same version to connect."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El otro dispositivo usa iGhostVT %1$@ y este usa la %2$@. Actualiza ambos a la misma versión para conectarte."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’autre appareil utilise iGhostVT %1$@, et celui-ci la version %2$@. Mettez-les à jour vers la même version pour vous connecter."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’altro dispositivo usa iGhostVT %1$@ e questo la %2$@. Aggiorna entrambi alla stessa versione per collegarti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一方のデバイスはiGhostVT %1$@、このデバイスは%2$@です。接続するには両方を同じバージョンにアップデートしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 기기는 iGhostVT %1$@, 이 기기는 %2$@ 버전을 사용 중입니다. 연결하려면 두 기기를 같은 버전으로 업데이트하십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O outro dispositivo usa o iGhostVT %1$@ e este usa a %2$@. Atualize os dois para a mesma versão para conectar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На другом устройстве стоит iGhostVT %1$@, а на этом — %2$@. Обновите оба до одной версии, чтобы подключиться."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thiết bị kia chạy iGhostVT %1$@, còn thiết bị này chạy %2$@. Hãy cập nhật cả hai lên cùng phiên bản để kết nối."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一台设备运行的是 iGhostVT %1$@，本机运行的是 %2$@。请将两台设备更新到同一版本后再连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一台裝置執行的是 iGhostVT %1$@，本機執行的是 %2$@。請將兩台裝置更新至同一版本後再連線。"
+          }
+        }
+      }
+    },
     "The other device stopped answering." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28489,6 +30401,256 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "另一部裝置上的 iGhostVT 版本過舊，無法接收檔案。請在該裝置上更新。"
+          }
+        }
+      }
+    },
+    "The relay did not accept this configuration. Import the current one." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يقبل المرحّل هذا الإعداد. استورد الإعداد الحالي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Relay hat diese Konfiguration nicht akzeptiert. Importiere die aktuelle."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The relay did not accept this configuration. Import the current one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El relé no aceptó esta configuración. Importa la actual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le relais n’a pas accepté cette configuration. Importez la configuration actuelle."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il relay non ha accettato questa configurazione. Importa quella attuale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーはこの構成を受け付けませんでした。現在の構成を読み込んでください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이가 이 구성을 받아들이지 않았습니다. 현재 구성을 가져오십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O relay não aceitou esta configuração. Importe a atual."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ретранслятор не принял эту конфигурацию. Импортируйте текущую."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay không chấp nhận cấu hình này. Hãy nhập cấu hình hiện tại."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继不接受此配置。请导入当前的配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中繼不接受此設定。請匯入目前的設定。"
+          }
+        }
+      }
+    },
+    "The relay runs another version. Update the relay or iGhostVT." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعمل المرحّل بإصدار آخر. حدّث المرحّل أو iGhostVT."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Relay hat eine andere Version. Aktualisiere das Relay oder iGhostVT."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The relay runs another version. Update the relay or iGhostVT."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El relé usa otra versión. Actualiza el relé o iGhostVT."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le relais utilise une autre version. Mettez à jour le relais ou iGhostVT."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il relay usa un’altra versione. Aggiorna il relay o iGhostVT."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーのバージョンが異なります。リレーまたはiGhostVTをアップデートしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 버전이 다릅니다. 릴레이 또는 iGhostVT를 업데이트하십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O relay usa outra versão. Atualize o relay ou o iGhostVT."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У ретранслятора другая версия. Обновите ретранслятор или iGhostVT."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay đang chạy phiên bản khác. Hãy cập nhật relay hoặc iGhostVT."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继的版本不同。请更新中继或 iGhostVT。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中繼的版本不同。請更新中繼或 iGhostVT。"
+          }
+        }
+      }
+    },
+    "The relay runs protocol %1$lld, this device needs %2$lld. Update the relay or iGhostVT." : {
+      "comment" : "Relay status; two protocol version numbers",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعمل المرحّل بالبروتوكول %1$lld، ويحتاج هذا الجهاز إلى %2$lld. حدّث المرحّل أو iGhostVT."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Relay verwendet Protokoll %1$lld, dieses Gerät braucht %2$lld. Aktualisiere das Relay oder iGhostVT."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The relay runs protocol %1$lld, this device needs %2$lld. Update the relay or iGhostVT."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El relé usa el protocolo %1$lld y este dispositivo necesita el %2$lld. Actualiza el relé o iGhostVT."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le relais utilise le protocole %1$lld, cet appareil a besoin du %2$lld. Mettez à jour le relais ou iGhostVT."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il relay usa il protocollo %1$lld, questo dispositivo richiede il %2$lld. Aggiorna il relay o iGhostVT."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーのプロトコルは%1$lld、このデバイスには%2$lldが必要です。リレーまたはiGhostVTをアップデートしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이는 프로토콜 %1$lld를 사용하고 이 기기에는 %2$lld가 필요합니다. 릴레이 또는 iGhostVT를 업데이트하십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O relay usa o protocolo %1$lld e este dispositivo precisa do %2$lld. Atualize o relay ou o iGhostVT."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ретранслятор использует протокол %1$lld, а этому устройству нужен %2$lld. Обновите ретранслятор или iGhostVT."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay dùng giao thức %1$lld, thiết bị này cần %2$lld. Hãy cập nhật relay hoặc iGhostVT."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中继使用的协议版本为 %1$lld，本机需要 %2$lld。请更新中继或 iGhostVT。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中繼使用的協定版本為 %1$lld，本機需要 %2$lld。請更新中繼或 iGhostVT。"
           }
         }
       }
@@ -29902,6 +32064,89 @@
         }
       }
     },
+    "This device already uses “%@”." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم هذا الجهاز „%@“ بالفعل."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät verwendet bereits „%@“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device already uses “%@”."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este dispositivo ya usa “%@”."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet appareil utilise déjà « %@ »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo dispositivo usa già “%@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスはすでに「%@」を使用しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기는 이미 “%@”을(를) 사용 중입니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este dispositivo já usa “%@”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это устройство уже использует «%@»."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thiết bị này đã dùng “%@”."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本机已在使用“%@”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本機已在使用「%@」。"
+          }
+        }
+      }
+    },
     "This device is no longer paired. Pair it again in Settings." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29985,6 +32230,172 @@
         }
       }
     },
+    "This device will use “%@” at %@ instead. Devices reach each other through it when they are not on the same network." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سيستخدم هذا الجهاز „%1$@“ على %2$@ بدلًا منه. تتصل الأجهزة ببعضها عبره عندما لا تكون على الشبكة نفسها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Gerät verwendet stattdessen „%1$@“ unter %2$@. Darüber erreichen sich Geräte, die nicht im selben Netzwerk sind."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device will use “%@” at %@ instead. Devices reach each other through it when they are not on the same network."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este dispositivo usará “%1$@” en %2$@. Los dispositivos se conectan a través de él cuando no están en la misma red."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet appareil utilisera « %1$@ » à %2$@ à la place. Les appareils passent par lui quand ils ne sont pas sur le même réseau."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo dispositivo userà invece “%1$@” su %2$@. I dispositivi si raggiungono tramite esso quando non sono sulla stessa rete."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスは代わりに%2$@の「%1$@」を使用します。同じネットワークにいないデバイス同士はこれを経由して接続します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기는 대신 %2$@의 “%1$@”을(를) 사용합니다. 같은 네트워크에 있지 않은 기기들은 이를 통해 연결됩니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este dispositivo passará a usar “%1$@” em %2$@. Os dispositivos se conectam por ele quando não estão na mesma rede."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это устройство будет использовать «%1$@» по адресу %2$@. Через него связываются устройства, которые не в одной сети."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thiết bị này sẽ dùng “%1$@” tại %2$@ thay thế. Các thiết bị kết nối với nhau qua đó khi không cùng mạng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本机将改用位于 %2$@ 的“%1$@”。不在同一网络的设备会通过它互相连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本機將改用位於 %2$@ 的「%1$@」。不在同一網路的裝置會透過它互相連線。"
+          }
+        }
+      }
+    },
+    "This file is not an iGhostVT relay configuration." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هذا الملف ليس إعداد مرحّل لـ iGhostVT."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Datei ist keine iGhostVT-Relay-Konfiguration."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file is not an iGhostVT relay configuration."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este archivo no es una configuración de relé de iGhostVT."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier n’est pas une configuration de relais iGhostVT."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo file non è una configurazione relay di iGhostVT."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルはiGhostVTのリレー構成ではありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 파일은 iGhostVT 릴레이 구성이 아닙니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este arquivo não é uma configuração de relay do iGhostVT."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот файл не является конфигурацией ретранслятора iGhostVT."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tệp này không phải là cấu hình relay của iGhostVT."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此文件不是 iGhostVT 中继配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此檔案不是 iGhostVT 中繼設定。"
+          }
+        }
+      }
+    },
     "This is still the old version. Quit iGhostVT and open it again to use the new one." : {
       "localizations" : {
         "ar" : {
@@ -30063,6 +32474,172 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目前仍是舊版本。請結束 iGhostVT 並重新打開以使用新版本。"
+          }
+        }
+      }
+    },
+    "This relay configuration is damaged." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إعداد المرحّل هذا تالف."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Relay-Konfiguration ist beschädigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This relay configuration is damaged."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta configuración de relé está dañada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette configuration de relais est endommagée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa configurazione relay è danneggiata."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このリレー構成は破損しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 릴레이 구성이 손상되었습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta configuração de relay está danificada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта конфигурация ретранслятора повреждена."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cấu hình relay này bị hỏng."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此中继配置已损坏。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此中繼設定已損毀。"
+          }
+        }
+      }
+    },
+    "This relay configuration needs a newer version of iGhostVT." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يتطلب إعداد المرحّل هذا إصدارًا أحدث من iGhostVT."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Relay-Konfiguration erfordert eine neuere Version von iGhostVT."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This relay configuration needs a newer version of iGhostVT."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta configuración de relé requiere una versión más reciente de iGhostVT."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette configuration de relais nécessite une version plus récente d’iGhostVT."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa configurazione relay richiede una versione più recente di iGhostVT."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このリレー構成には新しいバージョンのiGhostVTが必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 릴레이 구성에는 최신 버전의 iGhostVT가 필요합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta configuração de relay precisa de uma versão mais recente do iGhostVT."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для этой конфигурации ретранслятора нужна более новая версия iGhostVT."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cấu hình relay này cần phiên bản iGhostVT mới hơn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此中继配置需要更新版本的 iGhostVT。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此中繼設定需要較新版本的 iGhostVT。"
           }
         }
       }
@@ -30310,6 +32887,89 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此文字包含換行符或隱藏字元，程式可能會將其作為指令執行：%@"
+          }
+        }
+      }
+    },
+    "Through relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عبر المرحّل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über Relay"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Through relay"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A través del relé"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Via le relais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tramite relay"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレー経由"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 경유"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pelo relay"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Через ретранслятор"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qua relay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过中继"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透過中繼"
           }
         }
       }
@@ -31554,85 +34214,168 @@
         }
       }
     },
-    "Unable to reach the other device. Check that it is on the same network and that remote access is on." : {
+    "Unable to reach the other device. Check that remote access is on there, and that both devices are on the same network or use the same relay." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تعذر الوصول إلى الجهاز الآخر. تحقق من أنه على الشبكة نفسها وأن الوصول عن بُعد قيد التشغيل."
+            "value" : "تعذر الوصول إلى الجهاز الآخر. تحقق من أن الوصول عن بُعد قيد التشغيل عليه، وأن الجهازين على الشبكة نفسها أو يستخدمان المرحّل نفسه."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das andere Gerät ist nicht erreichbar. Prüfe, ob es im selben Netzwerk ist und der Fernzugriff aktiviert ist."
+            "value" : "Das andere Gerät ist nicht erreichbar. Prüfe, ob dort der Fernzugriff aktiviert ist und ob beide Geräte im selben Netzwerk sind oder dasselbe Relay verwenden."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unable to reach the other device. Check that it is on the same network and that remote access is on."
+            "value" : "Unable to reach the other device. Check that remote access is on there, and that both devices are on the same network or use the same relay."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se puede conectar con el otro dispositivo. Comprueba que está en la misma red y que el acceso remoto está activado."
+            "value" : "No se puede conectar con el otro dispositivo. Comprueba que tiene activado el acceso remoto y que ambos dispositivos están en la misma red o usan el mismo relé."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossible de joindre l’autre appareil. Vérifiez qu’il est sur le même réseau et que l’accès à distance est activé."
+            "value" : "Impossible de joindre l’autre appareil. Vérifiez que l’accès à distance y est activé et que les deux appareils sont sur le même réseau ou utilisent le même relais."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossibile raggiungere l’altro dispositivo. Verifica che sia sulla stessa rete e che l’accesso remoto sia attivo."
+            "value" : "Impossibile raggiungere l’altro dispositivo. Verifica che l’accesso remoto sia attivo e che entrambi i dispositivi siano sulla stessa rete o usino lo stesso relay."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "もう一方のデバイスに接続できません。同じネットワーク上にあり、リモートアクセスがオンになっていることを確認してください。"
+            "value" : "もう一方のデバイスに接続できません。そのデバイスでリモートアクセスがオンになっていること、両方のデバイスが同じネットワーク上にあるか同じリレーを使っていることを確認してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다른 기기에 연결할 수 없습니다. 같은 네트워크에 있고 원격 접근이 켜져 있는지 확인하십시오."
+            "value" : "다른 기기에 연결할 수 없습니다. 해당 기기에서 원격 접근이 켜져 있는지, 두 기기가 같은 네트워크에 있거나 같은 릴레이를 사용하는지 확인하십시오."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Não foi possível alcançar o outro dispositivo. Verifique se ele está na mesma rede e se o acesso remoto está ativado."
+            "value" : "Não foi possível alcançar o outro dispositivo. Verifique se o acesso remoto está ativado nele e se os dois dispositivos estão na mesma rede ou usam o mesmo relay."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удается связаться с другим устройством. Проверьте, что оно в той же сети и удаленный доступ включен."
+            "value" : "Не удаётся связаться с другим устройством. Убедитесь, что на нём включён удалённый доступ и что оба устройства в одной сети или используют один ретранслятор."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Không thể kết nối với thiết bị kia. Hãy kiểm tra thiết bị đó ở cùng mạng và đã bật truy cập từ xa."
+            "value" : "Không thể kết nối với thiết bị kia. Hãy kiểm tra truy cập từ xa đã bật trên thiết bị đó và cả hai thiết bị cùng mạng hoặc dùng cùng một relay."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法连接另一台设备。请确认它在同一网络中，并且已打开远程访问。"
+            "value" : "无法连接另一台设备。请确认那台设备已打开远程访问，并且两台设备在同一网络或使用同一个中继。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法連線另一部裝置。請確認它在同一個網路中，且已開啟遠端存取。"
+            "value" : "無法連線另一台裝置。請確認該裝置已開啟遠端存取，且兩台裝置位於同一網路或使用同一個中繼。"
+          }
+        }
+      }
+    },
+    "Unable to reach the relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر الوصول إلى المرحّل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay nicht erreichbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to reach the relay"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede conectar con el relé"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de joindre le relais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile raggiungere il relay"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーに接続できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이에 연결할 수 없음"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível alcançar o relay"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удаётся связаться с ретранслятором"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể kết nối relay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接中继"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法連線中繼"
           }
         }
       }
@@ -31963,6 +34706,89 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法開啟終端機助手。請重試。"
+          }
+        }
+      }
+    },
+    "Unable to Use This Relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر استخدام هذا المرحّل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Relay kann nicht verwendet werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to Use This Relay"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede usar este relé"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’utiliser ce relais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile usare questo relay"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このリレーは使用できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 릴레이를 사용할 수 없음"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não é possível usar este relay"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удаётся использовать этот ретранслятор"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể dùng relay này"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法使用此中继"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法使用此中繼"
           }
         }
       }
@@ -32382,6 +35208,89 @@
         }
       }
     },
+    "Update the Relay “%@”?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هل تريد تحديث المرحّل „%@“؟"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay „%@“ aktualisieren?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update the Relay “%@”?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Actualizar el relé “%@”?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mettre à jour le relais « %@ » ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornare il relay “%@”?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレー「%@」を更新しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 “%@”을(를) 업데이트하겠습니까?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizar o relay “%@”?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить ретранслятор «%@»?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cập nhật relay “%@”?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新中继“%@”？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新中繼「%@」？"
+          }
+        }
+      }
+    },
     "Updating" : {
       "localizations" : {
         "ar" : {
@@ -32792,6 +35701,172 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「在此使用」會把它移到這個視窗。"
+          }
+        }
+      }
+    },
+    "Use Relay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدام المرحّل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Relay"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar relé"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser le relais"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa relay"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレーを使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 사용"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar relay"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng relay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用中继"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用中繼"
+          }
+        }
+      }
+    },
+    "Use the Relay “%@”?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هل تريد استخدام المرحّل „%@“؟"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relay „%@“ verwenden?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the Relay “%@”?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Usar el relé “%@”?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser le relais « %@ » ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usare il relay “%@”?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リレー「%@」を使用しますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "릴레이 “%@”을(를) 사용하겠습니까?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar o relay “%@”?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать ретранслятор «%@»?"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng relay “%@”?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用中继“%@”？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用中繼「%@」？"
           }
         }
       }
@@ -34282,6 +37357,174 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ZMODEM 檔案傳輸"
+          }
+        }
+      }
+    },
+    "“%1$@” runs an older version of iGhostVT, and this device runs %2$@. Update both to the same version to connect." : {
+      "comment" : "%1$@ is the other device, %2$@ this device's version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعمل „%1$@“ بإصدار أقدم من iGhostVT، ويعمل هذا الجهاز بالإصدار %2$@. حدّث الجهازين إلى الإصدار نفسه للاتصال."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@“ verwendet eine ältere Version von iGhostVT, dieses Gerät %2$@. Aktualisiere beide auf dieselbe Version, um zu verbinden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” runs an older version of iGhostVT, and this device runs %2$@. Update both to the same version to connect."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” usa una versión anterior de iGhostVT y este dispositivo usa la %2$@. Actualiza ambos a la misma versión para conectarte."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« %1$@ » utilise une version plus ancienne d’iGhostVT, et cet appareil la version %2$@. Mettez-les à jour vers la même version pour vous connecter."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” usa una versione precedente di iGhostVT e questo dispositivo la %2$@. Aggiorna entrambi alla stessa versione per collegarti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」は古いバージョンのiGhostVTを使っていて、このデバイスは%2$@です。接続するには両方を同じバージョンにアップデートしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@”은(는) 이전 버전의 iGhostVT를, 이 기기는 %2$@ 버전을 사용 중입니다. 연결하려면 두 기기를 같은 버전으로 업데이트하십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” usa uma versão mais antiga do iGhostVT e este dispositivo usa a %2$@. Atualize os dois para a mesma versão para conectar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На «%1$@» стоит более старая версия iGhostVT, а на этом устройстве — %2$@. Обновите оба до одной версии, чтобы подключиться."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” chạy phiên bản iGhostVT cũ hơn, còn thiết bị này chạy %2$@. Hãy cập nhật cả hai lên cùng phiên bản để kết nối."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@”运行的是较旧版本的 iGhostVT，本机运行的是 %2$@。请将两台设备更新到同一版本后再连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」執行的是較舊版本的 iGhostVT，本機執行的是 %2$@。請將兩台裝置更新至同一版本後再連線。"
+          }
+        }
+      }
+    },
+    "“%1$@” runs iGhostVT %2$@, and this device runs %3$@. Update both to the same version to connect." : {
+      "comment" : "%1$@ is the other device, %2$@ its version, %3$@ this device's version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعمل „%1$@“ بإصدار iGhostVT %2$@، ويعمل هذا الجهاز بالإصدار %3$@. حدّث الجهازين إلى الإصدار نفسه للاتصال."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@“ verwendet iGhostVT %2$@, dieses Gerät %3$@. Aktualisiere beide auf dieselbe Version, um zu verbinden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” runs iGhostVT %2$@, and this device runs %3$@. Update both to the same version to connect."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” usa iGhostVT %2$@ y este dispositivo usa la %3$@. Actualiza ambos a la misma versión para conectarte."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« %1$@ » utilise iGhostVT %2$@, et cet appareil la version %3$@. Mettez-les à jour vers la même version pour vous connecter."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” usa iGhostVT %2$@ e questo dispositivo la %3$@. Aggiorna entrambi alla stessa versione per collegarti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」はiGhostVT %2$@、このデバイスは%3$@です。接続するには両方を同じバージョンにアップデートしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@”은(는) iGhostVT %2$@, 이 기기는 %3$@ 버전을 사용 중입니다. 연결하려면 두 기기를 같은 버전으로 업데이트하십시오."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” usa o iGhostVT %2$@ e este dispositivo usa a %3$@. Atualize os dois para a mesma versão para conectar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На «%1$@» стоит iGhostVT %2$@, а на этом устройстве — %3$@. Обновите оба до одной версии, чтобы подключиться."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” chạy iGhostVT %2$@, còn thiết bị này chạy %3$@. Hãy cập nhật cả hai lên cùng phiên bản để kết nối."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@”运行的是 iGhostVT %2$@，本机运行的是 %3$@。请将两台设备更新到同一版本后再连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」執行的是 iGhostVT %2$@，本機執行的是 %3$@。請將兩台裝置更新至同一版本後再連線。"
           }
         }
       }

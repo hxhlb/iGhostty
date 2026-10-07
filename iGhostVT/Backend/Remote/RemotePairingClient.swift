@@ -17,11 +17,16 @@ enum RemotePairingClient {
         case refused(String)
         case wrongCode
         case protocolError
+        /// The host runs another iGhostVT; its version, or empty when it
+        /// did not say.
+        case versionMismatch(String)
 
         var errorDescription: String? {
             switch self {
             case .unreachable:
-                String(localized: "Unable to reach the other device. Check that it is on the same network and that remote access is on.")
+                String(localized: "Unable to reach the other device. Check that remote access is on there, and that both devices are on the same network or use the same relay.")
+            case let .versionMismatch(theirs):
+                RemoteVersionText.mismatch(theirs: theirs, name: nil)
             case let .refused(message):
                 message
             case .wrongCode:
@@ -36,7 +41,11 @@ enum RemotePairingClient {
     static func pair(with host: DiscoveredRemoteHost, code: String) async throws -> PairedRemoteHost {
         let deviceID = RemoteDeviceIdentity.deviceID
         let deviceName = RemoteDeviceIdentity.deviceName
-        let session = PairingSession(endpoint: host.endpoint)
+        // A host that advertises no version is older than the rule.
+        if !RemoteAccess.isCompatible(host.appVersion ?? "") {
+            throw Failure.versionMismatch(host.appVersion ?? "")
+        }
+        let session = PairingSession(endpoint: host.endpoint, hostID: host.id)
         defer { session.close() }
         let exchange = try PairingExchange(role: .prover, code: code)
 
@@ -45,6 +54,7 @@ enum RemotePairingClient {
         xpc_dictionary_set_uint64(start, iGhostVTWireKey.operation, iGhostVTOperation.pairStart.rawValue)
         xpc_dictionary_set_string(start, iGhostVTWireKey.deviceID, deviceID)
         xpc_dictionary_set_string(start, iGhostVTWireKey.deviceName, deviceName)
+        xpc_dictionary_set_string(start, iGhostVTWireKey.appVersion, RemoteAccess.appVersion)
         try set(exchange.makeShare(), iGhostVTWireKey.share, in: start)
         let answer = try await session.request(start)
         try check(answer)
@@ -53,8 +63,8 @@ enum RemotePairingClient {
               let hostID = xpc_dictionary_get_string(answer, iGhostVTWireKey.hostID).map({ String(cString: $0) }),
               let hostName = xpc_dictionary_get_string(answer, iGhostVTWireKey.hostName).map({ String(cString: $0) })
         else { throw Failure.protocolError }
-        // Pairing starts only from a host Bonjour found, and the one that
-        // answers has to be the one its advertisement named.
+        // Pairing starts only from a host Bonjour or the relay listed, and
+        // the one that answers has to be the one the list named.
         guard hostID == host.id, hostID != RemoteHostDirectory.storedOwnHostID else { throw Failure.protocolError }
 
         try exchange.receiveShare(hostShare)
@@ -78,7 +88,8 @@ enum RemotePairingClient {
             deviceID: deviceID,
             deviceKey: PairingExchange.deviceKey(sessionKey: sessionKey.key, hostID: hostID, deviceID: deviceID),
             pairedAt: Date(),
-            lastAddress: PairedRemoteHostStore.rememberedAddress(of: session.connection, hostID: hostID),
+            // Through the relay the address that answered is the relay's.
+            lastAddress: host.viaRelay ? nil : PairedRemoteHostStore.rememberedAddress(of: session.connection, hostID: hostID),
             lastSeen: Date(),
         )
         PairedRemoteHostStore.save(paired)
@@ -88,6 +99,9 @@ enum RemotePairingClient {
 
     private static func check(_ reply: xpc_object_t) throws {
         let code = iGhostVTReplyCode(rawValue: xpc_dictionary_get_int64(reply, iGhostVTWireKey.code))
+        if code == .unsupportedVersion {
+            throw Failure.versionMismatch(xpc_dictionary_get_string(reply, iGhostVTWireKey.appVersion).map { String(cString: $0) } ?? "")
+        }
         guard code == .success else {
             if let message = xpc_dictionary_get_string(reply, iGhostVTWireKey.errorMessage) {
                 throw Failure.refused(String(cString: message))
@@ -127,10 +141,11 @@ private final class PairingSession: @unchecked Sendable {
     private var nextTag: UInt64 = 1
     private var closedReason: String?
 
-    init(endpoint: NWEndpoint) {
-        let parameters = RemoteTLS.parameters(keys: [
-            RemoteTLS.Key(identity: RemoteAccess.pairingIdentity, secret: RemoteAccess.pairingKey),
-        ])
+    init(endpoint: NWEndpoint, hostID: String) {
+        let parameters = RemoteTLS.parameters(
+            keys: [RemoteTLS.Key(identity: RemoteAccess.pairingIdentity, secret: RemoteAccess.pairingKey)],
+            serverName: hostID,
+        )
         frames = RemoteFrameConnection(connection: NWConnection(to: endpoint, using: parameters), queue: queue)
         frames.onFrame = { [weak self] header, object in
             guard let self, header.kind == .reply else { return }

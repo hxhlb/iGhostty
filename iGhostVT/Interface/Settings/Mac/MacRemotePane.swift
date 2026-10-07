@@ -23,6 +23,8 @@ import SwiftUI
         @State private var isShowingPairingCode = false
         @State private var pairingHost: DiscoveredRemoteHost?
         @State private var window: UIWindow?
+        @State private var isImportingRelay = false
+        @AppStorage(RelayConfigurationStore.allowsRelayPairingKey) private var allowsRelayPairing = false
 
         var body: some View {
             VStack(alignment: .leading, spacing: DS.Padding.l) {
@@ -40,9 +42,14 @@ import SwiftUI
                             .foregroundColor(.red)
                             .lineLimit(1)
                     } else {
-                        MacSettingsNote("Paired devices on this network can open terminals here.")
+                        if directory.relay == nil {
+                            MacSettingsNote("Paired devices on this network can open terminals here.")
+                        } else {
+                            MacSettingsNote("Paired devices on this network, or anywhere through the relay, can open terminals here.")
+                        }
                     }
                 }
+                relayRow
                 MacSettingsRow("Name") {
                     TextField(RemoteDeviceIdentity.systemName, text: $name)
                         .textFieldStyle(.roundedBorder)
@@ -76,6 +83,48 @@ import SwiftUI
             }
             .onChange(of: selectedHostID) { _ in
                 nickname = selectedPaired?.nickname ?? ""
+            }
+            .fileImporter(
+                isPresented: $isImportingRelay,
+                allowedContentTypes: [RelayImportType.type],
+            ) { result in
+                if case let .success(url) = result {
+                    RelayImport.open(url, in: window)
+                }
+            }
+        }
+
+        // MARK: - Relay
+
+        private var relayRow: some View {
+            MacSettingsRow("Relay") {
+                if let relay = directory.relay {
+                    VStack(alignment: .leading, spacing: DS.Padding.s) {
+                        HStack(spacing: DS.Padding.m) {
+                            Text(verbatim: relay.name)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Button("Replace…") { isImportingRelay = true }
+                            Button("Remove") { RelayConfigurationStore.remove() }
+                        }
+                        MacCheckbox(String(localized: "Allow Pairing Through Relay"), isOn: $allowsRelayPairing)
+                    }
+                } else {
+                    Button("Import Relay Configuration…") { isImportingRelay = true }
+                }
+            } details: {
+                if let relay = directory.relay {
+                    let status = RelayStatusText.describe(model.status, directory: directory)
+                    Text(verbatim: [relay.endpointDescription, status?.text].compactMap { $0 }.joined(separator: " · "))
+                        .font(DS.Font.detail)
+                        .foregroundColor(status?.isProblem == true ? .red : .secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                } else {
+                    MacSettingsNote(
+                        "A relay lets your devices reach each other when they are not on the same network. Set one up on a server and import the .vtrpsc file it writes.",
+                    )
+                }
             }
         }
 
@@ -159,7 +208,7 @@ import SwiftUI
         /// to forget a paired device, Pair for one nearby — and a paired
         /// device's name can be changed under the table.
         private var yourDevices: some View {
-            let unpaired = directory.unpairedNearby
+            let unpaired = directory.unpairedNearby + directory.unpairedAtRelay
             return VStack(alignment: .leading, spacing: DS.Padding.s) {
                 Text("Your Devices")
                     .font(DS.Font.labelEmphasis)
@@ -170,7 +219,8 @@ import SwiftUI
                                 MacDeviceRow(
                                     name: host.displayName,
                                     address: directory.address(of: host),
-                                    detail: directory.isDiscovered(host.id) ? String(localized: "Nearby") : "",
+                                    detail: directory.mismatchedVersion(of: host.id).map(RemoteVersionText.needsUpdate(theirs:))
+                                        ?? RemoteAccessView.whereabouts(of: host.id, in: directory),
                                     index: index,
                                     isSelected: host.id == selectedHostID,
                                     select: { selectedHostID = host.id },
@@ -184,7 +234,7 @@ import SwiftUI
                                 MacDeviceRow(
                                     name: host.name,
                                     address: host.address,
-                                    detail: "",
+                                    detail: host.viaRelay ? String(localized: "Through relay") : "",
                                     index: directory.paired.count + offset,
                                     isSelected: host.id == selectedHostID,
                                     select: { selectedHostID = host.id },
@@ -202,8 +252,14 @@ import SwiftUI
                     }
                     .overlay {
                         if directory.paired.isEmpty, unpaired.isEmpty {
-                            Text("Devices on this network with remote access on appear here.")
-                                .font(DS.Font.detail)
+                            Group {
+                                if directory.relay == nil {
+                                    Text("Devices on this network with remote access on appear here.")
+                                } else {
+                                    Text("Devices on this network or at the relay with remote access on appear here.")
+                                }
+                            }
+                            .font(DS.Font.detail)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(DS.Padding.m)
@@ -249,7 +305,7 @@ import SwiftUI
                 message: "To connect again, pair it again.",
                 actions: [
                     AlertAction("Cancel") {},
-                    AlertAction("Forget", kind: .destructive) {
+                    AlertAction("Forget", kind: .highlighted) {
                         PairedRemoteHostStore.remove(id: host.id)
                         selectedHostID = nil
                     },

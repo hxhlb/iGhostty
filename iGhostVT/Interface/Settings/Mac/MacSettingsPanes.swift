@@ -49,7 +49,9 @@ import SwiftUI
         var fixedHeight: CGFloat? {
             switch self {
             case .general, .appearance, .advanced: nil
-            case .keyboard, .remote, .configuration, .about: 560
+            case .keyboard, .configuration, .about: 560
+            // Two tables, and the relay's row above them.
+            case .remote: 640
             }
         }
 
