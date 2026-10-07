@@ -1,3 +1,4 @@
+import CryptoKit
 import Darwin
 import Foundation
 
@@ -17,6 +18,8 @@ struct RemoteStore {
         var hostID: String
         var hostName: String?
         var devices: [Device]
+        var relay: Data?
+        var relayHostKey: Data?
     }
 
     private(set) var hostID: String
@@ -24,6 +27,16 @@ struct RemoteStore {
     /// device's own.
     private(set) var hostName: String?
     private(set) var devices: [Device]
+    /// The relay this host registers with: a `.vtrpsc` file's content, as
+    /// the app sent it (`setRelayConfiguration`). Holds the relay's private
+    /// key — a secret like a device key.
+    private(set) var relay: Data?
+    /// This host's own P-256 key at its relay (`Relay/PROTOCOL.md`): the
+    /// relay binds the host id to it on first sight, so only this host can
+    /// register under the id or take a connection for it. Made on first
+    /// use; a copied state file copies it too, which the relay answers
+    /// with `superseded` rather than letting two machines trade places.
+    private(set) var relayHostKey: Data?
 
     private static var directory: String {
         RemoteAccess.stateDirectory
@@ -40,9 +53,15 @@ struct RemoteStore {
         if let data = FileManager.default.contents(atPath: path),
            let file = try? JSONDecoder().decode(File.self, from: data)
         {
-            return RemoteStore(hostID: file.hostID, hostName: file.hostName, devices: file.devices)
+            return RemoteStore(
+                hostID: file.hostID,
+                hostName: file.hostName,
+                devices: file.devices,
+                relay: file.relay,
+                relayHostKey: file.relayHostKey,
+            )
         }
-        let store = RemoteStore(hostID: UUID().uuidString, hostName: nil, devices: [])
+        let store = RemoteStore(hostID: UUID().uuidString, hostName: nil, devices: [], relay: nil, relayHostKey: nil)
         store.save()
         return store
     }
@@ -78,6 +97,22 @@ struct RemoteStore {
         save()
     }
 
+    mutating func setRelay(_ relay: Data?) {
+        self.relay = relay
+        save()
+    }
+
+    /// The host key, made and kept the first time it is asked for.
+    mutating func hostKey() -> Data {
+        if let relayHostKey {
+            return relayHostKey
+        }
+        let made = P256.Signing.PrivateKey().rawRepresentation
+        relayHostKey = made
+        save()
+        return made
+    }
+
     func device(id: String) -> Device? {
         devices.first { $0.id == id }
     }
@@ -90,7 +125,8 @@ struct RemoteStore {
             mkdir(current, 0o700)
         }
         chmod(directory, 0o700)
-        guard let data = try? JSONEncoder().encode(File(hostID: hostID, hostName: hostName, devices: devices)) else { return }
+        let file = File(hostID: hostID, hostName: hostName, devices: devices, relay: relay, relayHostKey: relayHostKey)
+        guard let data = try? JSONEncoder().encode(file) else { return }
         let temporary = Self.path + ".tmp"
         let descriptor = open(temporary, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0o600)
         guard descriptor >= 0 else {

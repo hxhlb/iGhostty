@@ -15,6 +15,8 @@ import XPC
 /// process as well.
 final class RemoteClient {
     let address: String
+    /// Came in through the relay (`RelayLink`), not from the local network.
+    let viaRelay: Bool
     private unowned let service: RemoteService
     private let frames: RemoteFrameConnection
 
@@ -35,6 +37,9 @@ final class RemoteClient {
     /// Ended without letting go of `heldSessions`; the daemon peer is kept
     /// for `RemoteAccess.reconnectGraceSeconds` (`linger`).
     private var isLingering = false
+    /// When the device last sent anything; a relayed one that goes quiet
+    /// past `RemoteAccess.relayedSilenceLimit` is dropped.
+    private var lastHeard = Date()
 
     /// The device output toward which may be held in the daemon instead of
     /// here: past this much not yet taken by the network, the daemon
@@ -70,8 +75,9 @@ final class RemoteClient {
         return nil
     }
 
-    init(connection: NWConnection, address: String, service: RemoteService) {
+    init(connection: NWConnection, address: String, viaRelay: Bool, service: RemoteService) {
         self.address = address
+        self.viaRelay = viaRelay
         self.service = service
         frames = RemoteFrameConnection(connection: connection, queue: service.queue)
     }
@@ -153,6 +159,20 @@ final class RemoteClient {
         self.daemon = nil
     }
 
+    /// A relayed link can look alive at every TCP hop and be dead end to
+    /// end; the device pings a quiet link, so silence means it is gone.
+    private func watchSilence() {
+        let interval = RemoteAccess.relayedSilenceLimit / 3
+        service.queue.asyncAfter(deadline: .now() + interval) { [weak self] in
+            guard let self, !isClosed else { return }
+            if Date().timeIntervalSince(lastHeard) > RemoteAccess.relayedSilenceLimit {
+                close(reason: "nothing from the device in \(Int(RemoteAccess.relayedSilenceLimit)) s")
+            } else {
+                watchSilence()
+            }
+        }
+    }
+
     func holds(_ sessionID: UInt64) -> Bool {
         heldSessions.contains(sessionID)
     }
@@ -169,12 +189,16 @@ final class RemoteClient {
     // MARK: - Frames
 
     private func handle(_ header: IOWire.Header, _ object: xpc_object_t) {
+        lastHeard = Date()
         guard header.kind == .request, xpc_get_type(object) == iGhostVTXPC.typeDictionary else {
             return close(reason: "a frame that is not a request")
         }
         let operation = iGhostVTOperation(rawValue: xpc_dictionary_get_uint64(object, iGhostVTWireKey.operation))
         switch mode {
         case .handshaking:
+            if operation == .hello || operation == .pairStart, !isSameVersion(object, tag: header.tag) {
+                return
+            }
             switch operation {
             case .hello: authenticate(object, tag: header.tag)
             case .pairStart: startPairing(object, tag: header.tag)
@@ -199,12 +223,40 @@ final class RemoteClient {
             }
             close(reason: paired ? "paired" : "pairing failed")
         case .session:
+            if operation == .ping {
+                reply(.success, tag: header.tag)
+                return
+            }
             guard let operation, Self.sessionOperations.contains(operation) else {
                 reply(.invalidRequest, tag: header.tag)
                 return
             }
             forward(stamped(object, operation: operation), tag: header.tag, operation: operation)
         }
+    }
+
+    /// Two devices talk only when they run the same iGhostVT: the other
+    /// side is told which version this one runs, so it can say which of
+    /// the two needs updating. A device that sends no version is older than
+    /// the rule, and different by definition.
+    private func isSameVersion(_ message: xpc_object_t, tag: UInt64) -> Bool {
+        let theirs = xpc_dictionary_get_string(message, iGhostVTWireKey.appVersion).map { String(cString: $0) }
+        guard !RemoteAccess.isCompatible(theirs) else { return true }
+        RemoteLog.log("refused \(address): it runs iGhostVT \(theirs ?? "older than 1.4"), this host \(RemoteAccess.appVersion)")
+        if tag != 0 {
+            let reply = xpc_dictionary_create(nil, nil, 0)
+            xpc_dictionary_set_uint64(reply, iGhostVTWireKey.version, iGhostVTProtocol.version)
+            xpc_dictionary_set_int64(reply, iGhostVTWireKey.code, iGhostVTReplyCode.unsupportedVersion.rawValue)
+            xpc_dictionary_set_string(reply, iGhostVTWireKey.appVersion, RemoteAccess.appVersion)
+            xpc_dictionary_set_string(
+                reply,
+                iGhostVTWireKey.errorMessage,
+                "The other device runs iGhostVT \(RemoteAccess.appVersion). Update both devices to the same version to connect.",
+            )
+            frames.send(.reply, tag: tag, object: reply)
+        }
+        close(reason: "different iGhostVT version")
+        return false
     }
 
     // MARK: - A paired device
@@ -237,6 +289,9 @@ final class RemoteClient {
             name: xpc_dictionary_get_string(hello, iGhostVTWireKey.deviceName).map { String(cString: $0) },
         )
         RemoteLog.log("device \(device.name) (\(deviceID)) connected from \(address)")
+        if viaRelay {
+            watchSilence()
+        }
         xpc_connection_set_event_handler(daemon) { [weak self] event in
             self?.daemonEvent(event)
         }

@@ -8,7 +8,7 @@ import XPC
 /// Bonjour advertisement, the clients, the pairing window, the management
 /// socket to the proxy, and the anchor connection that keeps the daemon
 /// resident while this process runs.
-final class RemoteService {
+final class RemoteService: RelayLinkHost {
     let queue = DispatchQueue(
         label: "wiki.qaq.ighostvt.remote",
         qos: .userInitiated,
@@ -24,8 +24,26 @@ final class RemoteService {
         store.hostName ?? deviceName
     }
 
+    var relayHostID: String {
+        store.hostID
+    }
+
     private var listener: NWListener?
     private var listenerGeneration = 0
+    /// The registration with a relay, when one is configured.
+    private var relay: RelayLink?
+    /// What relayed connections arrive on: a TLS listener of its own on
+    /// the loopback address, with the same keys. Everything it accepts came
+    /// through the relay — `RelayLink` splices each call back into it — so
+    /// it is counted apart from the local network's listener: a stranger
+    /// who knows the host id can fill the relay's slots, never the local
+    /// ones, and pairing through it is refused unless the window allows it.
+    private var relayListener: NWListener?
+    private var relayListenerGeneration = 0
+    private(set) var relayListenerPort: UInt16?
+    /// Where each relayed connection came from, in the order the calls back
+    /// were spliced; the relay listener takes them in the order it accepts.
+    private var relayArrivals: [String] = []
     private var state: RemoteAccessState = .starting
     private var failureMessage: String?
     private var clients: [ObjectIdentifier: RemoteClient] = [:]
@@ -43,6 +61,12 @@ final class RemoteService {
         var failures: [(address: String, time: Date)] = []
         /// The client mid-exchange; one at a time.
         var activeClient: ObjectIdentifier?
+        var activeClientViaRelay = false
+        /// Whether a pairing may come in through the relay. Its attempts
+        /// are counted apart: spending them shuts the relay out of this
+        /// window and leaves the local network's attempts alone.
+        var allowsRelay = false
+        var relayAttemptsUsed = 0
     }
 
     private var pairing: PairingWindow?
@@ -71,6 +95,7 @@ final class RemoteService {
             connectAnchor()
             startListener()
             watchAddress()
+            startRelay()
         }
     }
 
@@ -124,6 +149,9 @@ final class RemoteService {
     /// A new listener for a changed set of keys. The port is still the old
     /// one's until its cancel completes, so the new one is made then.
     private func restartListener() {
+        if relay != nil {
+            startRelayListener()
+        }
         guard let old = listener else {
             startListener()
             return
@@ -143,11 +171,7 @@ final class RemoteService {
         listener = nil
         listenerGeneration += 1
         let generation = listenerGeneration
-        var keys = [RemoteTLS.Key(identity: RemoteAccess.pairingIdentity, secret: RemoteAccess.pairingKey)]
-        for device in store.devices {
-            keys.append(RemoteTLS.Key(identity: Data(device.id.utf8), secret: device.key))
-        }
-        let parameters = RemoteTLS.parameters(keys: keys)
+        let parameters = RemoteTLS.parameters(keys: listenerKeys())
         parameters.allowLocalEndpointReuse = true
         let listener: NWListener
         do {
@@ -167,6 +191,7 @@ final class RemoteService {
                 (RemoteAccess.TXTKey.hostName, hostName),
                 (RemoteAccess.TXTKey.version, RemoteAccess.protocolVersion),
                 (RemoteAccess.TXTKey.address, advertisedAddress ?? ""),
+                (RemoteAccess.TXTKey.appVersion, RemoteAccess.appVersion),
             ]),
         )
         listener.stateUpdateHandler = { [weak self] state in
@@ -194,10 +219,94 @@ final class RemoteService {
             }
         }
         listener.newConnectionHandler = { [weak self] connection in
-            self?.accept(connection)
+            self?.accept(connection, viaRelay: false)
         }
         self.listener = listener
         listener.start(queue: queue)
+    }
+
+    private func listenerKeys() -> [RemoteTLS.Key] {
+        var keys = [RemoteTLS.Key(identity: RemoteAccess.pairingIdentity, secret: RemoteAccess.pairingKey)]
+        for device in store.devices {
+            keys.append(RemoteTLS.Key(identity: Data(device.id.utf8), secret: device.key))
+        }
+        return keys
+    }
+
+    /// The relay listener, made again with the current keys. Its port is
+    /// the system's choice and nobody but `RelayLink` dials it, so the new
+    /// one need not wait for the old to let go.
+    private func startRelayListener() {
+        relayListener?.cancel()
+        relayListener = nil
+        relayListenerPort = nil
+        relayListenerGeneration += 1
+        let generation = relayListenerGeneration
+        let parameters = RemoteTLS.parameters(keys: listenerKeys())
+        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
+        let listener: NWListener
+        do {
+            listener = try NWListener(using: parameters)
+        } catch {
+            RemoteLog.log("could not create the relay listener: \(error)")
+            return
+        }
+        listener.stateUpdateHandler = { [weak self] state in
+            guard let self, generation == relayListenerGeneration else { return }
+            switch state {
+            case .ready:
+                relayListenerPort = listener.port?.rawValue
+            case let .failed(error):
+                RemoteLog.log("relay listener: \(error)")
+                relayListenerPort = nil
+                queue.asyncAfter(deadline: .now() + 2) { [weak self] in
+                    guard let self, generation == relayListenerGeneration else { return }
+                    startRelayListener()
+                }
+            default:
+                break
+            }
+        }
+        listener.newConnectionHandler = { [weak self] connection in
+            self?.accept(connection, viaRelay: true)
+        }
+        relayListener = listener
+        listener.start(queue: queue)
+    }
+
+    // MARK: - Relay
+
+    /// Registers with the configured relay, or stops: at start, and
+    /// whenever the configuration changes.
+    private func startRelay() {
+        relay?.stop()
+        relay = nil
+        relayArrivals.removeAll()
+        guard let data = store.relay else {
+            relayListener?.cancel()
+            relayListener = nil
+            relayListenerPort = nil
+            relayListenerGeneration += 1
+            return
+        }
+        do {
+            let configuration = try RelayConfiguration(data: data)
+            let link = try RelayLink(service: self, configuration: configuration, hostKey: store.hostKey())
+            relay = link
+            startRelayListener()
+            link.start()
+        } catch {
+            RemoteLog.log("the relay configuration is unusable: \(error)")
+        }
+    }
+
+    /// A call back was spliced into the relay listener; its connection is
+    /// next in line there.
+    func noteRelayArrival(from address: String?) {
+        relayArrivals.append(address ?? "")
+        if relayArrivals.count > 16 {
+            relayArrivals.removeFirst(relayArrivals.count - 16)
+        }
     }
 
     /// The listener cannot run — the port is taken, most often. Reported
@@ -223,20 +332,26 @@ final class RemoteService {
         return "Remote access could not listen on port \(RemoteAccess.port) (\(error))."
     }
 
-    private func accept(_ connection: NWConnection) {
-        let address = RemoteNetwork.addressDescription(connection.endpoint)
-        guard RemoteNetwork.isLocal(connection.endpoint) else {
-            RemoteLog.log("refused \(address): not a local network address")
-            connection.cancel()
-            return
+    private func accept(_ connection: NWConnection, viaRelay: Bool) {
+        let address: String
+        if viaRelay {
+            let from = relayArrivals.isEmpty ? "" : relayArrivals.removeFirst()
+            address = from.isEmpty ? "relay" : "\(from) via relay"
+        } else {
+            address = RemoteNetwork.addressDescription(connection.endpoint)
+            guard RemoteNetwork.isLocal(connection.endpoint) else {
+                RemoteLog.log("refused \(address): not a local network address")
+                connection.cancel()
+                return
+            }
         }
-        let unauthenticated = clients.values.filter { !$0.isAuthenticated }.count
+        let unauthenticated = clients.values.filter { !$0.isAuthenticated && $0.viaRelay == viaRelay }.count
         guard unauthenticated < RemoteAccess.maximumUnauthenticatedConnections else {
             RemoteLog.log("refused \(address): too many connections still handshaking")
             connection.cancel()
             return
         }
-        let client = RemoteClient(connection: connection, address: address, service: self)
+        let client = RemoteClient(connection: connection, address: address, viaRelay: viaRelay, service: self)
         clients[ObjectIdentifier(client)] = client
         client.start()
     }
@@ -289,14 +404,22 @@ final class RemoteService {
         guard var window = pairing else {
             return .failure(.notOpen)
         }
+        guard !client.viaRelay || window.allowsRelay else {
+            return .failure(.notThroughRelay)
+        }
         guard window.activeClient == nil else {
             return .failure(.busy)
         }
         guard store.devices.count < RemoteAccess.maximumDeviceCount || store.device(id: deviceID) != nil else {
             return .failure(.full)
         }
-        window.attemptsUsed += 1
+        if client.viaRelay {
+            window.relayAttemptsUsed += 1
+        } else {
+            window.attemptsUsed += 1
+        }
         window.activeClient = ObjectIdentifier(client)
+        window.activeClientViaRelay = client.viaRelay
         pairing = window
         do {
             let exchange = try PairingExchange(role: .verifier, code: window.code)
@@ -340,9 +463,21 @@ final class RemoteService {
 
     private func recordPairingFailure(address: String, reason: String) {
         guard var window = pairing else { return }
+        let wasRelayed = window.activeClientViaRelay
         window.activeClient = nil
+        window.activeClientViaRelay = false
         window.failures.append((address, Date()))
         RemoteLog.log("pairing attempt from \(address) failed: \(reason)")
+        if wasRelayed {
+            // The relay's attempts are its own: spent, they close the
+            // window to the relay and nothing else.
+            if window.relayAttemptsUsed >= RemoteAccess.pairingAttemptLimit, window.allowsRelay {
+                RemoteLog.log("pairing through the relay closed after \(window.relayAttemptsUsed) attempts")
+                window.allowsRelay = false
+            }
+            pairing = window
+            return
+        }
         if window.attemptsUsed >= RemoteAccess.pairingAttemptLimit {
             RemoteLog.log("pairing closed after \(window.attemptsUsed) attempts")
             pairing = nil
@@ -373,6 +508,7 @@ final class RemoteService {
             pairing = PairingWindow(
                 code: RemoteAccess.makePairingCode(),
                 expiresAt: Date().addingTimeInterval(RemoteAccess.pairingWindowSeconds),
+                allowsRelay: relay != nil && xpc_dictionary_get_bool(message, iGhostVTWireKey.relayPairing),
             )
             for client in clients.values where client.isPairing {
                 client.close(reason: "a new pairing window opened")
@@ -402,8 +538,24 @@ final class RemoteService {
                 .map { String(cString: $0).trimmingCharacters(in: .whitespacesAndNewlines) } ?? ""
             store.setHostName(requested.isEmpty ? nil : RemoteAccess.sanitizedName(requested))
             RemoteLog.log("host name is now \(hostName)")
-            // The advertisement carries the name.
+            // The advertisement carries the name, and so does the relay's
+            // list.
             restartListener()
+            relay?.register()
+        case .setRelayConfiguration:
+            // Never logged: the payload holds the relay's private key.
+            let data = Self.data(iGhostVTWireKey.relay, in: message) ?? Data()
+            if data.isEmpty {
+                store.setRelay(nil)
+                RemoteLog.log("relay removed")
+                startRelay()
+            } else if let configuration = try? RelayConfiguration(data: data) {
+                store.setRelay(configuration.encoded())
+                RemoteLog.log("relay is now \(configuration.name) at \(configuration.endpointDescription)")
+                startRelay()
+            } else {
+                code = .invalidRequest
+            }
         default:
             code = .invalidRequest
         }
@@ -424,6 +576,18 @@ final class RemoteService {
         }
         xpc_dictionary_set_string(reply, iGhostVTWireKey.hostID, store.hostID)
         xpc_dictionary_set_string(reply, iGhostVTWireKey.hostName, hostName)
+        xpc_dictionary_set_string(reply, iGhostVTWireKey.appVersion, RemoteAccess.appVersion)
+        let relayConfiguration = store.relay.flatMap { try? RelayConfiguration(data: $0) }
+        xpc_dictionary_set_string(reply, iGhostVTWireKey.relayFingerprint, relayConfiguration?.fingerprint ?? "")
+        if let relayConfiguration {
+            xpc_dictionary_set_string(reply, iGhostVTWireKey.relayName, relayConfiguration.name)
+            xpc_dictionary_set_string(reply, iGhostVTWireKey.relayState, (relay?.state ?? .failed).rawValue)
+            if let message = relay?.message {
+                xpc_dictionary_set_string(reply, iGhostVTWireKey.relayMessage, message)
+            }
+        } else {
+            xpc_dictionary_set_string(reply, iGhostVTWireKey.relayState, RelayState.off.rawValue)
+        }
         xpc_dictionary_set_uint64(reply, iGhostVTWireKey.port, UInt64(RemoteAccess.port))
         xpc_dictionary_set_uint64(
             reply,
@@ -499,6 +663,7 @@ final class RemoteService {
 
 enum PairingRefusal: Error {
     case notOpen
+    case notThroughRelay
     case busy
     case full
     case mismatch
@@ -506,6 +671,7 @@ enum PairingRefusal: Error {
     var message: String {
         switch self {
         case .notOpen: "Pairing is not open on this device. Choose Pair a Device on it first."
+        case .notThroughRelay: "This device does not accept pairing through the relay. Pair on the same network, or allow pairing through the relay where the code is shown."
         case .busy: "Another device is pairing with this one. Try again in a moment."
         case .full: "This device has as many paired devices as it can hold. Remove one first."
         case .mismatch: "The code is incorrect."
