@@ -22,6 +22,7 @@ Packages are also on [GitHub Releases](https://github.com/owngoal-dev/iGhostVT/r
 | iPhone or iPad on custom firmware, [roothide](https://github.com/roothide) | `iphoneos-arm64e` |
 | iPhone or iPad on custom firmware, rootless (`/var/jb`) | `iphoneos-arm64` |
 | Mac | `iGhostVT-<version>-macos.zip` |
+| iPhone or iPad without custom firmware, to reach the devices above | `GhostRemote-<version>.ipa` (see [Ghost Remote](#ghost-remote)) |
 
 Requires iOS 15 or later, or macOS 13 or later.
 
@@ -34,6 +35,14 @@ Releases are ad-hoc signed. If macOS refuses to open the app:
 ```sh
 xattr -dr com.apple.quarantine /Applications/iGhostVT.app
 ```
+
+### Ghost Remote
+
+Ghost Remote is iGhostVT's remote access on its own, for an iPhone or iPad without custom firmware: it opens terminals on your devices running iGhostVT and runs none of its own. Add this source to AltStore or SideStore:
+
+**`https://owngoal-dev.github.io/iGhostVT/altstore.json`**
+
+or install `GhostRemote-<version>.ipa` from [GitHub Releases](https://github.com/owngoal-dev/iGhostVT/releases) with Sideloadly or your own certificate. Turn on remote access on the other device, then tap **+** in Ghost Remote and pair with the code it shows. Both need the same release line: the first two numbers of the version match.
 
 ## Features
 

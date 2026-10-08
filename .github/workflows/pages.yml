@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - Documents/Web/**
+      - Scripts/update-altstore-source.py
       - .github/workflows/pages.yml
   release:
     types: [published, edited]
@@ -63,6 +64,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 .depiction-tools/scripts/update-depiction-changelogs.py --repository owngoal-dev/iGhostVT --depiction Documents/Web/depiction.json
+      # Ghost Remote's AltStore source, at /altstore.json: each release's
+      # .ipa, read off the bundle so AltStore's checks agree with it.
+      - name: Fill the AltStore source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 Scripts/update-altstore-source.py --repository owngoal-dev/iGhostVT --source Documents/Web/altstore.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -35,6 +35,12 @@
 # `ighostvt-<sha>` beside the packages, so the release attaches the file CI
 # handed over rather than whatever the checkout holds at tag time.
 #
+# Ghost Remote (`package-ipa`) is the fifth: the remote-only app for an
+# iPhone or iPad without custom firmware, packaged as an ad-hoc signed .ipa
+# that AltStore, SideStore or Sideloadly re-sign as they install it. It is
+# cut from the same commit and build number as the packages beside it, since
+# a paired device has to be on the same release line.
+#
 # The macOS zip is ad-hoc signed. A runner has no Developer ID certificate
 # and nothing here should invent one, so the artifact is exactly what
 # `make mac-zip` produces on a checkout with no signing identity: a
@@ -61,6 +67,7 @@ on:
           - roothide
           - rootless
           - macos
+          - ipa
         default: all
       runner_roothide:
         description: Runner label for the roothide .deb
@@ -72,6 +79,10 @@ on:
         default: macos-26
       runner_macos:
         description: Runner label for the macOS zip
+        type: string
+        default: macos-26
+      runner_ipa:
+        description: Runner label for the Ghost Remote .ipa
         type: string
         default: macos-26
 
@@ -302,6 +313,80 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  package-ipa:
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ipa'
+    runs-on: ${{ github.event.inputs.runner_ipa || 'macos-26' }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out iGhostVT
+        uses: actions/checkout@v7
+
+      - name: Select newest Xcode
+        run: |
+          latest="$(ls -d /Applications/Xcode*.app | sort -V | tail -n1)"
+          sudo xcode-select -s "$latest/Contents/Developer"
+          xcodebuild -version
+
+      # Like the Mac zip, nothing but Xcode: `make ipa` does not run `check`.
+      - name: Install build tools
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install xcbeautify
+
+      # The same version and build number as the other packages: AltStore
+      # checks both against its source, and a paired host checks the line.
+      - name: Pin the build number to this run
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(make --no-print-directory print-version)"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          make set-version VERSION="$version" BUILD="$(( GITHUB_RUN_NUMBER + BUILD_NUMBER_FLOOR ))"
+
+      - name: Build the Ghost Remote .ipa
+        run: make ipa
+
+      # Nothing private may be asked for: an installer's free certificate
+      # cannot grant it, and AltStore compares what it finds with its source.
+      - name: Verify the .ipa
+        run: |
+          set -euo pipefail
+          version="$(make --no-print-directory print-version)"
+          ipa="build/Packages/GhostRemote-${version}.ipa"
+          root="$(mktemp -d)"
+          ditto -x -k "$ipa" "$root"
+          app="$root/Payload/GhostRemote.app"
+          test -x "$app/GhostRemote" || { echo "the app's executable is missing" >&2; exit 1; }
+          test -f "$app/Licenses.json" || { echo "Licenses.json is missing" >&2; exit 1; }
+          test ! -e "$app/PlugIns" || { echo "the .ipa carries an extension" >&2; exit 1; }
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Info.plist")" = "$version" ] \
+            || { echo "the app is not version $version" >&2; exit 1; }
+          codesign --verify --strict --verbose=2 "$app"
+          entitlements="$(codesign --display --entitlements - --xml "$app" 2>/dev/null || true)"
+          if grep -q '<key>' <<<"$entitlements"; then
+            echo "the .ipa carries entitlements:" >&2
+            echo "$entitlements" >&2
+            exit 1
+          fi
+
+      - name: Checksums
+        run: |
+          cd build/Packages
+          shasum -a 256 *.ipa | tee SHA256SUMS.ipa
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ighostvt-ipa
+          path: |
+            build/Packages/*.ipa
+            build/Packages/SHA256SUMS.ipa
+          if-no-files-found: error
+          retention-days: 1
+
   # The relay server and its image. Not a platform package, so a
   # single-platform dispatch skips it along with the merge below. A pull
   # request builds the image but pushes nothing: its run is never published,
@@ -389,10 +474,10 @@ jobs:
 
   # Merge. Needs every platform job; a skipped sibling (a single-platform
   # dispatch) skips this too, which is what we want — a partial set of
-  # artifacts is not a release. Tag pushes and pushes to main run all three,
+  # artifacts is not a release. Tag pushes and pushes to main run all four,
   # then this, and its artifact is what `release.yml` downloads.
   packages:
-    needs: [package-roothide, package-rootless, package-macos, relay]
+    needs: [package-roothide, package-rootless, package-macos, package-ipa, relay]
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -408,22 +493,25 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/Packages
-          find artifacts -type f \( -name '*.deb' -o -name '*.zip' -o -name 'SHA256SUMS*' -o -name 'compose.yml' \) -exec cp {} build/Packages/ \;
+          find artifacts -type f \( -name '*.deb' -o -name '*.zip' -o -name '*.ipa' -o -name 'SHA256SUMS*' -o -name 'compose.yml' \) -exec cp {} build/Packages/ \;
           cd build/Packages
           ls -l
           test -f SHA256SUMS.roothide || { echo "roothide checksums missing" >&2; exit 1; }
           test -f SHA256SUMS.rootless || { echo "rootless checksums missing" >&2; exit 1; }
           test -f SHA256SUMS.macos || { echo "macos checksums missing" >&2; exit 1; }
+          test -f SHA256SUMS.ipa || { echo "ipa checksums missing" >&2; exit 1; }
           test -f compose.yml || { echo "the relay's compose.yml is missing" >&2; exit 1; }
           # One file for every .deb, matching the layout previous releases
-          # attached, plus the relay's compose.yml; the macOS checksums stay
-          # beside the zip.
-          { cat SHA256SUMS.roothide SHA256SUMS.rootless; sha256sum compose.yml; } > SHA256SUMS
-          rm -f SHA256SUMS.roothide SHA256SUMS.rootless
+          # attached, plus Ghost Remote's .ipa and the relay's compose.yml;
+          # the macOS checksums stay beside the zip.
+          { cat SHA256SUMS.roothide SHA256SUMS.rootless SHA256SUMS.ipa; sha256sum compose.yml; } > SHA256SUMS
+          rm -f SHA256SUMS.roothide SHA256SUMS.rootless SHA256SUMS.ipa
           shopt -s nullglob
           debs=(*.deb)
           zips=(*-macos.zip)
           dsyms=(*-dSYMs.zip)
+          ipas=(*.ipa)
+          [[ "${#ipas[@]}" -eq 1 ]] || { echo "expected 1 ipa, got ${#ipas[@]}" >&2; exit 1; }
           [[ "${#debs[@]}" -eq 2 ]] || { echo "expected 2 debs, got ${#debs[@]}" >&2; exit 1; }
           [[ "${#zips[@]}" -eq 1 ]] || { echo "expected 1 zip, got ${#zips[@]}" >&2; exit 1; }
           [[ "${#dsyms[@]}" -eq 3 ]] || { echo "expected 3 dSYM zips, got ${#dsyms[@]}" >&2; exit 1; }
@@ -447,6 +535,7 @@ jobs:
           path: |
             build/Packages/*.deb
             build/Packages/*.zip
+            build/Packages/*.ipa
             build/Packages/compose.yml
             build/Packages/SHA256SUMS
             build/Packages/SHA256SUMS.macos

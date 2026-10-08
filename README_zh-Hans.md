@@ -22,6 +22,7 @@
 | 运行自定义固件的 iPhone 或 iPad，[roothide](https://github.com/roothide) | `iphoneos-arm64e` |
 | 运行自定义固件的 iPhone 或 iPad，rootless（`/var/jb`） | `iphoneos-arm64` |
 | Mac | `iGhostVT-<version>-macos.zip` |
+| 未运行自定义固件的 iPhone 或 iPad，用来连接上面这些设备 | `GhostRemote-<version>.ipa`（见 [Ghost Remote](#ghost-remote)） |
 
 需要 iOS 15 或更高版本，或 macOS 13 或更高版本。
 
@@ -34,6 +35,14 @@
 ```sh
 xattr -dr com.apple.quarantine /Applications/iGhostVT.app
 ```
+
+### Ghost Remote
+
+Ghost Remote 是单独拿出来的 iGhostVT 远程访问，给未运行自定义固件的 iPhone 或 iPad 用：它只打开你那些运行 iGhostVT 的设备上的终端，自己不运行任何终端。在 AltStore 或 SideStore 中添加这个源：
+
+**`https://owngoal-dev.github.io/iGhostVT/altstore.json`**
+
+也可以从 [GitHub Releases](https://github.com/owngoal-dev/iGhostVT/releases) 下载 `GhostRemote-<version>.ipa`，用 Sideloadly 或你自己的证书安装。在另一台设备上打开远程访问，然后在 Ghost Remote 中轻点 **+**，输入它显示的配对码。两边需要同一个发布线：版本号的前两位相同。
 
 ## 功能
 

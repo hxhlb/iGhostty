@@ -3,8 +3,8 @@
 #
 #   publish-release.sh <tag> <asset> [<asset> ...]
 #
-# The three platform jobs (roothide .deb, rootless .deb, macOS zip) each
-# produce their own artifact. This is the merge step: the tag must already
+# The four platform jobs (roothide .deb, rootless .deb, macOS zip, Ghost
+# Remote .ipa) each produce their own artifact. This is the merge step: the tag must already
 # exist on the remote, and every file given here is attached to that tag's
 # GitHub Release. A machine that was not the one that built a given package
 # can still publish — it only needs the files.

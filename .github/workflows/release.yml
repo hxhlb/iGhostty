@@ -1,8 +1,8 @@
 # Tag vX.Y.Z → the packages CI built for the tagged commit, published.
 #
 # Nothing is tested, compiled or packaged here. The push of the commit to
-# main ran `ci.yml`: the roothide, rootless and macOS packages each
-# compiled, packaged and verified on their own runner, merged into the
+# main ran `ci.yml`: the roothide, rootless and macOS packages and Ghost
+# Remote's .ipa each compiled, packaged and verified on their own runner, merged into the
 # artifact `ighostvt-<sha>`. The tag publishes that artifact, and only once
 # that run has succeeded: a failed check fails the run, and the release with
 # it. What ships is the file CI verified, not a second build of the same
@@ -133,6 +133,7 @@ jobs:
             "wiki.qaq.ighostvt_${version}_iphoneos-arm64.deb" \
             "iGhostVT-${version}-roothide-dSYMs.zip" \
             "iGhostVT-${version}-rootless-dSYMs.zip" \
+            "GhostRemote-${version}.ipa" \
             compose.yml > SHA256SUMS
           sha256sum \
             "iGhostVT-${version}-macos.zip" \
@@ -163,11 +164,12 @@ jobs:
                  "build/Packages/iGhostVT-${version}-roothide-dSYMs.zip"
                  "build/Packages/iGhostVT-${version}-rootless-dSYMs.zip"
                  "build/Packages/iGhostVT-${version}-macos-dSYMs.zip"
+                 "build/Packages/GhostRemote-${version}.ipa"
                  "build/Packages/compose.yml"
                  "build/Packages/relay-image.txt"
                  "build/Packages/SHA256SUMS"
                  "build/Packages/SHA256SUMS.macos")
-          # Ten assets, and the dSYM zips are not small: a 5xx from the
+          # Eleven assets, and the dSYM zips are not small: a 5xx from the
           # upload API must not end a release that already has a verified
           # set of bytes in hand. `Scripts/publish-release.sh` retried for
           # exactly this reason, and the retry comes across with it.

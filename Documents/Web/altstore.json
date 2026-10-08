@@ -1,0 +1,32 @@
+{
+    "name": "iGhostVT",
+    "identifier": "dev.owngoal.ighostvt",
+    "subtitle": "Ghost Remote, the iGhostVT remote client",
+    "description": "Ghost Remote opens terminals on your devices running iGhostVT, from an iPhone or iPad without custom firmware.",
+    "iconURL": "https://owngoal-dev.github.io/iGhostVT/icon.png",
+    "website": "https://github.com/owngoal-dev/iGhostVT",
+    "tintColor": "#009051",
+    "featuredApps": [
+        "wiki.qaq.GhostRemote"
+    ],
+    "apps": [
+        {
+            "name": "Ghost Remote",
+            "bundleIdentifier": "wiki.qaq.GhostRemote",
+            "developerName": "OwnGoal Studio",
+            "subtitle": "Terminals on your other devices",
+            "localizedDescription": "Ghost Remote opens terminals on your iPhone, iPad, or Mac running iGhostVT, from an iPhone or iPad without custom firmware.\n\nTurn on remote access on the device running iGhostVT, then tap + in Ghost Remote and pair with the six-digit code it shows. Terminals open over your local network, or from anywhere through a relay you run yourself.\n\nBoth devices need the same release line — the first two numbers of the version match, as 1.4.1 and 1.4.7 do.",
+            "iconURL": "https://owngoal-dev.github.io/iGhostVT/icon.png",
+            "tintColor": "#009051",
+            "category": "developer",
+            "screenshots": [],
+            "screenshotURLs": [],
+            "versions": [],
+            "appPermissions": {
+                "entitlements": [],
+                "privacy": {}
+            }
+        }
+    ],
+    "news": []
+}

@@ -114,8 +114,8 @@ which launchd never sized — so a session's buffers cannot jetsam the daemon.
   verified. Never rebuild at tag time: a second build is a different build
   number, a different runner image and bytes no test ever ran against. The
   workflow stays named `Release` — `pages.yml` watches for it, and
-  `Scripts/release.sh` finds the run by that name and then checks all ten
-  assets by name (and then waits for Notarize's eleventh), so an asset that
+  `Scripts/release.sh` finds the run by that name and then checks all eleven
+  assets by name (and then waits for Notarize's twelfth), so an asset that
   is renamed breaks the cut — and the app's Check for Updates, which fetches
   the notarized zip and the two debs by the same names. The relay's
   container image follows the same rule: CI pushes
@@ -213,8 +213,8 @@ GitHub reports for the asset. It installs nothing and spawns nothing.
 
 The `GhostRemote` target is a second app built from the same sources: the
 remote-access client alone, for an iPhone or iPad without custom firmware.
-It runs sandboxed, has no daemon, and ships as an unsigned `.ipa`
-(`make ipa`) that whoever installs it signs — never through the App Store,
+It runs sandboxed, has no daemon, and ships as an ad-hoc signed `.ipa`
+(`make ipa`) that whoever installs it re-signs — never through the App Store,
 because pairing uses the system's private SPAKE2+ (`CoreCryptoShim`). It
 shares `Version.xcconfig` with iGhostVT on purpose: a paired device must be
 on the same release line (`RemoteAccess.isCompatible`), so the two apps are
@@ -239,6 +239,16 @@ cut from one tag.
 - No widget or Live Activity: a free signing account is short of App IDs,
   and a suspended app's links are down anyway. The bundle id is rewritten
   by most signing tools, so nothing may depend on it.
+- CI's `package-ipa` job builds `GhostRemote-<version>.ipa` from the same
+  run number as the debs, refuses one carrying any entitlement (a free
+  certificate cannot grant it, and AltStore 2 refuses an app whose
+  entitlements or usage descriptions differ from its source), and the
+  Release run attaches it beside them. The AltStore source,
+  `Documents/Web/altstore.json`, is checked in with only what never changes;
+  the Pages run (`Scripts/update-altstore-source.py`) fills in each recent
+  release's .ipa — version, build, minimum OS and usage descriptions read
+  off the bundle itself — plus the pre-2.0 fields SideStore and older
+  AltStore read. Never write a version into the checked-in file.
 
 ## Layout
 
@@ -980,7 +990,7 @@ the catalog's generated symbols, which is why the menu's entry is keyed
 - `make release VERSION=x.y.z` — the whole cut in one command
   (`Scripts/release.sh`): clean-tree/main/tag preflight, `set-version`
   (BUILD defaults to current+1), `make check`, the `x.y.z` commit, the
-  tag, the push, waiting out the GitHub Release run, checking all ten
+  tag, the push, waiting out the GitHub Release run, checking all eleven
   assets, dispatching the APT repository build, and polling
   `https://apt.owngoal.dev/Packages` until the version is served — that
   poll is the acceptance test, because the APT run's own verify step has

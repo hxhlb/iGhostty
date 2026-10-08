@@ -1,6 +1,7 @@
 #!/bin/bash
 # One-command release: version bump → commit → tag → GitHub Release run →
-# asset check → relay image check → APT repository build → the repo actually
+# asset check (Ghost Remote's .ipa included, which the Pages run then lists
+# in the AltStore source) → relay image check → APT repository build → the repo actually
 # serving it → the notarized Mac zip Notarize attaches.
 #
 #   release.sh <x.y.z> [build]
@@ -97,6 +98,7 @@ for want in \
     "iGhostVT-$version-roothide-dSYMs.zip" \
     "iGhostVT-$version-rootless-dSYMs.zip" \
     "iGhostVT-$version-macos-dSYMs.zip" \
+    "GhostRemote-$version.ipa" \
     "compose.yml" \
     "relay-image.txt" \
     "SHA256SUMS" \

@@ -113,7 +113,7 @@ help:
 	@echo "  deb         Build, ad-hoc sign, and package the .deb (PACKAGE_FLAVOR=$(PACKAGE_FLAVOR))"
 	@echo "  deb-roothide  Package for roothide (unprefixed, iphoneos-arm64e)"
 	@echo "  deb-rootless  Package for a rootless bootstrap (/var/jb, iphoneos-arm64)"
-	@echo "  ipa         Build and package the unsigned Ghost Remote .ipa, signed by whoever installs it"
+	@echo "  ipa         Build and package the Ghost Remote .ipa (ad-hoc signed; re-signed by whoever installs it)"
 	@echo "  test        Run the PTY harness"
 	@echo "  harness     Run the daemon on macOS: proxy, ighostvtd-io, and the PTY spawn tests"
 	@echo "  relay-harness       The relay end to end (needs go; RELAY_HARNESS_FLAGS=--stress for the long runs)"
@@ -368,10 +368,13 @@ deb: build
 		"$(PACKAGE_PREFIX)" \
 		"$(DEB_DEPENDS)"
 
-# Ghost Remote, unsigned: whatever installs it on a device without custom
-# firmware (AltStore, SideStore, Sideloadly, a developer certificate) signs it
-# with that person's identity, so there is nothing to sign here. Like
-# mac-zip it needs nothing but Xcode, so it neither needs nor runs `check`.
+# Ghost Remote, ad-hoc signed with no entitlements: whatever installs it on a
+# device without custom firmware (AltStore, SideStore, Sideloadly, a developer
+# certificate) re-signs it with that person's identity. The ad-hoc seal only
+# gives those tools a well-formed bundle to start from; an entitlement here
+# would be one the installer's profile cannot grant, and AltStore checks the
+# ones it finds against its source. Like mac-zip it needs nothing but Xcode,
+# so it neither needs nor runs `check`.
 ipa:
 	XCBUILD_LABEL=build-ghost-remote $(DEVICE_XCODEBUILD) \
 		-configuration "$(CONFIGURATION)" \
@@ -382,6 +385,7 @@ ipa:
 	@staging="$$(mktemp -d)"; trap 'rm -rf "$$staging"' EXIT; \
 	mkdir -p "$$staging/Payload" "$$(dirname "$(IPA_OUTPUT)")"; \
 	ditto "$(GHOST_REMOTE_APP)" "$$staging/Payload/GhostRemote.app"; \
+	codesign --force --sign - --timestamp=none "$$staging/Payload/GhostRemote.app"; \
 	rm -f "$(IPA_OUTPUT)"; \
 	(cd "$$staging" && zip -qry "$(IPA_OUTPUT)" Payload); \
 	echo "$(IPA_OUTPUT)"
