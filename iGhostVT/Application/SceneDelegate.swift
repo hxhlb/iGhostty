@@ -253,6 +253,19 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// moment the activity finds out and folds.
     func sceneWillEnterForeground(_: UIScene) {
         guard !isDiscarded else { return }
-        DaemonSessionDirectory.shared.refresh()
+        if AppEdition.isRemoteOnly {
+            // iOS dropped every link while the app was suspended: try them
+            // now, not when each back-off timer gets round to it.
+            tabManager.retryFailedTabs()
+        } else {
+            DaemonSessionDirectory.shared.refresh()
+        }
+    }
+
+    /// Ghost Remote writes down its tabs here, the last moment it is sure
+    /// to run before iOS may kill it (`RemoteTabLedger`).
+    func sceneDidEnterBackground(_: UIScene) {
+        guard AppEdition.isRemoteOnly, !isDiscarded else { return }
+        RemoteTabLedger.save(ShortcutBridge.tabManagers())
     }
 }

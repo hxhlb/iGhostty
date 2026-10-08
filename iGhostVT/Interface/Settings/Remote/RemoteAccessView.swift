@@ -18,9 +18,13 @@ struct RemoteAccessView: View {
     var body: some View {
         Form {
             nameSection
-            thisDeviceSection
-            if model.isEnabled {
-                allowedDevicesSection
+            // Ghost Remote is never a host: it has no daemon to open
+            // terminals in.
+            if !AppEdition.isRemoteOnly {
+                thisDeviceSection
+                if model.isEnabled {
+                    allowedDevicesSection
+                }
             }
             // Only once a .vtrpsc file has been opened: no relay, no section.
             if let relay = directory.relay {

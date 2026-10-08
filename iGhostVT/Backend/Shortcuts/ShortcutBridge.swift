@@ -103,7 +103,9 @@ enum ShortcutBridge {
     /// Opens a plain new tab in the frontmost window, the way ⌘T does.
     static func openNewTab() async throws -> TerminalTab {
         let manager = try await frontTabManager()
-        return manager.newTab()
+        // Only Ghost Remote with no device paired opens no tab.
+        guard let tab = manager.newTab() else { throw ShortcutError.noWindow }
+        return tab
     }
 
     /// Opens a tab on a paired device in the frontmost window (remote
@@ -111,7 +113,10 @@ enum ShortcutBridge {
     @discardableResult
     static func openRemoteTab(hostID: String, directory: TerminalDirectory? = nil) async throws -> TerminalTab {
         let manager = try await frontTabManager()
-        return manager.newTab(.remote(hostID: hostID, directory: directory))
+        guard let tab = manager.newTab(.remote(hostID: hostID, directory: directory)) else {
+            throw ShortcutError.noWindow
+        }
+        return tab
     }
 
     /// The same, for a terminal the device already has open.

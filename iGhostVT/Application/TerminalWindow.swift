@@ -16,6 +16,13 @@ final class WindowInterfaceState: ObservableObject {
     /// The window just became key — on the Mac, came to the front — and its
     /// terminal may take the keyboard again. Sent on the Mac only.
     let didBecomeKey = PassthroughSubject<Void, Never>()
+
+    /// Settings, opened on Remote Access: where Ghost Remote sends a new
+    /// tab with no paired device to open on.
+    func showRemoteAccess() {
+        SettingsSheet.remoteAccessRequest.send(true)
+        showsSettingsSheet = true
+    }
 }
 
 /// The sidebar's visibility, a UserDefaults value so a menu command can flip

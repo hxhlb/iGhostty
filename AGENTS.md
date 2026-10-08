@@ -209,6 +209,37 @@ browser would so Gatekeeper's first-open check is the notarization check,
 and is shown in the Finder. Bytes are kept only when they match the SHA-256
 GitHub reports for the asset. It installs nothing and spawns nothing.
 
+## Ghost Remote
+
+The `GhostRemote` target is a second app built from the same sources: the
+remote-access client alone, for an iPhone or iPad without custom firmware.
+It runs sandboxed, has no daemon, and ships as an unsigned `.ipa`
+(`make ipa`) that whoever installs it signs — never through the App Store,
+because pairing uses the system's private SPAKE2+ (`CoreCryptoShim`). It
+shares `Version.xcconfig` with iGhostVT on purpose: a paired device must be
+on the same release line (`RemoteAccess.isCompatible`), so the two apps are
+cut from one tag.
+
+- **One switch, `AppEdition.isRemoteOnly`** (`GHOST_REMOTE` in the target's
+  `SWIFT_ACTIVE_COMPILATION_CONDITIONS`). Code reads the constant rather
+  than `#if`, so both apps compile every branch. The local daemon is closed
+  at its three doors — `XPCDaemonLink.init`, `oneShotRequest`,
+  `closeSessionsForQuit` — and everything built on them fails soft.
+- The target shares the `iGhostVT/` folder with its own exception set: it
+  drops the app's `Info.plist` and `InfoPlist.xcstrings` (its own are in
+  `GhostRemote/`) and the four Shortcuts intent files, which only speak to
+  a local daemon. `ShortcutBridge` stays.
+- Every tab is remote. `TabManager.newTab` sends an origin on this device
+  to the active tab's device, else `RemoteTabDefaults.preferredHostID`, and
+  with nothing paired opens Settings ▸ Remote Access and no tab — the `+`
+  is the way to pair. The menus lose this device's rows.
+- A cold launch reattaches through `RemoteTabLedger`, written whenever a
+  window goes to the background (iOS kills a suspended app without a
+  word), and a return to the foreground retries every tab's link at once.
+- No widget or Live Activity: a free signing account is short of App IDs,
+  and a suspended app's links are down anyway. The bundle id is rewritten
+  by most signing tools, so nothing may depend on it.
+
 ## Layout
 
 FlowDown-style: `iGhostVT/main.swift` (manual `UIApplicationMain`, which on

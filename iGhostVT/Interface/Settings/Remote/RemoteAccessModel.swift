@@ -21,7 +21,8 @@ final class RemoteAccessModel: ObservableObject {
     }
 
     func appear() {
-        guard poll == nil else { return }
+        // Ghost Remote has no host side to poll.
+        guard poll == nil, !AppEdition.isRemoteOnly else { return }
         poll = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()

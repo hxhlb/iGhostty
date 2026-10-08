@@ -95,17 +95,20 @@ struct NewTabMenuContent: View {
     var onOpen: () -> Void = {}
 
     var body: some View {
-        Section {
-            // Keyed apart from the keyboard's Home key, which is a
-            // different word in half the languages ("Pos1", "Début").
-            row(
-                String(
-                    localized: "Home (directory)",
-                    comment: "Menu item: opens a terminal in the home directory; the English text is “Home”",
-                ),
-                systemImage: "house",
-                origin: .home,
-            )
+        // Ghost Remote has no home of its own to open in.
+        if !AppEdition.isRemoteOnly {
+            Section {
+                // Keyed apart from the keyboard's Home key, which is a
+                // different word in half the languages ("Pos1", "Début").
+                row(
+                    String(
+                        localized: "Home (directory)",
+                        comment: "Menu item: opens a terminal in the home directory; the English text is “Home”",
+                    ),
+                    systemImage: "house",
+                    origin: .home,
+                )
+            }
         }
         if !choices.openTabs.isEmpty {
             Section {
@@ -150,7 +153,9 @@ struct NewTabMenuContent: View {
                     }
                 }
             } header: {
-                Text("Other Devices")
+                if !AppEdition.isRemoteOnly {
+                    Text("Other Devices")
+                }
             }
         }
     }

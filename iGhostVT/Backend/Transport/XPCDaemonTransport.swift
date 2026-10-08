@@ -467,7 +467,8 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     ) {
         let queue = DispatchQueue(label: "wiki.qaq.ighostvt.client.list", qos: .userInitiated)
         let finished = FinishOnce<Value?>(completion)
-        guard let rawConnection = iGhostVTProtocol.serviceName.withCString({
+        guard !AppEdition.isRemoteOnly,
+              let rawConnection = iGhostVTProtocol.serviceName.withCString({
             ighostvtCreateMachServiceConnection($0, queue, 0)
         }) else {
             finished.finish(nil)
@@ -583,7 +584,8 @@ final class XPCDaemonTransport: TerminalTransport, @unchecked Sendable {
     ) {
         let deadline = DispatchTime.now() + timeout
         let queue = DispatchQueue(label: "wiki.qaq.ighostvt.client.quit", qos: .userInitiated)
-        guard let connection = iGhostVTProtocol.serviceName.withCString({
+        guard !AppEdition.isRemoteOnly,
+              let connection = iGhostVTProtocol.serviceName.withCString({
             ighostvtCreateMachServiceConnection($0, queue, 0)
         }) else { return }
         xpc_connection_set_event_handler(connection) { _ in }

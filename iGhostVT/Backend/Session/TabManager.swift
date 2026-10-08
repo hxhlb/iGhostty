@@ -86,7 +86,36 @@ final class TabManager: ObservableObject {
             openTab(attachingTo: movedSessionID)
             return
         }
-        resumeLeftovers(openingFreshTab: !isOnlyWindow || SessionLaunch.opensNewSession)
+        let opensFreshTab = !isOnlyWindow || SessionLaunch.opensNewSession
+        if AppEdition.isRemoteOnly {
+            restoreRemoteTabs(openingFreshTab: opensFreshTab)
+        } else {
+            resumeLeftovers(openingFreshTab: opensFreshTab)
+        }
+    }
+
+    /// Ghost Remote's launch: the paired devices' terminals this app had
+    /// open when it last went to the background (`RemoteTabLedger`), each
+    /// taken back from whoever holds it now, as a terminal picked from the
+    /// new-tab menu is. With none, a fresh shell on the preferred device —
+    /// or, with no device paired yet, the empty window that says where to
+    /// pair one.
+    private func restoreRemoteTabs(openingFreshTab: Bool) {
+        let (entries, activeIndex) = RemoteTabLedger.claim()
+        guard !entries.isEmpty else {
+            if openingFreshTab, RemoteTabDefaults.preferredHostID != nil {
+                newTab()
+            }
+            return
+        }
+        let restored = entries.map { entry in
+            let tab = makeTab(resume: entry.sessionID, remoteHostID: entry.hostID)
+            tab.store.takesOverOnFirstConnect = true
+            return tab
+        }
+        tabs.append(contentsOf: restored)
+        activeTabID = activeIndex.map { restored[$0].id } ?? restored.last?.id
+        SessionActivityController.shared.refresh()
     }
 
     /// Adopts the sessions no peer is attached to — and the ones a paired
@@ -292,6 +321,9 @@ final class TabManager: ObservableObject {
             startDirectory: startDirectory,
             remoteHostID: remoteHostID,
         )
+        if let remoteHostID {
+            RemoteTabDefaults.noteOpened(onHostID: remoteHostID)
+        }
         tab.terminal.onClipboardConfirmationRequest = { [weak self] request in
             self?.clipboardRequests.append(request)
         }
@@ -357,14 +389,37 @@ final class TabManager: ObservableObject {
         /// in its user's home or in `directory` — one that device reported
         /// earlier, handed back to it.
         case remote(hostID: String, directory: TerminalDirectory? = nil)
+
+        var isRemote: Bool {
+            if case .remote = self {
+                return true
+            }
+            return false
+        }
+    }
+
+    /// The window these tabs are in, for what a tab action has to present.
+    private var terminalWindow: TerminalWindow? {
+        windowScene?.windows.lazy.compactMap { $0 as? TerminalWindow }.first
     }
 
     /// Opens where `origin` says. For a live session the new one names it
     /// and the daemon reads that shell's current directory from the kernel
     /// — so it works for a shell that reports no OSC 7 as well, and no
     /// directory is ever typed into a PTY.
+    ///
+    /// Ghost Remote has no shell of its own: an origin on this device opens
+    /// on the active tab's device, else the preferred paired one, and with
+    /// no device paired it opens Settings ▸ Remote Access and no tab.
     @discardableResult
-    func newTab(_ origin: Origin = .activeTab) -> TerminalTab {
+    func newTab(_ origin: Origin = .activeTab) -> TerminalTab? {
+        if AppEdition.isRemoteOnly, !origin.isRemote {
+            guard let hostID = activeTab?.remoteHostID ?? RemoteTabDefaults.preferredHostID else {
+                terminalWindow?.interface.showRemoteAccess()
+                return nil
+            }
+            return adopt(makeTab(remoteHostID: hostID), afterActiveTab: true)
+        }
         let tab = switch origin {
         case .activeTab:
             // From a remote tab, ⌘T opens another shell on that device.

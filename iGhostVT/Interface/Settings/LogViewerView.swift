@@ -135,11 +135,14 @@ struct LogViewerView: View {
 
     private var menu: some View {
         Menu {
-            Picker("Source", selection: $model.source) {
-                Label("App", systemImage: "app")
-                    .tag(LogSource.app)
-                Label("Terminal Helper", systemImage: "terminal")
-                    .tag(LogSource.daemon)
+            // Ghost Remote has no helper, and no log of one to read.
+            if !AppEdition.isRemoteOnly {
+                Picker("Source", selection: $model.source) {
+                    Label("App", systemImage: "app")
+                        .tag(LogSource.app)
+                    Label("Terminal Helper", systemImage: "terminal")
+                        .tag(LogSource.daemon)
+                }
             }
             if model.source == .app {
                 if !model.olderLaunches.isEmpty {

@@ -3,6 +3,7 @@
 //  iGhostVT
 //
 
+import Combine
 import SwiftUI
 
 /// The settings page on iPhone and iPad: one section per file under
@@ -15,13 +16,19 @@ struct SettingsSheet: View {
     /// sheet is up or one that opened it (`RelayImport`): that page is
     /// where the file is asked about.
     @State private var isShowingRemoteAccess = false
+    /// Set before the sheet is asked for (`WindowInterfaceState
+    /// .showRemoteAccess`): the sheet opens on Remote Access. A value
+    /// subject, so a sheet that appears after the request still reads it.
+    static let remoteAccessRequest = CurrentValueSubject<Bool, Never>(false)
 
     var body: some View {
         NavigationView {
             Form {
                 AppearanceSettingsSection()
                 TextSizeSettingsSection()
-                ShellSettingsSection()
+                if !AppEdition.isRemoteOnly {
+                    ShellSettingsSection()
+                }
                 SessionsSettingsSection()
                 RemoteAccessSettingsSection()
                 RecentDirectoriesSettingsSection()
@@ -40,6 +47,13 @@ struct SettingsSheet: View {
             )
             .onReceive(RelayImport.pending) { request in
                 if request != nil, RelayImport.remoteAccessOnScreen == 0 {
+                    isShowingRemoteAccess = true
+                }
+            }
+            .onReceive(Self.remoteAccessRequest) { requested in
+                guard requested else { return }
+                Self.remoteAccessRequest.send(false)
+                if RelayImport.remoteAccessOnScreen == 0 {
                     isShowingRemoteAccess = true
                 }
             }

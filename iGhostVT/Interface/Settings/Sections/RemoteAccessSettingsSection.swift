@@ -18,8 +18,14 @@ struct RemoteAccessSettingsSection: View {
             Text("Remote Access")
                 .font(DS.Font.caption)
         } footer: {
-            Text("Open terminals on another device of yours, or let your other devices open them here.")
-                .font(DS.Font.detail)
+            Group {
+                if AppEdition.isRemoteOnly {
+                    Text("Devices this one can open terminals on.")
+                } else {
+                    Text("Open terminals on another device of yours, or let your other devices open them here.")
+                }
+            }
+            .font(DS.Font.detail)
         }
     }
 }

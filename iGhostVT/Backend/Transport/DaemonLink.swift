@@ -64,7 +64,10 @@ final class XPCDaemonLink: DaemonLink, @unchecked Sendable {
     private var isCancelled = false
 
     init?(queue: DispatchQueue) {
-        guard let connection = iGhostVTProtocol.serviceName.withCString({
+        // Ghost Remote has no daemon of its own, and its sandbox would
+        // refuse the lookup anyway.
+        guard !AppEdition.isRemoteOnly,
+              let connection = iGhostVTProtocol.serviceName.withCString({
             ighostvtCreateMachServiceConnection($0, queue, 0)
         }) else { return nil }
         self.connection = connection

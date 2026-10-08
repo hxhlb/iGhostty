@@ -12,6 +12,10 @@
 		AA0000000000000000000103 /* Dog in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000203 /* Dog */; };
 		AA0000000000000000000105 /* SPIndicator in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000204 /* SPIndicator */; };
 		AA0000000000000000000104 /* iGhostVTWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000307 /* iGhostVTWidgets.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AA0000000000000000000106 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000205 /* GhosttyTerminal */; };
+		AA0000000000000000000107 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000206 /* GhosttyTheme */; };
+		AA0000000000000000000108 /* Dog in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000207 /* Dog */; };
+		AA0000000000000000000109 /* SPIndicator in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000208 /* SPIndicator */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +70,7 @@
 		AA0000000000000000000308 /* ighostvtd-io */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "ighostvtd-io"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000309 /* ighostvt-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "ighostvt-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000000000000000000030A /* ighostvtd-remote */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "ighostvtd-remote"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000030B /* GhostRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GhostRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -83,6 +88,25 @@
 			);
 			target = AA0000000000000000000603 /* iGhostVTWidgets */;
 		};
+		AA0000000000000000000403 /* Exceptions for "iGhostVT" folder in "GhostRemote" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Backend/Shortcuts/iGhostVTShortcuts.swift,
+				Backend/Shortcuts/SessionIntents.swift,
+				Backend/Shortcuts/ShortcutEntities.swift,
+				Backend/Shortcuts/WindowIntents.swift,
+				Resources/Info.plist,
+				Resources/InfoPlist.xcstrings,
+			);
+			target = AA0000000000000000000607 /* GhostRemote */;
+		};
+		AA0000000000000000000404 /* Exceptions for "GhostRemote" folder in "GhostRemote" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AA0000000000000000000607 /* GhostRemote */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -95,8 +119,17 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				AA0000000000000000000401 /* Exceptions for "iGhostVT" folder in "iGhostVT" target */,
+				AA0000000000000000000403 /* Exceptions for "iGhostVT" folder in "GhostRemote" target */,
 			);
 			path = iGhostVT;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000050D /* GhostRemote */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA0000000000000000000404 /* Exceptions for "GhostRemote" folder in "GhostRemote" target */,
+			);
+			path = GhostRemote;
 			sourceTree = "<group>";
 		};
 		AA0000000000000000000502 /* Shared/Protocol */ = {
@@ -171,6 +204,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000000000000000000070D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000106 /* GhosttyTerminal in Frameworks */,
+				AA0000000000000000000107 /* GhosttyTheme in Frameworks */,
+				AA0000000000000000000108 /* Dog in Frameworks */,
+				AA0000000000000000000109 /* SPIndicator in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -179,6 +223,7 @@
 			children = (
 				AA0000000000000000000501 /* iGhostVT */,
 				AA0000000000000000000503 /* iGhostVTDaemon */,
+				AA000000000000000000050D /* GhostRemote */,
 				AA0000000000000000000506 /* iGhostVTDaemonShared */,
 				AA0000000000000000000507 /* iGhostVTIO */,
 				AA0000000000000000000508 /* iGhostVTCLI */,
@@ -203,6 +248,7 @@
 				AA0000000000000000000309 /* ighostvt-cli */,
 				AA000000000000000000030A /* ighostvtd-remote */,
 				AA0000000000000000000307 /* iGhostVTWidgets.appex */,
+				AA000000000000000000030B /* GhostRemote.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -361,6 +407,39 @@
 			productReference = AA000000000000000000030A /* ighostvtd-remote */;
 			productType = "com.apple.product-type.tool";
 		};
+		AA0000000000000000000607 /* GhostRemote */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000908 /* Build configuration list for PBXNativeTarget "GhostRemote" */;
+			buildPhases = (
+				AA000000000000000000070C /* Sources */,
+				AA000000000000000000070D /* Frameworks */,
+				AA000000000000000000070E /* Resources */,
+				AA000000000000000000070F /* Collect Licenses */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA000000000000000000050D /* GhostRemote */,
+				AA0000000000000000000501 /* iGhostVT */,
+				AA0000000000000000000502 /* Shared/Protocol */,
+				AA0000000000000000000505 /* Shared/Activity */,
+				AA000000000000000000050C /* Shared/Remote */,
+				AA0000000000000000000509 /* Shared/Screen */,
+				AA000000000000000000050B /* Shared/Wire */,
+			);
+			name = GhostRemote;
+			packageProductDependencies = (
+				AA0000000000000000000205 /* GhosttyTerminal */,
+				AA0000000000000000000206 /* GhosttyTheme */,
+				AA0000000000000000000207 /* Dog */,
+				AA0000000000000000000208 /* SPIndicator */,
+			);
+			productName = GhostRemote;
+			productReference = AA000000000000000000030B /* GhostRemote.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -386,6 +465,9 @@
 						CreatedOnToolsVersion = 16.0;
 					};
 					AA0000000000000000000606 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					AA0000000000000000000607 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -427,6 +509,7 @@
 				AA0000000000000000000605 /* ighostvt-cli */,
 				AA0000000000000000000606 /* ighostvtd-remote */,
 				AA0000000000000000000603 /* iGhostVTWidgets */,
+				AA0000000000000000000607 /* GhostRemote */,
 			);
 		};
 /* End PBXProject section */
@@ -446,10 +529,44 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA000000000000000000070E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		AA000000000000000000070A /* Collect Licenses */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Scripts/collect-licenses.py",
+				"$(SRCROOT)/LICENSE",
+				"$(SRCROOT)/Licenses",
+				"$(SRCROOT)/Licenses/ghostty/LICENSE",
+				"$(SRCROOT)/Licenses/ghostty/notice.json",
+				"$(SRCROOT)/manifest.json",
+				"$(SRCROOT)/Configuration/Version.xcconfig",
+				"$(SRCROOT)/iGhostVT.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+			);
+			name = "Collect Licenses";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "exec \"$SRCROOT/Scripts/collect-licenses.py\" --project \"$SRCROOT\" --build-dir \"$BUILD_DIR\" --output \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Licenses.json\"\n";
+		};
+		AA000000000000000000070F /* Collect Licenses */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -515,6 +632,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AA000000000000000000070B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA000000000000000000070C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -860,6 +984,58 @@
 			};
 			name = Release;
 		};
+		AA0000000000000000000B0F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GhostRemote/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.GhostRemote;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "GHOST_REMOTE $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000B10 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GhostRemote/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = wiki.qaq.GhostRemote;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "GHOST_REMOTE $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -926,6 +1102,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		AA0000000000000000000908 /* Build configuration list for PBXNativeTarget "GhostRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000B0F /* Debug */,
+				AA0000000000000000000B10 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -970,6 +1155,24 @@
 			productName = Dog;
 		};
 		AA0000000000000000000204 /* SPIndicator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000A03 /* XCRemoteSwiftPackageReference "SPIndicator" */;
+			productName = SPIndicator;
+		};
+		AA0000000000000000000205 /* GhosttyTerminal */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GhosttyTerminal;
+		};
+		AA0000000000000000000206 /* GhosttyTheme */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GhosttyTheme;
+		};
+		AA0000000000000000000207 /* Dog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000A02 /* XCRemoteSwiftPackageReference "Dog" */;
+			productName = Dog;
+		};
+		AA0000000000000000000208 /* SPIndicator */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AA0000000000000000000A03 /* XCRemoteSwiftPackageReference "SPIndicator" */;
 			productName = SPIndicator;

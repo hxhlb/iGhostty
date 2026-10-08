@@ -52,6 +52,10 @@ xcconfig_setting     = $(strip $(shell awk -F= '$$1 ~ /^[[:space:]]*$(1)[[:space
 APP_VERSION         := $(call xcconfig_setting,MARKETING_VERSION)
 BUILD_NUMBER        := $(call xcconfig_setting,CURRENT_PROJECT_VERSION)
 DEB_OUTPUT          ?= $(ROOT_DIR)/build/Packages/$(PACKAGE_ID)_$(APP_VERSION)_$(PACKAGE_ARCHITECTURE).deb
+# Ghost Remote: the remote-only client for devices without custom firmware.
+GHOST_REMOTE_SCHEME := GhostRemote
+GHOST_REMOTE_APP    := $(PRODUCTS_DIR)/GhostRemote.app
+IPA_OUTPUT          ?= $(ROOT_DIR)/build/Packages/GhostRemote-$(APP_VERSION).ipa
 
 XCODEBUILD_WRAPPER  := $(ROOT_DIR)/Scripts/run-xcodebuild.sh
 DEB_PACKAGER        := $(ROOT_DIR)/Scripts/package-deb.sh
@@ -99,7 +103,7 @@ ifeq ($(BUILD_NUMBER),)
 $(error CURRENT_PROJECT_VERSION is missing from Configuration/Version.xcconfig)
 endif
 
-.PHONY: all help print-version print-build-number print-deb-path print-mac-zip-path set-version bump-build check test harness relay-harness relay-weak-network build deb deb-roothide deb-rootless mac-app mac-daemon mac-daemon-uninstall mac-run mac-zip-check mac-zip mac-update-from-github release clean
+.PHONY: all help print-version print-build-number print-deb-path print-mac-zip-path set-version bump-build check test harness relay-harness relay-weak-network build deb deb-roothide deb-rootless ipa mac-app mac-daemon mac-daemon-uninstall mac-run mac-zip-check mac-zip mac-update-from-github release clean
 
 all: deb
 
@@ -109,6 +113,7 @@ help:
 	@echo "  deb         Build, ad-hoc sign, and package the .deb (PACKAGE_FLAVOR=$(PACKAGE_FLAVOR))"
 	@echo "  deb-roothide  Package for roothide (unprefixed, iphoneos-arm64e)"
 	@echo "  deb-rootless  Package for a rootless bootstrap (/var/jb, iphoneos-arm64)"
+	@echo "  ipa         Build and package the unsigned Ghost Remote .ipa, signed by whoever installs it"
 	@echo "  test        Run the PTY harness"
 	@echo "  harness     Run the daemon on macOS: proxy, ighostvtd-io, and the PTY spawn tests"
 	@echo "  relay-harness       The relay end to end (needs go; RELAY_HARNESS_FLAGS=--stress for the long runs)"
@@ -362,6 +367,24 @@ deb: build
 		"$(PACKAGE_ARCHITECTURE)" \
 		"$(PACKAGE_PREFIX)" \
 		"$(DEB_DEPENDS)"
+
+# Ghost Remote, unsigned: whatever installs it on a device without custom
+# firmware (AltStore, SideStore, Sideloadly, a developer certificate) signs it
+# with that person's identity, so there is nothing to sign here. Like
+# mac-zip it needs nothing but Xcode, so it neither needs nor runs `check`.
+ipa:
+	XCBUILD_LABEL=build-ghost-remote $(DEVICE_XCODEBUILD) \
+		-configuration "$(CONFIGURATION)" \
+		-scheme "$(GHOST_REMOTE_SCHEME)" \
+		-destination "$(DEVICE_DESTINATION)" \
+		build
+	"$(FLOOR_AUDIT)" "$(IOS_DEPLOYMENT_FLOOR)" "$(GHOST_REMOTE_APP)"
+	@staging="$$(mktemp -d)"; trap 'rm -rf "$$staging"' EXIT; \
+	mkdir -p "$$staging/Payload" "$$(dirname "$(IPA_OUTPUT)")"; \
+	ditto "$(GHOST_REMOTE_APP)" "$$staging/Payload/GhostRemote.app"; \
+	rm -f "$(IPA_OUTPUT)"; \
+	(cd "$$staging" && zip -qry "$(IPA_OUTPUT)" Payload); \
+	echo "$(IPA_OUTPUT)"
 
 # Both layouts share the build; only the packaging step differs, so these are
 # the same recipe with the flavour switched.

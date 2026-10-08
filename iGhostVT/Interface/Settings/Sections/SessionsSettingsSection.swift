@@ -16,7 +16,11 @@ struct SessionsSettingsSection: View {
     var body: some View {
         Section {
             Toggle("New Session at Launch", isOn: $opensNewSession)
-            Toggle("Keep Sessions Running", isOn: $keepAlive)
+            // Ghost Remote's sessions live on other devices, which keep
+            // them whatever this app does.
+            if !AppEdition.isRemoteOnly {
+                Toggle("Keep Sessions Running", isOn: $keepAlive)
+            }
         } header: {
             Text("Sessions")
                 .font(DS.Font.caption)
@@ -28,16 +32,22 @@ struct SessionsSettingsSection: View {
                     with nothing to resume. With it off, the app opens with no tabs.
                     """,
                 )
-                Text(
-                    """
-                    Keep Sessions Running lets a session with a program running \
-                    keep going after the app quits and come back on the next \
-                    launch; a shell sitting at its prompt closes. With it off, \
-                    every session closes when the app quits.
-                    """,
-                )
+                if !AppEdition.isRemoteOnly {
+                    keepAliveFooter
+                }
             }
             .font(DS.Font.detail)
         }
+    }
+
+    private var keepAliveFooter: some View {
+        Text(
+            """
+            Keep Sessions Running lets a session with a program running \
+            keep going after the app quits and come back on the next \
+            launch; a shell sitting at its prompt closes. With it off, \
+            every session closes when the app quits.
+            """,
+        )
     }
 }

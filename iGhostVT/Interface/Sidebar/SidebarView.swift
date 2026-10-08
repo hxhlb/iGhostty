@@ -94,7 +94,7 @@ struct SidebarView: View {
     /// window's top, as it does in the bar.
     private var header: some View {
         HStack(spacing: DS.Padding.s) {
-            Text(verbatim: "iGhostVT")
+            Text(verbatim: AppEdition.displayName)
                 .font(DS.Font.title)
                 .accessibilityAddTraits(.isHeader)
                 .padding(.leading, DS.Padding.s)

@@ -16,7 +16,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         // (Settings ▸ Advanced ▸ Logs) as well as the unified log.
         AppLog.start()
         GhosttyAppConfiguration.removeTemporaryFiles()
-        ExecutableWatch.start { UpdateNotice.shared.isPending = true }
+        // A package manager replaces iGhostVT's binary in place; Ghost
+        // Remote is installed whole by whatever signed it.
+        if !AppEdition.isRemoteOnly {
+            ExecutableWatch.start { UpdateNotice.shared.isPending = true }
+        }
         // Surface lifecycle and sizing, so a surface that never comes up on
         // device says where it stopped. Input/output categories stay off —
         // they would log keystrokes.
@@ -39,8 +43,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         RemoteDeviceIdentity.noteSystemName()
         RemoteHostDirectory.shared.startIfPaired()
         RemoteSessionCatalog.shared.start()
-        RemoteAccessActivity.start()
-        HostSessionWatcher.shared.start()
+        // This device as a host: Ghost Remote never is one.
+        if !AppEdition.isRemoteOnly {
+            RemoteAccessActivity.start()
+            HostSessionWatcher.shared.start()
+        }
         return true
     }
 
@@ -115,6 +122,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     /// and nothing is held it leaves by itself, on both platforms.
     func applicationWillTerminate(_ application: UIApplication) {
         GhosttyAppConfiguration.removeTemporaryFiles()
+        // Ghost Remote's tabs are other devices' sessions, which outlive
+        // it whatever this switch says; each tab's link simply drops.
+        guard !AppEdition.isRemoteOnly else { return }
         if SessionKeepAlive.isEnabled {
             let idle = application.connectedScenes
                 .compactMap { ($0.delegate as? SceneDelegate)?.tabManager }

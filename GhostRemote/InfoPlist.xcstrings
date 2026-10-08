@@ -1,0 +1,207 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "Ghost Remote tab" : {
+      "comment" : "Uniform type description of a tab dragged between the sidebar and the tab strip",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "علامة تبويب Ghost Remote"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote-Tab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote tab"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pestaña de Ghost Remote"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onglet Ghost Remote"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheda di Ghost Remote"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote のタブ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote 탭"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aba do Ghost Remote"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладка Ghost Remote"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tab Ghost Remote"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote 标签页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote 分頁"
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعثر Ghost Remote على أجهزتك الأخرى التي فُعّل فيها الوصول عن بُعد ويتصل بها، لتتمكن من فتح طرفيات عليها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote findet deine anderen Geräte mit aktiviertem Fernzugriff und verbindet sich mit ihnen, damit du dort Terminals öffnen kannst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote finds and connects to your devices with remote access turned on, so you can open terminals on them."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote encuentra tus otros dispositivos con el acceso remoto activado y se conecta a ellos para que puedas abrir terminales en ellos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote trouve vos autres appareils dont l’accès à distance est activé et s’y connecte, pour que vous puissiez y ouvrir des terminaux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote trova i tuoi altri dispositivi con l’accesso remoto attivo e si connette a essi, così puoi aprirvi dei terminali."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remoteは、リモートアクセスがオンになっているほかのデバイスを見つけて接続し、そのデバイスでターミナルを開けるようにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote는 원격 접근이 켜진 다른 기기를 찾아 연결하여 해당 기기에서 터미널을 열 수 있게 합니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Ghost Remote encontra seus outros dispositivos com o acesso remoto ativado e se conecta a eles, para que você possa abrir terminais neles."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote находит другие ваши устройства с включенным удаленным доступом и подключается к ним, чтобы вы могли открывать на них терминалы."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote tìm và kết nối với các thiết bị khác của bạn đã bật truy cập từ xa để bạn có thể mở terminal trên đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote 会查找并连接你已打开远程访问的其他设备，以便你在它们上面打开终端。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghost Remote 會尋找並連線你已開啟遠端存取的其他裝置，讓你可以在上面開啟終端機。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}

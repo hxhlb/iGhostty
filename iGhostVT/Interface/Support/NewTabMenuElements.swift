@@ -90,8 +90,11 @@ enum NewTabMenuElements {
                 onOpen()
             }
         }
-        var elements: [UIMenuElement] = [
-            UIMenu(title: "", options: .displayInline, children: [
+        var elements: [UIMenuElement] = []
+        // This device's own rows. Ghost Remote has none: every row it has
+        // is another device's.
+        if !AppEdition.isRemoteOnly {
+            elements.append(UIMenu(title: "", options: .displayInline, children: [
                 row(
                     String(
                         localized: "Home (directory)",
@@ -100,8 +103,8 @@ enum NewTabMenuElements {
                     "house",
                     .home,
                 ),
-            ]),
-        ]
+            ]))
+        }
         if !choices.openTabs.isEmpty {
             elements.append(UIMenu(
                 title: String(localized: "Open Tabs"),
@@ -130,8 +133,14 @@ enum NewTabMenuElements {
                 onOpen()
             },
         )
-        if !hosts.isEmpty {
-            elements.append(UIMenu(title: String(localized: "Other Devices"), options: .displayInline, children: hosts))
+        if AppEdition.isRemoteOnly, hosts.count == 1, let host = hosts.first as? UIMenu {
+            // Ghost Remote with one device: its rows, not a submenu of one.
+            elements.append(UIMenu(title: host.title, options: .displayInline, children: host.children))
+        } else if !hosts.isEmpty {
+            // "Other" beside this device's rows; Ghost Remote has only
+            // other devices.
+            let title = AppEdition.isRemoteOnly ? "" : String(localized: "Other Devices")
+            elements.append(UIMenu(title: title, options: .displayInline, children: hosts))
         }
         return elements
     }
