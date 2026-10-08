@@ -8,7 +8,7 @@ SDK) and Zig 0.15.2, against a scratch copy of this repo and of
 libghostty-spm. The libghostty-spm half has since landed there (`dd2df3f`,
 Phase 1 below), and the app side landed here the same day (Phase 2); this
 repo holds this note and two simulator screenshots beside it in
-`visionos/`. The target is a **jailbroken Vision Pro** — the
+`visionos/`. The target is a **Vision Pro running custom firmware** — the
 same product as on iOS: the app renders, the bundled `ighostvtd` owns the
 shells.*
 
@@ -27,7 +27,7 @@ xros/xrsimulator slices in every build script and CI matrix, and the
 2 landed too**: `make deb PLATFORM=xros` builds the app and the daemon
 against the xros SDK and packages `wiki.qaq.ighostvt_<ver>_xros-arm64e.deb`,
 ci.yml has a `package-xros` job, and the floor is visionOS 1.0. What is left here is small and specific: the app patch below,
-the jailbreak's own layout and dpkg vocabulary (open questions, listed),
+the Vision Pro bootstrap's own layout and dpkg vocabulary (open questions, listed),
 and a device to run it on.
 
 Theos is not involved: the repo builds with `xcodebuild`, signs with `ldid`,
@@ -154,7 +154,7 @@ AGENTS.md), seven files:
   than 1.0: with the 27 SDK, SwiftUI's `TupleContent` `View` conformance
   is `@available(visionOS 26)`, and every `#available(iOS 26, *)` in the
   app otherwise needs `visionOS 26` spelled out. Drop it to 2.0 only if
-  the jailbreak targets an older visionOS — then those `#available`s need
+  the custom firmware targets an older visionOS — then those `#available`s need
   the extra clause.) The widget's embed and target dependency already
   carry `platformFilter = ios`, so it is skipped on xros for free.
 - `LockableTerminalView.swift` — the keyboard-lock override of
@@ -184,7 +184,7 @@ with only the `SUPPORTED_PLATFORMS` change: `ighostvtd` (255 KB),
 `LC_BUILD_VERSION platform 11`, **no source edits**. Everything the daemon
 leans on — `forkpty`/`execve`, `proc_pidinfo`/`PROC_PIDVNODEPATHINFO`,
 `tcgetpgrp`, kqueue, the XPC mach-service listener, `posix_spawn` of the
-io child, `JailbreakRoot`'s executable-path detection — is the same
+io child, `RuntimeEnvironment`'s executable-path detection — is the same
 XNU/libSystem surface the iOS SDK exposes. The PTY harness (`make test`)
 exercises all of it on macOS already; the device-only parts are, as on
 iOS, launchd and the mach service.
@@ -198,9 +198,9 @@ and the script's own entitlement verification passed. One fix was needed
 (landed in `Scripts/package-deb.sh`): the appex loop assumed
 `PlugIns/*.appex` is non-empty, and the xros bundle has no widget.
 
-What the script cannot know is the visionOS jailbreak's vocabulary:
+What the script cannot know is the visionOS bootstrap's vocabulary:
 
-- **Bootstrap layout.** `JailbreakRoot` recognises roothide (jbroot
+- **Bootstrap layout.** `RuntimeEnvironment` recognises roothide (jbroot
   detected from its own path, `/rootfs` for the untouched filesystem) and
   rootless (`/var/jb`). If the Vision Pro bootstrap is either of those
   shapes, `PACKAGE_FLAVOR` covers it; if it is a third layout, it is a new
@@ -242,7 +242,7 @@ iPad's — visionOS's own bar/ornament conventions are untouched.
 
 ## Plan
 
-### Phase 0 — answers only the jailbreak can give (you)
+### Phase 0 — answers only the custom firmware can give (you)
 - Bootstrap layout on the Vision Pro (roothide-shaped, rootless-shaped,
   or a third).
 - `dpkg --print-architecture` and the `firmware` version its dpkg
@@ -298,7 +298,7 @@ installs and launches on the visionOS 27.0 simulator
 (`visionos/simulator-tree-build.jpg`) — sidebar, tab bar, terminal surface
 rendering, "Connecting…" because the simulator has no daemon.
 
-Still the jailbreak's to answer (Phase 0): the dpkg architecture label
+Still the custom firmware's to answer (Phase 0): the dpkg architecture label
 (`PACKAGE_ARCHITECTURE=` overrides `xros-arm64e`), whether `uikittools`
 exists on that bootstrap, and the GPU user-client classes.
 
@@ -332,7 +332,7 @@ exists on that bootstrap, and the GPU user-client classes.
 - Live Activities do not exist on visionOS; the sidebar/tab chips are the
   only session status. Nothing to build, just nothing to promise.
 
-### Later, unrelated to the jailbreak
+### Later, unrelated to the custom firmware
 - An SSH transport on the `TerminalTransport` seam would give the
   visionOS *and* iOS simulators a shell and open a sandboxed,
   store-shaped build; it is not on this port's critical path.

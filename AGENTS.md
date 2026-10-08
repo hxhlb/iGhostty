@@ -1,7 +1,7 @@
 # iGhostVT — Agent Notes
 
-Ghostty-powered terminal for jailbroken iOS 15+ — roothide and rootless
-bootstraps both — and for the Mac; visionOS is no longer supported. The app
+Ghostty-powered terminal for iOS 15+ on custom firmware — roothide and
+rootless bootstraps both — and for the Mac; visionOS is no longer supported. The app
 renders; the bundled `ighostvtd` LaunchDaemon owns every terminal session. `ighostvtd` is a thin XPC proxy under launchd's 6 MB
 jetsam limit; it spawns one child, `ighostvtd-io`, and forwards the wire to
 it. The PTYs, the replay buffers, and every shell live in `ighostvtd-io`,
@@ -941,7 +941,7 @@ the catalog's generated symbols, which is why the menu's entry is keyed
   loop: the Simulator has no daemon, so nothing connects there. Device-only
   behaviour (the GPU entitlement, the bootstrap layouts, privilege drop,
   Live Activities, the software keyboard's accessory bar) is still debugged
-  on the jailbroken device with the installed deb. `make mac-daemon` prints
+  on a device running custom firmware, with the installed deb. `make mac-daemon` prints
   where it left `ighostvt-cli`; run it from there
   (`…/Debug/ighostvt-cli list`) — the daemon's DEBUG admission accepts the
   CLI built beside it, and the app itself only opens sessions from
@@ -964,7 +964,7 @@ the catalog's generated symbols, which is why the menu's entry is keyed
   Developer ID signature optional via `MAC_ZIP_IDENTITY`. Nothing here
   notarizes: the release's notarized zip is the Notarize workflow's.
   It deliberately does **not** depend on `make check`: that target requires the
-  jailbreak toolchain, and a Mac with only Xcode has to be able to cut this zip.
+  bootstrap toolchain, and a Mac with only Xcode has to be able to cut this zip.
 
 The macOS product is one bundle carrying both programs — `Contents/MacOS/`
 holds the Catalyst GUI and `ighostvtd`, and
@@ -1285,7 +1285,7 @@ Gotchas that bit us:
   later, and a session opened by `ighostvt-cli new` at the same moment
   (no app involved) is just as late. The shell spends that time in its rc
   files — `listSessions` shows the foreground cycling through `git`,
-  `mkdir`, `grep`, `ls` — on cold caches, and, on a jailbreak, on the
+  `mkdir`, `grep`, `ls` — on cold caches, and, on custom firmware, on the
   first exec of every binary the rc runs (trustcache / AMFI work that a
   later shell no longer pays). The surface, the session binding, the
   display link, and the transport were all verified fine throughout; what
@@ -1326,8 +1326,8 @@ Gotchas that bit us:
 - A GUI app ad-hoc signed with ldid MUST carry
   `com.apple.security.iokit-user-client-class` (with `IOUserClient` / the
   AGX + IOGPU + IOSurface + IOAccel leaves, see
-  `Packaging/iGhostVT.entitlements`). This is a jailbroken-iOS property, not
-  a roothide one — the rootless package needs it just the same. Without it
+  `Packaging/iGhostVT.entitlements`). This is a property of iOS on custom
+  firmware, not a roothide one — the rootless package needs it just the same. Without it
   the kernel denies the GPU's IOKit user client — `no-sandbox` does NOT cover
   this — Metal can't create a device, and the symptom is a silent black
   terminal: no crash, ghostty logs `error.MetalFailed` / "surface rebuild

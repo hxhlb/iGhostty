@@ -21,7 +21,7 @@
                 },
                 {
                     "class": "DepictionMarkdownView",
-                    "markdown": "Run a Ghostty-powered terminal on your iPhone or iPad. Open multiple sessions, customize your theme, and copy or share terminal output.\n\n## Features\n\n- Keep programs running after you leave the app with **Keep Sessions Running** enabled. Sessions reopen on your next launch; idle shells close when you quit.\n- Switch between tabs, lock a tab to prevent accidental input, and open multiple windows on iPad.\n- Choose from the Ghostty theme catalog and use extra keys on the software keyboard.\n- Copy terminal output as text or an image, or export it as a text file.\n- Run commands, open tabs, and read terminal output with Shortcuts.\n- View session status with Live Activities on supported devices running iOS 16.2 or later.\n\n## Compatibility\n\nRequires a jailbroken iPhone or iPad running iOS 15 or later. Rootless and roothide packages are available.\n\nA separate Mac version requires macOS 13 or later and is available from [GitHub Releases](https://github.com/owngoal-dev/iGhostVT/releases).\n\n[View Source](https://github.com/owngoal-dev/iGhostVT) · [Join the Community](https://discord.gg/vqhDEep2mN)",
+                    "markdown": "Run a Ghostty-powered terminal on your iPhone or iPad. Open multiple sessions, customize your theme, and copy or share terminal output.\n\n## Features\n\n- Keep programs running after you leave the app with **Keep Sessions Running** enabled. Sessions reopen on your next launch; idle shells close when you quit.\n- Switch between tabs, lock a tab to prevent accidental input, and open multiple windows on iPad.\n- Choose from the Ghostty theme catalog and use extra keys on the software keyboard.\n- Copy terminal output as text or an image, or export it as a text file.\n- Run commands, open tabs, and read terminal output with Shortcuts.\n- View session status with Live Activities on supported devices running iOS 16.2 or later.\n\n## Compatibility\n\nRequires an iPhone or iPad running iOS 15 or later on custom firmware. Rootless and roothide packages are available.\n\nA separate Mac version requires macOS 13 or later and is available from [GitHub Releases](https://github.com/owngoal-dev/iGhostVT/releases).\n\n[View Source](https://github.com/owngoal-dev/iGhostVT) · [Join the Community](https://discord.gg/vqhDEep2mN)",
                     "useSpacing": true
                 },
                 {
@@ -43,7 +43,7 @@
                 },
                 {
                     "class": "DepictionTableTextView",
-                    "title": "Jailbreak",
+                    "title": "Custom Firmware",
                     "text": "Required"
                 },
                 {

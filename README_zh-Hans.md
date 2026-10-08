@@ -11,7 +11,7 @@
 
 ## 安装
 
-越狱设备上，在你常用的包管理器中添加 OwnGoal Studio 软件源：
+在运行自定义固件的设备上，用你常用的包管理器添加 OwnGoal Studio 软件源：
 
 **[apt.owngoal.dev](https://apt.owngoal.dev/)**
 
@@ -19,8 +19,8 @@
 
 | 设备 | 软件包 |
 | --- | --- |
-| 越狱 iPhone 或 iPad，[roothide](https://github.com/roothide) | `iphoneos-arm64e` |
-| 越狱 iPhone 或 iPad，rootless（`/var/jb`） | `iphoneos-arm64` |
+| 运行自定义固件的 iPhone 或 iPad，[roothide](https://github.com/roothide) | `iphoneos-arm64e` |
+| 运行自定义固件的 iPhone 或 iPad，rootless（`/var/jb`） | `iphoneos-arm64` |
 | Mac | `iGhostVT-<version>-macos.zip` |
 
 需要 iOS 15 或更高版本，或 macOS 13 或更高版本。
@@ -78,6 +78,6 @@ make test
 
 iGhostVT 使用 [MIT 许可证](LICENSE)。
 
-iOS 应用需要越狱，不适用于 App Store。Mac 应用不需要越狱。
+iOS 应用需要自定义固件，不适用于 App Store。Mac 应用不需要自定义固件。
 
 欢迎加入 [Discord](https://discord.gg/vqhDEep2mN) 社区。

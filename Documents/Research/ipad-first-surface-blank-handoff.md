@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-31  
 **Status:** resolved 2026-08-31 — the surface was never the problem; the shell had not printed yet. Fix: `TerminalSessionStore.isAwaitingFirstOutput` → "Starting shell…" pill, explicit `cursor-style-blink`. Findings below; the original investigation follows for the record.  
-**Affects:** iPad (jailbroken device). Seen on 0.4.1, 0.4.4, 0.4.9, 0.5.0 — it is **not** a regression from the 0.5.0 resize throttle or libghostty-spm 1.4.12 (every app tag from 0.3.9 to 0.4.9 pins lib 1.4.11 and shows it too). Earlier than 0.4.1 untested.
+**Affects:** iPad (running custom firmware). Seen on 0.4.1, 0.4.4, 0.4.9, 0.5.0 — it is **not** a regression from the 0.5.0 resize throttle or libghostty-spm 1.4.12 (every app tag from 0.3.9 to 0.4.9 pins lib 1.4.11 and shows it too). Earlier than 0.4.1 untested.
 
 ---
 
@@ -30,7 +30,7 @@ the app stamping its first XPC output event:
 | app: `session.receive` of that chunk | 02:16:02.20 |
 
 26.6 s from `forkpty` to the first byte, on the app's session *and* on a
-session no app ever attached to. Those 34 bytes are `[i] /var/jb/var/mobile/Documents\r\n` — the `echo` at the top of the device's `~/.zshrc`, after `source oh-my-zsh.sh`. Meanwhile `listSessions` showed the foreground process of both sessions cycling `git` → `mkdir` → `grep` → `ls` → `zsh`: the rc files running, slowly. The device's load average was 300–500 for the whole minute after the reboot (dopamine's bootstrap restarting everything), and every binary the rc executes is being exec'd for the first time since the reboot — on a jailbreak that first exec pays for trustcache/AMFI work that later execs do not. The same zsh started over SSH four minutes later took 1–4 s.
+session no app ever attached to. Those 34 bytes are `[i] /var/jb/var/mobile/Documents\r\n` — the `echo` at the top of the device's `~/.zshrc`, after `source oh-my-zsh.sh`. Meanwhile `listSessions` showed the foreground process of both sessions cycling `git` → `mkdir` → `grep` → `ls` → `zsh`: the rc files running, slowly. The device's load average was 300–500 for the whole minute after the reboot (dopamine's bootstrap restarting everything), and every binary the rc executes is being exec'd for the first time since the reboot — on custom firmware that first exec pays for trustcache/AMFI work that later execs do not. The same zsh started over SSH four minutes later took 1–4 s.
 
 An earlier reproduction (the user's, app launched 40 s after the reboot) measured the same shape: shell spawned 02:11:50.97, first byte 02:12:22.80 (31.8 s), and the app drew it immediately — `display link acquired`, output logged, prompt on screen.
 

@@ -11,7 +11,7 @@ A real terminal on iPhone, iPad, and Mac, drawn by the same engine as [Ghostty](
 
 ## Install
 
-On a jailbroken device, add the OwnGoal Studio repository in your preferred package manager:
+On a device running custom firmware, add the OwnGoal Studio repository in your preferred package manager:
 
 **[apt.owngoal.dev](https://apt.owngoal.dev/)**
 
@@ -19,8 +19,8 @@ Packages are also on [GitHub Releases](https://github.com/owngoal-dev/iGhostVT/r
 
 | Device | Package |
 | --- | --- |
-| Jailbroken iPhone or iPad, [roothide](https://github.com/roothide) | `iphoneos-arm64e` |
-| Jailbroken iPhone or iPad, rootless (`/var/jb`) | `iphoneos-arm64` |
+| iPhone or iPad on custom firmware, [roothide](https://github.com/roothide) | `iphoneos-arm64e` |
+| iPhone or iPad on custom firmware, rootless (`/var/jb`) | `iphoneos-arm64` |
 | Mac | `iGhostVT-<version>-macos.zip` |
 
 Requires iOS 15 or later, or macOS 13 or later.
@@ -78,6 +78,6 @@ Contributor notes are in [AGENTS.md](AGENTS.md). Architecture is in [Documents/A
 
 iGhostVT is available under the [MIT License](LICENSE).
 
-The iOS app requires a jailbreak. They are not for the App Store. The Mac app does not require a jailbreak.
+The iOS app requires custom firmware. They are not for the App Store. The Mac app does not require custom firmware.
 
 Join the community on [Discord](https://discord.gg/vqhDEep2mN).

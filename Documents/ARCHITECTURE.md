@@ -164,9 +164,9 @@ iGhostVT.app                          ighostvtd  (LaunchDaemon, root)
   executable, argument count capped. Anything else is rejected. The path is
   written the way the bootstrap's own programs write one. Under rootless
   either spelling is accepted — `/var/jb/bin/zsh` and the bare `/bin/zsh` a
-  user carries over from another jailbreak name the same file.
+  user carries over from another bootstrap name the same file.
 
-## Jailbreak layouts
+## Bootstrap layouts
 
 Two are supported, from one set of binaries. They differ only in where the
 package installs and how paths are spelled:
@@ -176,17 +176,17 @@ package installs and how paths are spelled:
 | **roothide** | the jbroot it picked this boot | `iphoneos-arm64e` |
 | **rootless** | `/var/jb` | `iphoneos-arm64` |
 
-`JailbreakRoot` works out which one it is running under by stripping its own
+`RuntimeEnvironment` works out which one it is running under by stripping its own
 install suffix, `/usr/libexec/ighostvtd`, off its own executable path: nothing
 left means no prefix, a path that `/var/jb` canonicalises to means rootless
 (a rootless bootstrap may hide a randomly named directory behind that
 symlink), anything else is a jbroot. No libroothide dependency, no bridging
-header, and off-jailbreak everything degrades to identity so the harness runs
+header, and without a bootstrap everything degrades to identity so the harness runs
 on macOS.
 
-Three path vocabularies exist, and mixing them is *the* jailbreak-path bug:
+Three path vocabularies exist, and mixing them is *the* bootstrap-path bug:
 
-| `JailbreakRoot` | who reads it | roothide | rootless |
+| `RuntimeEnvironment` | who reads it | roothide | rootless |
 | --- | --- | --- | --- |
 | `bootstrapPath()` | bootstrap programs, for their own files | `/bin/zsh` | `/var/jb/bin/zsh` |
 | `systemPath()` | bootstrap programs, for iOS's files | `/rootfs/usr/bin` | `/usr/bin` |
@@ -202,7 +202,7 @@ bootstrap has no shim: `/var/jb` is compiled into its binaries, so they and
 the kernel speak the same real paths, and iOS's own `/usr/bin` is just
 `/usr/bin`. Either way the fallback `PATH` is the bootstrap's binary
 directories followed by the system's — without the second half a session
-reaches everything the jailbreak installed and nothing the system ships.
+reaches everything the bootstrap installed and nothing the system ships.
 
 Session startup follows roothide's own terminal
 ([roothide/NewTerm](https://github.com/roothide/NewTerm)): prefer handing the

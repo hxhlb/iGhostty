@@ -3,7 +3,7 @@
 **Date:** 2026-08-30  
 **Device:** iPad8,9 (`J417AP`), iPadOS 18.5 (`22F76`), Darwin 24.5.0 (`xnu-11417.122.4`)  
 **RAM:** 5 978 095 616 bytes (~5.57 GiB)  
-**Jailbreak:** Dopamine (rootless, `/var/jb`)  
+**Custom firmware:** Dopamine (rootless, `/var/jb`)  
 **Question:** does a LaunchDaemon that `fork`s its own children keep a tight jetsam cap on the daemon, while those children are not bound by the same cap?
 
 **Answer:** yes. On this device the daemon is capped at **18 MB**; every session it starts with `forkpty` + `execve` sits at the **system-wide default task limit of 4 608 MB**.
@@ -62,7 +62,7 @@ last exit reason = JETSAM_REASON_MEMORY_PERPROCESSLIMIT
 
 The last line is already a kill: this boot, `ighostvtd` has been terminated for crossing its per-process limit.
 
-### Jailbreak: 6 MB × 3 = 18 MB
+### Dopamine: 6 MB × 3 = 18 MB
 
 Dopamine 2.2 made the jetsam multiplier configurable. The previous default was 3× everywhere; 2.2 lowered the default to 2×, then 2.2.1 put **3×** back as the default. The hook lives in launchd (`jetsam_hook.c`) and multiplies the limits launchd is about to hand to `posix_spawnattr_setjetsam*`. It does not rewrite the plist, and it does not run on `fork` / `execve`.
 
