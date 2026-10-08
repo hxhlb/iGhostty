@@ -3,8 +3,8 @@ import UIKit
 
 /// The client's half of pairing, as setup pages: one field for the code
 /// the other device shows — the pairing starts as the sixth digit lands. A
-/// wrong code says so and clears the field for another try; the host counts
-/// the tries.
+/// failure — a wrong code, a device not open for pairing — is an alert, and
+/// the field is cleared for another try; the host counts the tries.
 ///
 /// Only a host Bonjour found on this network can be paired: a device that
 /// cannot be discovered here is not offered at all.
@@ -16,12 +16,15 @@ struct RemotePairDeviceView: View {
 
     @State private var code = ""
     @State private var isPairing = false
-    @State private var errorText: String?
     @State private var paired: PairedRemoteHost?
+    /// Where the failure alert is presented: over this sheet, or the
+    /// popover's window on the Mac.
+    @State private var window: UIWindow?
     @FocusState private var isCodeFocused: Bool
 
     var body: some View {
         container
+            .background(WindowReader(window: $window))
             .onAppear {
                 isCodeFocused = true
             }
@@ -111,33 +114,34 @@ struct RemotePairDeviceView: View {
                         pair()
                     }
                 }
-            Group {
-                if isPairing {
-                    ProgressView()
-                } else if let errorText {
-                    Text(errorText)
-                        .foregroundColor(.red)
-                }
-            }
-            .font(DS.Font.detail)
-            .multilineTextAlignment(.center)
-            .frame(minHeight: 36)
+            ProgressView()
+                .opacity(isPairing ? 1 : 0)
+                .frame(minHeight: 36)
         }
     }
 
     private func pair() {
         guard code.count == RemoteAccess.pairingCodeLength, !isPairing else { return }
         isPairing = true
-        errorText = nil
         Task {
             do {
                 paired = try await RemotePairingClient.pair(with: host, code: code)
             } catch {
-                errorText = error.localizedDescription
                 code = ""
-                isCodeFocused = true
+                showFailure(error.localizedDescription)
             }
             isPairing = false
         }
+    }
+
+    /// The field takes the keyboard back once the alert is answered, for
+    /// the next try.
+    private func showFailure(_ message: String) {
+        isCodeFocused = false
+        let alert = AlertViewController(
+            content: AlertViewController.Content(title: String(localized: "Unable to Pair"), message: message),
+            actions: [AlertAction("Done", kind: .highlighted) { isCodeFocused = true }],
+        )
+        alert.present(in: window)
     }
 }
